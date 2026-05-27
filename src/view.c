@@ -24,6 +24,26 @@ static void remove_listener(struct wl_listener *listener) {
     wl_list_init(&listener->link);
 }
 
+static void focus_next_view(struct steppewm_server *server, struct steppewm_view *skip) {
+    struct steppewm_view *next = nullptr;
+    struct steppewm_view *view;
+
+    // loop through views until we find one that isn't minimzed
+    wl_list_for_each(view, &server->views, link) {
+        if (view != skip && view->mapped && !view->minimized) {
+            next = view;
+            break;
+        }
+    }
+
+    // focus the next window, otherwise clear focus
+    if (next) {
+        view_focus(next, next->toplevel->base->surface);
+    } else {
+        wlr_seat_keyboard_notify_clear_focus(server->seat);
+    }
+}
+
 // minimize a view and hide it from the scene
 void view_minimize(struct steppewm_view *view, bool minimized) {
     view->minimized = minimized;
@@ -91,6 +111,9 @@ static void view_unmap(struct wl_listener *listener, void *data) {
     wl_list_remove(&view->link);
     wl_list_init(&view->link);
     wlr_scene_node_set_enabled(&view->scene_tree->node, false);
+
+    // focus next window
+    focus_next_view(view->server, view);
 }
 
 // update/render window
@@ -240,19 +263,9 @@ static void view_on_request_minimize(struct wl_listener *listener, void *data) {
         return;
     }
     view_minimize(view, true);
-    struct steppewm_view *next = NULL;
-    struct steppewm_view *v;
-    wl_list_for_each(v, &view->server->views, link) {
-        if (v != view && !v->minimized) {
-            next = v;
-            break;
-        }
-    }
-    if (next) {
-        view_focus(next, next->toplevel->base->surface);
-    } else {
-        wlr_seat_keyboard_notify_clear_focus(view->server->seat);
-    }
+
+    // focus next window
+    focus_next_view(view->server, view);
 }
 
 // create a new view
