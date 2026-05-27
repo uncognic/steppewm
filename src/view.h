@@ -64,5 +64,6 @@ struct steppewm_view {
 void view_new(struct wl_listener *listener, void *data);
 void view_minimize(struct steppewm_view *view, bool minimized);
 void view_focus(struct steppewm_view *view, struct wlr_surface *surface);
+void view_focus_next(struct steppewm_server *server, struct steppewm_view *skip);
 struct steppewm_view *view_at(struct steppewm_server *server, double lx, double ly,
                               struct wlr_surface **surface, double *sx, double *sy);

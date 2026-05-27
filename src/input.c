@@ -63,19 +63,7 @@ static bool handle_keybinding(struct steppewm_server *server, xkb_keysym_t sym) 
             }
             struct steppewm_view *view = xdg->toplevel->base->data;
             view_minimize(view, true);
-            struct steppewm_view *next = NULL;
-            struct steppewm_view *v;
-            wl_list_for_each(v, &server->views, link) {
-                if (v != view && !v->minimized) {
-                    next = v;
-                    break;
-                }
-            }
-            if (next) {
-                view_focus(next, next->toplevel->base->surface);
-            } else {
-                wlr_seat_keyboard_notify_clear_focus(server->seat);
-            }
+            view_focus_next(server, view);
             return true;
         }
         default:

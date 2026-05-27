@@ -24,8 +24,8 @@ static void remove_listener(struct wl_listener *listener) {
     wl_list_init(&listener->link);
 }
 
-static void focus_next_view(struct steppewm_server *server, struct steppewm_view *skip) {
-    struct steppewm_view *next = nullptr;
+void view_focus_next(struct steppewm_server *server, struct steppewm_view *skip) {
+    struct steppewm_view *next = NULL;
     struct steppewm_view *view;
 
     // loop through views until we find one that isn't minimzed
@@ -115,7 +115,7 @@ static void view_unmap(struct wl_listener *listener, void *data) {
     wlr_scene_node_set_enabled(&view->scene_tree->node, false);
 
     // focus next window
-    focus_next_view(view->server, view);
+    view_focus_next(view->server, view);
 }
 
 // update/render window
@@ -273,7 +273,7 @@ static void view_on_request_minimize(struct wl_listener *listener, void *data) {
     view_minimize(view, true);
 
     // focus next window
-    focus_next_view(view->server, view);
+    view_focus_next(view->server, view);
 }
 
 // create a new view
