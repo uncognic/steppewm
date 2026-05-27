@@ -16,6 +16,12 @@ static bool view_can_configure(struct steppewm_view *view) {
     return view->toplevel->base->initialized;
 }
 
+// minimize a view and hide it from the scene
+void view_minimize(struct steppewm_view *view, bool minimized) {
+    view->minimized = minimized;
+    wlr_scene_node_set_enabled(&view->scene_tree->node, !minimized);
+}
+
 // apply ssd deco
 static void view_apply_pending_deco(struct steppewm_view *view) {
     if (!view->pending_deco || !view_can_configure(view)) {
@@ -90,6 +96,7 @@ static void view_destroy(struct wl_listener *listener, void *data) {
     wl_list_remove(&view->request_resize.link);
     wl_list_remove(&view->request_maximize.link);
     wl_list_remove(&view->request_fullscreen.link);
+    wl_list_remove(&view->request_minimize.link);
     wl_list_remove(&view->request_deco_mode.link);
     free(view);
 }
@@ -173,6 +180,28 @@ static void view_request_fullscreen(struct wl_listener *listener, void *data) {
     view_apply_state(view, view->maximized, view->toplevel->requested.fullscreen);
 }
 
+// minimize a view, handing focus to the next visible window
+static void view_on_request_minimize(struct wl_listener *listener, void *data) {
+    struct steppewm_view *view = wl_container_of(listener, view, request_minimize);
+    if (!view->toplevel->requested.minimized) {
+        return;
+    }
+    view_minimize(view, true);
+    struct steppewm_view *next = NULL;
+    struct steppewm_view *v;
+    wl_list_for_each(v, &view->server->views, link) {
+        if (v != view && !v->minimized) {
+            next = v;
+            break;
+        }
+    }
+    if (next) {
+        view_focus(next, next->toplevel->base->surface);
+    } else {
+        wlr_seat_keyboard_notify_clear_focus(view->server->seat);
+    }
+}
+
 // create a new view
 void view_new(struct wl_listener *listener, void *data) {
     // get objects
@@ -205,6 +234,7 @@ void view_new(struct wl_listener *listener, void *data) {
     view->request_resize.notify = view_request_resize;
     view->request_maximize.notify = view_request_maximize;
     view->request_fullscreen.notify = view_request_fullscreen;
+    view->request_minimize.notify = view_on_request_minimize;
 
     wl_signal_add(&toplevel->base->surface->events.map, &view->map);
     wl_signal_add(&toplevel->base->surface->events.unmap, &view->unmap);
@@ -214,6 +244,7 @@ void view_new(struct wl_listener *listener, void *data) {
     wl_signal_add(&toplevel->events.request_resize, &view->request_resize);
     wl_signal_add(&toplevel->events.request_maximize, &view->request_maximize);
     wl_signal_add(&toplevel->events.request_fullscreen, &view->request_fullscreen);
+    wl_signal_add(&toplevel->events.request_minimize, &view->request_minimize);
 }
 
 // find which view is at a certain coord, and return its steppewm_view
@@ -249,6 +280,11 @@ void view_focus(struct steppewm_view *view, struct wlr_surface *surface) {
     // if no view was providewd
     if (!view) {
         return;
+    }
+
+    // restore if minimized
+    if (view->minimized) {
+        view_minimize(view, false);
     }
 
     // get objs

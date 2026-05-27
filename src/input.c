@@ -43,11 +43,39 @@ static bool handle_keybinding(struct steppewm_server *server, xkb_keysym_t sym) 
             wl_display_terminate(server->display);
             return true;
         case XKB_KEY_Tab: {
-            if (wl_list_length(&server->views) < 2) {
+            // bail if no views
+            if (wl_list_empty(&server->views)) {
                 return true;
             }
             struct steppewm_view *next = wl_container_of(server->views.prev, next, link);
             view_focus(next, next->toplevel->base->surface);
+            return true;
+        }
+        case XKB_KEY_m: {
+            // minimize focused window
+            struct wlr_surface *focused = server->seat->keyboard_state.focused_surface;
+            if (!focused) {
+                return true;
+            }
+            struct wlr_xdg_surface *xdg = wlr_xdg_surface_try_from_wlr_surface(focused);
+            if (!xdg || xdg->role != WLR_XDG_SURFACE_ROLE_TOPLEVEL) {
+                return true;
+            }
+            struct steppewm_view *view = xdg->toplevel->base->data;
+            view_minimize(view, true);
+            struct steppewm_view *next = NULL;
+            struct steppewm_view *v;
+            wl_list_for_each(v, &server->views, link) {
+                if (v != view && !v->minimized) {
+                    next = v;
+                    break;
+                }
+            }
+            if (next) {
+                view_focus(next, next->toplevel->base->surface);
+            } else {
+                wlr_seat_keyboard_notify_clear_focus(server->seat);
+            }
             return true;
         }
         default:
@@ -409,10 +437,10 @@ void cursor_button(struct wl_listener *listener, void *data) {
                     cursor_begin_interactive(dv, STEPPEWM_CURSOR_MOVE, 0);
                 } else if (hnode == &dv->deco.corner_bl->node) {
                     cursor_begin_interactive(dv, STEPPEWM_CURSOR_RESIZE,
-                                            WLR_EDGE_BOTTOM | WLR_EDGE_LEFT);
+                                             WLR_EDGE_BOTTOM | WLR_EDGE_LEFT);
                 } else if (hnode == &dv->deco.corner_br->node) {
                     cursor_begin_interactive(dv, STEPPEWM_CURSOR_RESIZE,
-                                            WLR_EDGE_BOTTOM | WLR_EDGE_RIGHT);
+                                             WLR_EDGE_BOTTOM | WLR_EDGE_RIGHT);
                 } else if (hnode == &dv->deco.border_left->node) {
                     cursor_begin_interactive(dv, STEPPEWM_CURSOR_RESIZE, WLR_EDGE_LEFT);
                 } else if (hnode == &dv->deco.border_right->node) {

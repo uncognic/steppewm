@@ -39,6 +39,7 @@ struct steppewm_view {
 
     bool maximized;
     bool fullscreen;
+    bool minimized;
     struct wlr_box saved_geo; // saved geo to restore when exiting maximized state
 
     struct wl_list link;
@@ -51,10 +52,12 @@ struct steppewm_view {
     struct wl_listener request_resize;
     struct wl_listener request_maximize;
     struct wl_listener request_fullscreen;
+    struct wl_listener request_minimize;
 };
 
 // once again see view.c
 void view_new(struct wl_listener *listener, void *data);
+void view_minimize(struct steppewm_view *view, bool minimized);
 void view_focus(struct steppewm_view *view, struct wlr_surface *surface);
 struct steppewm_view *view_at(struct steppewm_server *server, double lx, double ly,
                               struct wlr_surface **surface, double *sx, double *sy);
