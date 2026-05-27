@@ -45,6 +45,7 @@ void cursor_frame(struct wl_listener *listener, void *data);
 
 void request_set_cursor(struct wl_listener *listener, void *data);
 void request_set_selection(struct wl_listener *listener, void *data);
+void request_set_primary_selection(struct wl_listener *listener, void *data);
 
 void cursor_begin_interactive(struct steppewm_view *view, enum steppewm_cursor_mode mode,
                               uint32_t edges);

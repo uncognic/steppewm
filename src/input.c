@@ -20,6 +20,7 @@
 #include <wlr/types/wlr_input_device.h>
 #include <wlr/types/wlr_keyboard.h>
 #include <wlr/types/wlr_pointer.h>
+#include <wlr/types/wlr_primary_selection.h>
 #include <wlr/types/wlr_seat.h>
 #include <wlr/types/wlr_xcursor_manager.h>
 #include <wlr/types/wlr_xdg_shell.h>
@@ -373,15 +374,22 @@ void cursor_button(struct wl_listener *listener, void *data) {
             tree = tree->node.parent;
         }
 
-        // if it was
         if (tree) {
             struct steppewm_view *dv = tree->node.data;
             view_focus(dv, dv->toplevel->base->surface);
-            // titlebar move
-            // borders resize
-            double ry = server->cursor->y - dv->scene_tree->node.y;
-            if (ry < STEPPEWM_TITLE_H) {
-                cursor_begin_interactive(dv, STEPPEWM_CURSOR_MOVE, 0);
+            if (dv->deco_mode == STEPPEWM_DECO_SERVER) {
+                // check titlebar for move
+                if (hnode == &dv->deco.titlebar->node) {
+                    cursor_begin_interactive(dv, STEPPEWM_CURSOR_MOVE, 0);
+
+                    // check borders for resize
+                } else if (hnode == &dv->deco.border_left->node) {
+                    cursor_begin_interactive(dv, STEPPEWM_CURSOR_RESIZE, WLR_EDGE_LEFT);
+                } else if (hnode == &dv->deco.border_right->node) {
+                    cursor_begin_interactive(dv, STEPPEWM_CURSOR_RESIZE, WLR_EDGE_RIGHT);
+                } else if (hnode == &dv->deco.border_bottom->node) {
+                    cursor_begin_interactive(dv, STEPPEWM_CURSOR_RESIZE, WLR_EDGE_BOTTOM);
+                }
             }
         }
     }
@@ -431,4 +439,12 @@ void request_set_selection(struct wl_listener *listener, void *data) {
 
     // update seat selection (clipboard)
     wlr_seat_set_selection(server->seat, event->source, event->serial);
+}
+
+// handle primary selection requests from clients
+void request_set_primary_selection(struct wl_listener *listener, void *data) {
+    struct steppewm_server *server =
+        wl_container_of(listener, server, request_set_primary_selection);
+    struct wlr_seat_request_set_primary_selection_event *event = data;
+    wlr_seat_set_primary_selection(server->seat, event->source, event->serial);
 }

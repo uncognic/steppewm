@@ -9,6 +9,7 @@
 #include <wlr/types/wlr_compositor.h>
 #include <wlr/types/wlr_cursor.h>
 #include <wlr/types/wlr_data_device.h>
+#include <wlr/types/wlr_primary_selection_v1.h>
 #include <wlr/types/wlr_output_layout.h>
 #include <wlr/types/wlr_scene.h>
 #include <wlr/types/wlr_seat.h>
@@ -55,6 +56,7 @@ static bool server_init(struct steppewm_server *s) {
     wlr_compositor_create(s->display, 6, s->renderer);
     wlr_subcompositor_create(s->display);
     wlr_data_device_manager_create(s->display);
+    wlr_primary_selection_v1_device_manager_create(s->display);
 
     // create output layout
     s->output_layout = wlr_output_layout_create(s->display);
@@ -99,8 +101,11 @@ static bool server_init(struct steppewm_server *s) {
     s->seat = wlr_seat_create(s->display, "seat0");
     s->request_set_cursor.notify = request_set_cursor;
     s->request_set_selection.notify = request_set_selection;
+    s->request_set_primary_selection.notify = request_set_primary_selection;
     wl_signal_add(&s->seat->events.request_set_cursor, &s->request_set_cursor);
     wl_signal_add(&s->seat->events.request_set_selection, &s->request_set_selection);
+    wl_signal_add(&s->seat->events.request_set_primary_selection,
+                  &s->request_set_primary_selection);
 
     return true;
 }
