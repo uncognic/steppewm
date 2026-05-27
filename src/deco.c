@@ -26,12 +26,25 @@
 static const float COLOR_TITLE_ACTIVE[4] = {0.24f, 0.24f, 0.24f, 1.0f};
 static const float COLOR_TITLE_INACTIVE[4] = {0.14f, 0.14f, 0.14f, 1.0f};
 static const float COLOR_BORDER[4] = {0.20f, 0.20f, 0.20f, 1.0f};
+static const float COLOR_CLOSE[4] = {0.85f, 0.08f, 0.08f, 1.0f};
+
+// remove wl_listener
+static void remove_listener(struct wl_listener *listener) {
+    if (listener->link.next && listener->link.next != &listener->link) {
+        wl_list_remove(&listener->link);
+    }
+    wl_list_init(&listener->link);
+}
 
 // called when a new view is created
 void deco_create(struct steppewm_view *view) {
     view->deco.titlebar =
         wlr_scene_rect_create(view->scene_tree, 0, STEPPEWM_TITLE_H, COLOR_TITLE_INACTIVE);
     wlr_scene_node_set_position(&view->deco.titlebar->node, 0, 0);
+
+    // create rectangle for close button
+    view->deco.close_button = wlr_scene_rect_create(view->scene_tree, STEPPEWM_CLOSE_BUTTON_W,
+                                                    STEPPEWM_TITLE_H, COLOR_CLOSE);
 
     view->deco.border_left =
         wlr_scene_rect_create(view->scene_tree, STEPPEWM_BORDER_W, 0, COLOR_BORDER);
@@ -43,6 +56,8 @@ void deco_create(struct steppewm_view *view) {
         STEPPEWM_CORNER_SIZE, STEPPEWM_CORNER_SIZE, COLOR_BORDER);
     view->deco.corner_br = wlr_scene_rect_create(view->scene_tree,
         STEPPEWM_CORNER_SIZE, STEPPEWM_CORNER_SIZE, COLOR_BORDER);
+
+    deco_update(view);
 }
 
 // called when the decoration needs to be updated
@@ -56,6 +71,10 @@ void deco_update(struct steppewm_view *view) {
     int tw = sw + 2 * STEPPEWM_BORDER_W; // total decorated width
 
     wlr_scene_rect_set_size(view->deco.titlebar, tw, STEPPEWM_TITLE_H);
+
+    // set size and position of the close button
+    wlr_scene_rect_set_size(view->deco.close_button, STEPPEWM_CLOSE_BUTTON_W, STEPPEWM_TITLE_H);
+    wlr_scene_node_set_position(&view->deco.close_button->node, tw - STEPPEWM_CLOSE_BUTTON_W, 0);
 
     wlr_scene_rect_set_size(view->deco.border_left, STEPPEWM_BORDER_W, sh);
     wlr_scene_node_set_position(&view->deco.border_left->node, 0, STEPPEWM_TITLE_H);
@@ -77,16 +96,18 @@ void deco_destroy(struct steppewm_view *view) {
     if (view->deco_mode != STEPPEWM_DECO_SERVER || !view->deco.titlebar) {
         return;
     }
-    view->deco.titlebar = NULL;
-    view->deco.border_left = NULL;
-    view->deco.border_right = NULL;
-    view->deco.border_bottom = NULL;
-    view->deco.corner_bl = NULL;
-    view->deco.corner_br = NULL;
+    // free stuff
+    view->deco.titlebar = nullptr;
+    view->deco.close_button = nullptr;
+    view->deco.border_left = nullptr;
+    view->deco.border_right = nullptr;
+    view->deco.border_bottom = nullptr;
+    view->deco.corner_bl = nullptr;
+    view->deco.corner_br = nullptr;
 }
 
 void deco_set_focus(struct steppewm_view *view, bool focused) {
-    if (view->deco_mode != STEPPEWM_DECO_SERVER || !view->deco.titlebar) {
+    if (!view || view->deco_mode != STEPPEWM_DECO_SERVER || !view->deco.titlebar) {
         return;
     }
     wlr_scene_rect_set_color(view->deco.titlebar,
@@ -113,6 +134,18 @@ static void deco_request_mode(struct wl_listener *listener, void *data) {
                                             WLR_XDG_TOPLEVEL_DECORATION_V1_MODE_SERVER_SIDE);
 }
 
+// destroy decoration handle
+static void deco_handle_destroy(struct wl_listener *listener, void *data) {
+    struct steppewm_view *view = wl_container_of(listener, view, destroy_deco);
+    (void)data;
+
+    view->pending_deco = nullptr;
+    view->decoration = nullptr;
+
+    remove_listener(&view->request_deco_mode);
+    remove_listener(&view->destroy_deco);
+}
+
 // called when a new xdg toplevel is created
 void deco_new(struct wl_listener *listener, void *data) {
     // same as the function above
@@ -126,8 +159,12 @@ void deco_new(struct wl_listener *listener, void *data) {
     }
 
     // defer set_mode until it can recieve configure events
+    view->decoration = decoration;
     view->pending_deco = decoration;
 
     view->request_deco_mode.notify = deco_request_mode;
     wl_signal_add(&decoration->events.request_mode, &view->request_deco_mode);
+
+    view->destroy_deco.notify = deco_handle_destroy;
+    wl_signal_add(&decoration->events.destroy, &view->destroy_deco);
 }

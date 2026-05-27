@@ -13,6 +13,7 @@ struct wlr_scene_rect;
 
 struct steppewm_deco {
     struct wlr_scene_rect *titlebar;
+    struct wlr_scene_rect *close_button;
     struct wlr_scene_rect *border_left;
     struct wlr_scene_rect *border_right;
     struct wlr_scene_rect *border_bottom;
@@ -25,6 +26,7 @@ enum steppewm_deco_mode {
     STEPPEWM_DECO_CLIENT,
 };
 
+// a window
 struct steppewm_view {
     struct steppewm_server *server;
     struct wlr_xdg_toplevel *toplevel;
@@ -33,13 +35,16 @@ struct steppewm_view {
     enum steppewm_deco_mode deco_mode;
 
     struct steppewm_deco deco;                           // the decoration
+    struct wlr_xdg_toplevel_decoration_v1 *decoration;
     struct wlr_xdg_toplevel_decoration_v1 *pending_deco; // applied once configure events are legal
     struct wl_listener request_deco_mode;                // for xdg-decoration request_mode
+    struct wl_listener destroy_deco;
     struct wl_event_source *initial_configure_idle;
 
     bool maximized;
     bool fullscreen;
     bool minimized;
+    bool mapped;
     struct wlr_box saved_geo; // saved geo to restore when exiting maximized state
 
     struct wl_list link;

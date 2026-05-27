@@ -433,18 +433,29 @@ void cursor_button(struct wl_listener *listener, void *data) {
             struct steppewm_view *dv = tree->node.data;
             view_focus(dv, dv->toplevel->base->surface);
             if (dv->deco_mode == STEPPEWM_DECO_SERVER) {
-                if (hnode == &dv->deco.titlebar->node) {
+                // if the close button was clicked
+                if (hnode == &dv->deco.close_button->node) {
+                    wlr_xdg_toplevel_send_close(dv->toplevel);
+                // if the titlebar was clicked
+                } else if (hnode == &dv->deco.titlebar->node) {
                     cursor_begin_interactive(dv, STEPPEWM_CURSOR_MOVE, 0);
+                // bottom left corner click
                 } else if (hnode == &dv->deco.corner_bl->node) {
                     cursor_begin_interactive(dv, STEPPEWM_CURSOR_RESIZE,
                                              WLR_EDGE_BOTTOM | WLR_EDGE_LEFT);
+                // bottom right corner click
                 } else if (hnode == &dv->deco.corner_br->node) {
                     cursor_begin_interactive(dv, STEPPEWM_CURSOR_RESIZE,
                                              WLR_EDGE_BOTTOM | WLR_EDGE_RIGHT);
+                // left border click
                 } else if (hnode == &dv->deco.border_left->node) {
                     cursor_begin_interactive(dv, STEPPEWM_CURSOR_RESIZE, WLR_EDGE_LEFT);
+
+                // right border click
                 } else if (hnode == &dv->deco.border_right->node) {
                     cursor_begin_interactive(dv, STEPPEWM_CURSOR_RESIZE, WLR_EDGE_RIGHT);
+
+                // bottom border click
                 } else if (hnode == &dv->deco.border_bottom->node) {
                     cursor_begin_interactive(dv, STEPPEWM_CURSOR_RESIZE, WLR_EDGE_BOTTOM);
                 }

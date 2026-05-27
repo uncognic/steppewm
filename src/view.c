@@ -16,6 +16,14 @@ static bool view_can_configure(struct steppewm_view *view) {
     return view->toplevel->base->initialized;
 }
 
+// remove wl_listener listener
+static void remove_listener(struct wl_listener *listener) {
+    if (listener->link.next && listener->link.next != &listener->link) {
+        wl_list_remove(&listener->link);
+    }
+    wl_list_init(&listener->link);
+}
+
 // minimize a view and hide it from the scene
 void view_minimize(struct steppewm_view *view, bool minimized) {
     view->minimized = minimized;
@@ -52,6 +60,10 @@ static void view_initial_configure(void *data) {
 // focus a new window
 static void view_map(struct wl_listener *listener, void *data) {
     struct steppewm_view *view = wl_container_of(listener, view, map);
+
+    // set properties
+    view->mapped = true;
+    wlr_scene_node_set_enabled(&view->scene_tree->node, true);
     wl_list_insert(&view->server->views, &view->link);
     view_focus(view, view->toplevel->base->surface);
 }
@@ -63,7 +75,22 @@ static void view_unmap(struct wl_listener *listener, void *data) {
         view->server->grabbed_view = NULL;
         view->server->cursor_mode = STEPPEWM_CURSOR_PASSTHROUGH;
     }
+
+    // unfocus keyboard if is focused currently
+    if (view->server->seat->keyboard_state.focused_surface == view->toplevel->base->surface) {
+        wlr_seat_keyboard_notify_clear_focus(view->server->seat);
+    }
+
+    // unfocus pointer if is focused currently
+    if (view->server->seat->pointer_state.focused_surface == view->toplevel->base->surface) {
+        wlr_seat_pointer_clear_focus(view->server->seat);
+    }
+
+    // set properties
+    view->mapped = false;
     wl_list_remove(&view->link);
+    wl_list_init(&view->link);
+    wlr_scene_node_set_enabled(&view->scene_tree->node, false);
 }
 
 // update/render window
@@ -87,7 +114,30 @@ static void view_destroy(struct wl_listener *listener, void *data) {
     if (view->initial_configure_idle) {
         wl_event_source_remove(view->initial_configure_idle);
     }
-    deco_destroy(view);
+
+    // remove from view list
+    if (view->mapped) {
+        wl_list_remove(&view->link);
+    }
+
+    // clear grab on window
+    if (view->server->grabbed_view == view) {
+        view->server->grabbed_view = NULL;
+        view->server->cursor_mode = STEPPEWM_CURSOR_PASSTHROUGH;
+    }
+
+    // clear kb focus
+    if (view->server->seat->keyboard_state.focused_surface == view->toplevel->base->surface) {
+        wlr_seat_keyboard_notify_clear_focus(view->server->seat);
+    }
+
+    // clear cursor focus
+    if (view->server->seat->pointer_state.focused_surface == view->toplevel->base->surface) {
+        wlr_seat_pointer_clear_focus(view->server->seat);
+    }
+
+    // set properties
+    view->toplevel->base->data = NULL;
     wl_list_remove(&view->map.link);
     wl_list_remove(&view->unmap.link);
     wl_list_remove(&view->commit.link);
@@ -97,7 +147,10 @@ static void view_destroy(struct wl_listener *listener, void *data) {
     wl_list_remove(&view->request_maximize.link);
     wl_list_remove(&view->request_fullscreen.link);
     wl_list_remove(&view->request_minimize.link);
-    wl_list_remove(&view->request_deco_mode.link);
+    remove_listener(&view->request_deco_mode);
+    remove_listener(&view->destroy_deco);
+    deco_destroy(view);
+    wlr_scene_node_destroy(&view->scene_tree->node);
     free(view);
 }
 
@@ -224,6 +277,7 @@ void view_new(struct wl_listener *listener, void *data) {
     toplevel->base->data = view; // for lookup by deco_new
 
     wl_list_init(&view->request_deco_mode.link);
+    wl_list_init(&view->destroy_deco.link);
 
     // set everything
     view->map.notify = view_map;
@@ -277,8 +331,8 @@ struct steppewm_view *view_at(struct steppewm_server *server, double lx, double 
 
 // focus a view
 void view_focus(struct steppewm_view *view, struct wlr_surface *surface) {
-    // if no view was providewd
-    if (!view) {
+    // if no view was provided or if view was not mapped
+    if (!view || !view->mapped) {
         return;
     }
 
@@ -303,7 +357,11 @@ void view_focus(struct steppewm_view *view, struct wlr_surface *surface) {
         if (xdg && xdg->role == WLR_XDG_SURFACE_ROLE_TOPLEVEL) {
             wlr_xdg_toplevel_set_activated(xdg->toplevel, false);
             struct steppewm_view *prev_view = xdg->toplevel->base->data;
-            deco_set_focus(prev_view, false);
+
+            // unfocus it
+            if (prev_view) {
+                deco_set_focus(prev_view, false);
+            }
         }
     }
 
