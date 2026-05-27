@@ -4,33 +4,33 @@
 #include <wayland-server-core.h>
 #include <wlr/util/box.h>
 
-struct parwm_server;
+struct steppewm_server;
 struct wlr_xdg_toplevel;
 struct wlr_xdg_toplevel_decoration_v1;
 struct wlr_scene_tree;
 struct wlr_surface;
 struct wlr_scene_rect;
 
-struct parwm_deco {
+struct steppewm_deco {
     struct wlr_scene_rect *titlebar;
     struct wlr_scene_rect *border_left;
     struct wlr_scene_rect *border_right;
     struct wlr_scene_rect *border_bottom;
 };
 
-enum parwm_deco_mode {
-    PARWM_DECO_SERVER,
-    PARWM_DECO_CLIENT,
+enum steppewm_deco_mode {
+    STEPPEWM_DECO_SERVER,
+    STEPPEWM_DECO_CLIENT,
 };
 
-struct parwm_view {
-    struct parwm_server *server;
+struct steppewm_view {
+    struct steppewm_server *server;
     struct wlr_xdg_toplevel *toplevel;
     struct wlr_scene_tree *scene_tree; // container: whole decorated window
     struct wlr_scene_tree *xdg_tree;   // content: the actual content w/o titlebar and borders
-    enum parwm_deco_mode deco_mode;
+    enum steppewm_deco_mode deco_mode;
 
-    struct parwm_deco deco;                              // the decoration
+    struct steppewm_deco deco;                           // the decoration
     struct wlr_xdg_toplevel_decoration_v1 *pending_deco; // applied once configure events are legal
     struct wl_listener request_deco_mode;                // for xdg-decoration request_mode
     struct wl_event_source *initial_configure_idle;
@@ -53,6 +53,6 @@ struct parwm_view {
 
 // once again see view.c
 void view_new(struct wl_listener *listener, void *data);
-void view_focus(struct parwm_view *view, struct wlr_surface *surface);
-struct parwm_view *view_at(struct parwm_server *server, double lx, double ly,
-                           struct wlr_surface **surface, double *sx, double *sy);
+void view_focus(struct steppewm_view *view, struct wlr_surface *surface);
+struct steppewm_view *view_at(struct steppewm_server *server, double lx, double ly,
+                              struct wlr_surface **surface, double *sx, double *sy);

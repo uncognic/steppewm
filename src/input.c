@@ -36,7 +36,7 @@
 //// keyboard
 
 // this is where lua keybinds will be put but for now we dont have lua yet
-static bool handle_keybinding(struct parwm_server *server, xkb_keysym_t sym) {
+static bool handle_keybinding(struct steppewm_server *server, xkb_keysym_t sym) {
     switch (sym) {
         case XKB_KEY_Escape:
             wl_display_terminate(server->display);
@@ -45,7 +45,7 @@ static bool handle_keybinding(struct parwm_server *server, xkb_keysym_t sym) {
             if (wl_list_length(&server->views) < 2) {
                 return true;
             }
-            struct parwm_view *next = wl_container_of(server->views.prev, next, link);
+            struct steppewm_view *next = wl_container_of(server->views.prev, next, link);
             view_focus(next, next->toplevel->base->surface);
             return true;
         }
@@ -56,8 +56,8 @@ static bool handle_keybinding(struct parwm_server *server, xkb_keysym_t sym) {
 
 // called when keyboard modifiers change
 static void keyboard_modifiers(struct wl_listener *listener, void *data) {
-    // get the parwm_keyboard from the listener
-    struct parwm_keyboard *keyboard = wl_container_of(listener, keyboard, modifiers);
+    // get the steppewm_keyboard from the listener
+    struct steppewm_keyboard *keyboard = wl_container_of(listener, keyboard, modifiers);
 
     // focus keyboard
     wlr_seat_set_keyboard(keyboard->server->seat, keyboard->wlr_keyboard);
@@ -68,11 +68,11 @@ static void keyboard_modifiers(struct wl_listener *listener, void *data) {
 
 // handles key presses and releases
 static void keyboard_key(struct wl_listener *listener, void *data) {
-    // get the parwm_keyboard from the listener
-    struct parwm_keyboard *keyboard = wl_container_of(listener, keyboard, key);
+    // get the steppewm_keyboard from the listener
+    struct steppewm_keyboard *keyboard = wl_container_of(listener, keyboard, key);
 
-    // get the parwm_server from the keyboard
-    struct parwm_server *server = keyboard->server;
+    // get the steppewm_server from the keyboard
+    struct steppewm_server *server = keyboard->server;
 
     // get the key event
     struct wlr_keyboard_key_event *event = data;
@@ -105,7 +105,7 @@ static void keyboard_key(struct wl_listener *listener, void *data) {
 
 // destroy keyboard
 static void keyboard_destroy(struct wl_listener *listener, void *data) {
-    struct parwm_keyboard *keyboard = wl_container_of(listener, keyboard, destroy);
+    struct steppewm_keyboard *keyboard = wl_container_of(listener, keyboard, destroy);
     wl_list_remove(&keyboard->modifiers.link);
     wl_list_remove(&keyboard->key.link);
     wl_list_remove(&keyboard->destroy.link);
@@ -114,12 +114,12 @@ static void keyboard_destroy(struct wl_listener *listener, void *data) {
 }
 
 // add keyboard
-static void keyboard_new(struct parwm_server *server, struct wlr_input_device *device) {
+static void keyboard_new(struct steppewm_server *server, struct wlr_input_device *device) {
     // create keyboard
     struct wlr_keyboard *wlr_keyboard = wlr_keyboard_from_input_device(device);
 
-    // create parwm_keyboard
-    struct parwm_keyboard *keyboard = calloc(1, sizeof(*keyboard));
+    // create steppewm_keyboard
+    struct steppewm_keyboard *keyboard = calloc(1, sizeof(*keyboard));
     keyboard->server = server;
     keyboard->wlr_keyboard = wlr_keyboard;
 
@@ -148,13 +148,13 @@ static void keyboard_new(struct parwm_server *server, struct wlr_input_device *d
 }
 
 // add pointer
-static void pointer_new(struct parwm_server *server, struct wlr_input_device *device) {
+static void pointer_new(struct steppewm_server *server, struct wlr_input_device *device) {
     wlr_cursor_attach_input_device(server->cursor, device);
 }
 
 // create new input
 void input_new(struct wl_listener *listener, void *data) {
-    struct parwm_server *server = wl_container_of(listener, server, new_input);
+    struct steppewm_server *server = wl_container_of(listener, server, new_input);
     struct wlr_input_device *device = data;
 
     switch (device->type) {
@@ -177,17 +177,17 @@ void input_new(struct wl_listener *listener, void *data) {
 
 //// cursor
 // initiate move or resize operation for window
-void cursor_begin_interactive(struct parwm_view *view, enum parwm_cursor_mode mode,
+void cursor_begin_interactive(struct steppewm_view *view, enum steppewm_cursor_mode mode,
                               uint32_t edges) {
     // get objects
-    struct parwm_server *server = view->server;
+    struct steppewm_server *server = view->server;
     struct wlr_scene_node *node = &view->scene_tree->node;
 
     server->grabbed_view = view;
     server->cursor_mode = mode;
 
     // calculate grab offsets
-    if (mode == PARWM_CURSOR_MOVE) {
+    if (mode == STEPPEWM_CURSOR_MOVE) {
         // store offset from cur to top left corner of window
         // maintains relative grab point during dragging
         server->grab_x = server->cursor->x - node->x;
@@ -195,8 +195,8 @@ void cursor_begin_interactive(struct parwm_view *view, enum parwm_cursor_mode mo
     } else {
         struct wlr_box *geo = &view->toplevel->base->geometry;
         // offset by ssd
-        int ox = view->deco_mode == PARWM_DECO_SERVER ? PARWM_BORDER_W : 0;
-        int oy = view->deco_mode == PARWM_DECO_SERVER ? PARWM_TITLE_H : 0;
+        int ox = view->deco_mode == STEPPEWM_DECO_SERVER ? STEPPEWM_BORDER_W : 0;
+        int oy = view->deco_mode == STEPPEWM_DECO_SERVER ? STEPPEWM_TITLE_H : 0;
         // calculate surface position in space
         int sx = node->x + ox + geo->x;
         int sy = node->y + oy + geo->y;
@@ -214,15 +214,15 @@ void cursor_begin_interactive(struct parwm_view *view, enum parwm_cursor_mode mo
 }
 
 // set cursor position
-static void process_cursor_move(struct parwm_server *server) {
-    struct parwm_view *view = server->grabbed_view;
+static void process_cursor_move(struct steppewm_server *server) {
+    struct steppewm_view *view = server->grabbed_view;
     wlr_scene_node_set_position(&view->scene_tree->node, server->cursor->x - server->grab_x,
                                 server->cursor->y - server->grab_y);
 }
 
 // resize window with cursor movement
-static void process_cursor_resize(struct parwm_server *server) {
-    struct parwm_view *view = server->grabbed_view;
+static void process_cursor_resize(struct steppewm_server *server) {
+    struct steppewm_view *view = server->grabbed_view;
     double border_x = server->cursor->x - server->grab_x;
     double border_y = server->cursor->y - server->grab_y;
     int new_left = server->grab_geobox.x;
@@ -254,27 +254,27 @@ static void process_cursor_resize(struct parwm_server *server) {
     }
 
     struct wlr_box *geo = &view->toplevel->base->geometry;
-    int ox = view->deco_mode == PARWM_DECO_SERVER ? PARWM_BORDER_W : 0;
-    int oy = view->deco_mode == PARWM_DECO_SERVER ? PARWM_TITLE_H : 0;
+    int ox = view->deco_mode == STEPPEWM_DECO_SERVER ? STEPPEWM_BORDER_W : 0;
+    int oy = view->deco_mode == STEPPEWM_DECO_SERVER ? STEPPEWM_TITLE_H : 0;
     wlr_scene_node_set_position(&view->scene_tree->node, new_left - ox - geo->x,
                                 new_top - oy - geo->y);
     wlr_xdg_toplevel_set_size(view->toplevel, new_right - new_left, new_bottom - new_top);
 }
 
 // called on cursor motion events
-static void process_cursor_motion(struct parwm_server *server, uint32_t time_msec) {
-    if (server->cursor_mode == PARWM_CURSOR_MOVE) {
+static void process_cursor_motion(struct steppewm_server *server, uint32_t time_msec) {
+    if (server->cursor_mode == STEPPEWM_CURSOR_MOVE) {
         process_cursor_move(server);
         return;
     }
-    if (server->cursor_mode == PARWM_CURSOR_RESIZE) {
+    if (server->cursor_mode == STEPPEWM_CURSOR_RESIZE) {
         process_cursor_resize(server);
         return;
     }
 
     double sx, sy;
     struct wlr_surface *surface = NULL;
-    struct parwm_view *view =
+    struct steppewm_view *view =
         view_at(server, server->cursor->x, server->cursor->y, &surface, &sx, &sy);
 
     if (!view) {
@@ -293,7 +293,7 @@ static void process_cursor_motion(struct parwm_server *server, uint32_t time_mse
 // handle cursor motion events
 void cursor_motion(struct wl_listener *listener, void *data) {
     // get objects
-    struct parwm_server *server = wl_container_of(listener, server, cursor_motion);
+    struct steppewm_server *server = wl_container_of(listener, server, cursor_motion);
     struct wlr_pointer_motion_event *event = data;
 
     // move the cursor
@@ -304,7 +304,7 @@ void cursor_motion(struct wl_listener *listener, void *data) {
 // handle absolute cursor motion events
 void cursor_motion_absolute(struct wl_listener *listener, void *data) {
     // get objects
-    struct parwm_server *server = wl_container_of(listener, server, cursor_motion_absolute);
+    struct steppewm_server *server = wl_container_of(listener, server, cursor_motion_absolute);
     struct wlr_pointer_motion_absolute_event *event = data;
 
     // do the absolute move
@@ -315,7 +315,7 @@ void cursor_motion_absolute(struct wl_listener *listener, void *data) {
 // handle cursor button events
 void cursor_button(struct wl_listener *listener, void *data) {
     // get objects
-    struct parwm_server *server = wl_container_of(listener, server, cursor_button);
+    struct steppewm_server *server = wl_container_of(listener, server, cursor_button);
     struct wlr_pointer_button_event *event = data;
 
     // notify the seat of the event
@@ -323,14 +323,14 @@ void cursor_button(struct wl_listener *listener, void *data) {
 
     // if the button was released, end any operation
     if (event->state == WL_POINTER_BUTTON_STATE_RELEASED) {
-        server->cursor_mode = PARWM_CURSOR_PASSTHROUGH;
+        server->cursor_mode = STEPPEWM_CURSOR_PASSTHROUGH;
         server->grabbed_view = NULL;
         return;
     }
 
     double sx, sy;
     struct wlr_surface *surface = NULL;
-    struct parwm_view *view =
+    struct steppewm_view *view =
         view_at(server, server->cursor->x, server->cursor->y, &surface, &sx, &sy);
 
     // alt drag for compositor initiated move/resize
@@ -340,7 +340,7 @@ void cursor_button(struct wl_listener *listener, void *data) {
         view_focus(view, surface);
         // left click for move
         if (event->button == BTN_LEFT) {
-            cursor_begin_interactive(view, PARWM_CURSOR_MOVE, 0);
+            cursor_begin_interactive(view, STEPPEWM_CURSOR_MOVE, 0);
             return;
         }
 
@@ -353,7 +353,7 @@ void cursor_button(struct wl_listener *listener, void *data) {
                                                                          : WLR_EDGE_RIGHT) |
                 (server->cursor->y < node->y + geo->y + geo->height / 2.0 ? WLR_EDGE_TOP
                                                                           : WLR_EDGE_BOTTOM);
-            cursor_begin_interactive(view, PARWM_CURSOR_RESIZE, edges);
+            cursor_begin_interactive(view, STEPPEWM_CURSOR_RESIZE, edges);
             return;
         }
     }
@@ -375,13 +375,13 @@ void cursor_button(struct wl_listener *listener, void *data) {
 
         // if it was
         if (tree) {
-            struct parwm_view *dv = tree->node.data;
+            struct steppewm_view *dv = tree->node.data;
             view_focus(dv, dv->toplevel->base->surface);
             // titlebar move
             // borders resize
             double ry = server->cursor->y - dv->scene_tree->node.y;
-            if (ry < PARWM_TITLE_H) {
-                cursor_begin_interactive(dv, PARWM_CURSOR_MOVE, 0);
+            if (ry < STEPPEWM_TITLE_H) {
+                cursor_begin_interactive(dv, STEPPEWM_CURSOR_MOVE, 0);
             }
         }
     }
@@ -390,7 +390,7 @@ void cursor_button(struct wl_listener *listener, void *data) {
 // handle cursor scroll wheel / axis events
 void cursor_axis(struct wl_listener *listener, void *data) {
     // get objects
-    struct parwm_server *server = wl_container_of(listener, server, cursor_axis);
+    struct steppewm_server *server = wl_container_of(listener, server, cursor_axis);
     struct wlr_pointer_axis_event *event = data;
 
     // forward scroll event to the seat
@@ -401,7 +401,7 @@ void cursor_axis(struct wl_listener *listener, void *data) {
 // handle cursor frame events
 void cursor_frame(struct wl_listener *listener, void *data) {
     // get objects
-    struct parwm_server *server = wl_container_of(listener, server, cursor_frame);
+    struct steppewm_server *server = wl_container_of(listener, server, cursor_frame);
 
     // notify seat
     wlr_seat_pointer_notify_frame(server->seat);
@@ -412,7 +412,7 @@ void cursor_frame(struct wl_listener *listener, void *data) {
 // handle cursor image change requests from clients
 void request_set_cursor(struct wl_listener *listener, void *data) {
     // get objects
-    struct parwm_server *server = wl_container_of(listener, server, request_set_cursor);
+    struct steppewm_server *server = wl_container_of(listener, server, request_set_cursor);
     struct wlr_seat_pointer_request_set_cursor_event *event = data;
 
     // only allow focused client to change cursor
@@ -426,7 +426,7 @@ void request_set_cursor(struct wl_listener *listener, void *data) {
 // handle clipboard / selection change requests from clients
 void request_set_selection(struct wl_listener *listener, void *data) {
     // get objects
-    struct parwm_server *server = wl_container_of(listener, server, request_set_selection);
+    struct steppewm_server *server = wl_container_of(listener, server, request_set_selection);
     struct wlr_seat_request_set_selection_event *event = data;
 
     // update seat selection (clipboard)

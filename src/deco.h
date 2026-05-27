@@ -18,13 +18,13 @@
 #include <stdbool.h>
 #include <wayland-server-core.h>
 
-struct parwm_view;
+struct steppewm_view;
 
-#define PARWM_TITLE_H 26
-#define PARWM_BORDER_W 1
+#define STEPPEWM_TITLE_H 26
+#define STEPPEWM_BORDER_W 1
 
 void deco_new(struct wl_listener *listener, void *data);
-void deco_create(struct parwm_view *view);
-void deco_update(struct parwm_view *view);
-void deco_destroy(struct parwm_view *view);
-void deco_set_focus(struct parwm_view *view, bool focused);
+void deco_create(struct steppewm_view *view);
+void deco_update(struct steppewm_view *view);
+void deco_destroy(struct steppewm_view *view);
+void deco_set_focus(struct steppewm_view *view, bool focused);

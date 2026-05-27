@@ -16,15 +16,15 @@
 #include <wlr/types/wlr_xdg_shell.h>
 #include <wlr/util/box.h>
 
-struct parwm_view;
+struct steppewm_view;
 
-enum parwm_cursor_mode {
-    PARWM_CURSOR_PASSTHROUGH,
-    PARWM_CURSOR_MOVE,
-    PARWM_CURSOR_RESIZE,
+enum steppewm_cursor_mode {
+    STEPPEWM_CURSOR_PASSTHROUGH,
+    STEPPEWM_CURSOR_MOVE,
+    STEPPEWM_CURSOR_RESIZE,
 };
 
-struct parwm_server {
+struct steppewm_server {
     struct wl_display *display;
     struct wlr_backend *backend;
     struct wlr_renderer *renderer;
@@ -63,8 +63,8 @@ struct parwm_server {
     struct wl_listener request_set_selection;
 
     // move/resize grab state
-    enum parwm_cursor_mode cursor_mode;
-    struct parwm_view *grabbed_view;
+    enum steppewm_cursor_mode cursor_mode;
+    struct steppewm_view *grabbed_view;
     double grab_x, grab_y;
     struct wlr_box grab_geobox;
     uint32_t resize_edges;

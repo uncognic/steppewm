@@ -1,2 +1,2 @@
-# parwm
+# steppewm
 Stacking Wayland Window Manager

@@ -28,44 +28,45 @@ static const float COLOR_TITLE_INACTIVE[4] = {0.14f, 0.14f, 0.14f, 1.0f};
 static const float COLOR_BORDER[4] = {0.20f, 0.20f, 0.20f, 1.0f};
 
 // called when a new view is created
-void deco_create(struct parwm_view *view) {
+void deco_create(struct steppewm_view *view) {
     view->deco.titlebar =
-        wlr_scene_rect_create(view->scene_tree, 0, PARWM_TITLE_H, COLOR_TITLE_INACTIVE);
+        wlr_scene_rect_create(view->scene_tree, 0, STEPPEWM_TITLE_H, COLOR_TITLE_INACTIVE);
     wlr_scene_node_set_position(&view->deco.titlebar->node, 0, 0);
 
     view->deco.border_left =
-        wlr_scene_rect_create(view->scene_tree, PARWM_BORDER_W, 0, COLOR_BORDER);
+        wlr_scene_rect_create(view->scene_tree, STEPPEWM_BORDER_W, 0, COLOR_BORDER);
     view->deco.border_right =
-        wlr_scene_rect_create(view->scene_tree, PARWM_BORDER_W, 0, COLOR_BORDER);
+        wlr_scene_rect_create(view->scene_tree, STEPPEWM_BORDER_W, 0, COLOR_BORDER);
     view->deco.border_bottom =
-        wlr_scene_rect_create(view->scene_tree, 0, PARWM_BORDER_W, COLOR_BORDER);
+        wlr_scene_rect_create(view->scene_tree, 0, STEPPEWM_BORDER_W, COLOR_BORDER);
 }
 
 // called when the decoration needs to be updated
-void deco_update(struct parwm_view *view) {
-    if (view->deco_mode != PARWM_DECO_SERVER || !view->deco.titlebar) {
+void deco_update(struct steppewm_view *view) {
+    if (view->deco_mode != STEPPEWM_DECO_SERVER || !view->deco.titlebar) {
         return;
     }
 
     int sw = view->toplevel->base->geometry.width;
     int sh = view->toplevel->base->geometry.height;
-    int tw = sw + 2 * PARWM_BORDER_W; // total decorated width
+    int tw = sw + 2 * STEPPEWM_BORDER_W; // total decorated width
 
-    wlr_scene_rect_set_size(view->deco.titlebar, tw, PARWM_TITLE_H);
+    wlr_scene_rect_set_size(view->deco.titlebar, tw, STEPPEWM_TITLE_H);
 
-    wlr_scene_rect_set_size(view->deco.border_left, PARWM_BORDER_W, sh);
-    wlr_scene_node_set_position(&view->deco.border_left->node, 0, PARWM_TITLE_H);
+    wlr_scene_rect_set_size(view->deco.border_left, STEPPEWM_BORDER_W, sh);
+    wlr_scene_node_set_position(&view->deco.border_left->node, 0, STEPPEWM_TITLE_H);
 
-    wlr_scene_rect_set_size(view->deco.border_right, PARWM_BORDER_W, sh);
-    wlr_scene_node_set_position(&view->deco.border_right->node, tw - PARWM_BORDER_W, PARWM_TITLE_H);
+    wlr_scene_rect_set_size(view->deco.border_right, STEPPEWM_BORDER_W, sh);
+    wlr_scene_node_set_position(&view->deco.border_right->node, tw - STEPPEWM_BORDER_W,
+                                STEPPEWM_TITLE_H);
 
-    wlr_scene_rect_set_size(view->deco.border_bottom, tw, PARWM_BORDER_W);
-    wlr_scene_node_set_position(&view->deco.border_bottom->node, 0, PARWM_TITLE_H + sh);
+    wlr_scene_rect_set_size(view->deco.border_bottom, tw, STEPPEWM_BORDER_W);
+    wlr_scene_node_set_position(&view->deco.border_bottom->node, 0, STEPPEWM_TITLE_H + sh);
 }
 
 // called when a view is destroyed
-void deco_destroy(struct parwm_view *view) {
-    if (view->deco_mode != PARWM_DECO_SERVER || !view->deco.titlebar) {
+void deco_destroy(struct steppewm_view *view) {
+    if (view->deco_mode != STEPPEWM_DECO_SERVER || !view->deco.titlebar) {
         return;
     }
     view->deco.titlebar = NULL;
@@ -74,8 +75,8 @@ void deco_destroy(struct parwm_view *view) {
     view->deco.border_bottom = NULL;
 }
 
-void deco_set_focus(struct parwm_view *view, bool focused) {
-    if (view->deco_mode != PARWM_DECO_SERVER || !view->deco.titlebar) {
+void deco_set_focus(struct steppewm_view *view, bool focused) {
+    if (view->deco_mode != STEPPEWM_DECO_SERVER || !view->deco.titlebar) {
         return;
     }
     wlr_scene_rect_set_color(view->deco.titlebar,
@@ -84,8 +85,8 @@ void deco_set_focus(struct parwm_view *view, bool focused) {
 
 // called when a new xdg toplevel is created
 static void deco_request_mode(struct wl_listener *listener, void *data) {
-    // get the parwm_view from the listener
-    struct parwm_view *view = wl_container_of(listener, view, request_deco_mode);
+    // get the steppewm_view from the listener
+    struct steppewm_view *view = wl_container_of(listener, view, request_deco_mode);
 
     // case where the view is pending
     struct wlr_xdg_toplevel_decoration_v1 *decoration = data;
@@ -105,11 +106,11 @@ static void deco_request_mode(struct wl_listener *listener, void *data) {
 // called when a new xdg toplevel is created
 void deco_new(struct wl_listener *listener, void *data) {
     // same as the function above
-    struct parwm_server *server = wl_container_of(listener, server, new_deco);
+    struct steppewm_server *server = wl_container_of(listener, server, new_deco);
     struct wlr_xdg_toplevel_decoration_v1 *decoration = data;
 
-    // get the parwm_view from the decoration
-    struct parwm_view *view = decoration->toplevel->base->data;
+    // get the steppewm_view from the decoration
+    struct steppewm_view *view = decoration->toplevel->base->data;
     if (!view) {
         return;
     }

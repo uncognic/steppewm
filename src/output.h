@@ -2,12 +2,12 @@
 
 #include <wayland-server-core.h>
 
-struct parwm_server;
+struct steppewm_server;
 struct wlr_output;
 struct wlr_scene_output;
 
-struct parwm_output {
-    struct parwm_server *server;
+struct steppewm_output {
+    struct steppewm_server *server;
     struct wlr_output *wlr_output;
     struct wlr_scene_output *scene_output;
 

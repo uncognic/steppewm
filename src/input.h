@@ -19,12 +19,12 @@
 
 #include "server.h"
 
-struct parwm_view;
+struct steppewm_view;
 struct wlr_keyboard;
 
 // struct for keyboard state
-struct parwm_keyboard {
-    struct parwm_server *server;
+struct steppewm_keyboard {
+    struct steppewm_server *server;
     struct wlr_keyboard *wlr_keyboard;
 
     struct wl_list link;
@@ -46,4 +46,5 @@ void cursor_frame(struct wl_listener *listener, void *data);
 void request_set_cursor(struct wl_listener *listener, void *data);
 void request_set_selection(struct wl_listener *listener, void *data);
 
-void cursor_begin_interactive(struct parwm_view *view, enum parwm_cursor_mode mode, uint32_t edges);
+void cursor_begin_interactive(struct steppewm_view *view, enum steppewm_cursor_mode mode,
+                              uint32_t edges);

@@ -24,7 +24,7 @@
 #include "view.h"
 
 // initialize server
-static bool server_init(struct parwm_server *s) {
+static bool server_init(struct steppewm_server *s) {
     // create display
     s->display = wl_display_create();
     if (!s->display) {
@@ -105,7 +105,7 @@ static bool server_init(struct parwm_server *s) {
     return true;
 }
 
-static void server_run(struct parwm_server *s) {
+static void server_run(struct steppewm_server *s) {
     // get a socket
     const char *socket = wl_display_add_socket_auto(s->display);
     if (!socket) {
@@ -120,13 +120,13 @@ static void server_run(struct parwm_server *s) {
     }
 
     setenv("WAYLAND_DISPLAY", socket, true);
-    wlr_log(WLR_INFO, "parwm running on %s", socket);
+    wlr_log(WLR_INFO, "steppewm running on %s", socket);
 
     wl_display_run(s->display);
 }
 
 // clean up
-static void server_fini(struct parwm_server *s) {
+static void server_fini(struct steppewm_server *s) {
     wl_display_destroy_clients(s->display);
     wlr_scene_node_destroy(&s->scene->tree.node);
     wlr_xcursor_manager_destroy(s->cursor_mgr);
@@ -138,11 +138,11 @@ static void server_fini(struct parwm_server *s) {
     wl_display_destroy(s->display);
 }
 
-// entry 
+// entry
 int main(void) {
     wlr_log_init(WLR_DEBUG, NULL);
 
-    struct parwm_server server = {0};
+    struct steppewm_server server = {0};
     if (!server_init(&server)) {
         return EXIT_FAILURE;
     }

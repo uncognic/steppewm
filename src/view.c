@@ -12,27 +12,27 @@
 #include "server.h"
 #include "view.h"
 
-static bool view_can_configure(struct parwm_view *view) {
+static bool view_can_configure(struct steppewm_view *view) {
     return view->toplevel->base->initialized;
 }
 
 // apply ssd deco
-static void view_apply_pending_deco(struct parwm_view *view) {
+static void view_apply_pending_deco(struct steppewm_view *view) {
     if (!view->pending_deco || !view_can_configure(view)) {
         return;
     }
 
     wlr_xdg_toplevel_decoration_v1_set_mode(view->pending_deco,
                                             WLR_XDG_TOPLEVEL_DECORATION_V1_MODE_SERVER_SIDE);
-    view->deco_mode = PARWM_DECO_SERVER;
-    wlr_scene_node_set_position(&view->xdg_tree->node, PARWM_BORDER_W, PARWM_TITLE_H);
+    view->deco_mode = STEPPEWM_DECO_SERVER;
+    wlr_scene_node_set_position(&view->xdg_tree->node, STEPPEWM_BORDER_W, STEPPEWM_TITLE_H);
     deco_create(view);
     view->pending_deco = NULL;
 }
 
 // move
 static void view_initial_configure(void *data) {
-    struct parwm_view *view = data;
+    struct steppewm_view *view = data;
     view->initial_configure_idle = NULL;
 
     if (!view_can_configure(view)) {
@@ -45,24 +45,24 @@ static void view_initial_configure(void *data) {
 
 // focus a new window
 static void view_map(struct wl_listener *listener, void *data) {
-    struct parwm_view *view = wl_container_of(listener, view, map);
+    struct steppewm_view *view = wl_container_of(listener, view, map);
     wl_list_insert(&view->server->views, &view->link);
     view_focus(view, view->toplevel->base->surface);
 }
 
 // remove window (view)
 static void view_unmap(struct wl_listener *listener, void *data) {
-    struct parwm_view *view = wl_container_of(listener, view, unmap);
+    struct steppewm_view *view = wl_container_of(listener, view, unmap);
     if (view->server->grabbed_view == view) {
         view->server->grabbed_view = NULL;
-        view->server->cursor_mode = PARWM_CURSOR_PASSTHROUGH;
+        view->server->cursor_mode = STEPPEWM_CURSOR_PASSTHROUGH;
     }
     wl_list_remove(&view->link);
 }
 
 // update/render window
 static void view_commit(struct wl_listener *listener, void *data) {
-    struct parwm_view *view = wl_container_of(listener, view, commit);
+    struct steppewm_view *view = wl_container_of(listener, view, commit);
     if (view->toplevel->base->initial_commit) {
         if (!view->initial_configure_idle) {
             struct wl_event_loop *event_loop = wl_display_get_event_loop(view->server->display);
@@ -77,7 +77,7 @@ static void view_commit(struct wl_listener *listener, void *data) {
 
 // clean up view
 static void view_destroy(struct wl_listener *listener, void *data) {
-    struct parwm_view *view = wl_container_of(listener, view, destroy);
+    struct steppewm_view *view = wl_container_of(listener, view, destroy);
     if (view->initial_configure_idle) {
         wl_event_source_remove(view->initial_configure_idle);
     }
@@ -96,20 +96,20 @@ static void view_destroy(struct wl_listener *listener, void *data) {
 
 // when the client wants to move or resize a window
 static void view_request_move(struct wl_listener *listener, void *data) {
-    struct parwm_view *view = wl_container_of(listener, view, request_move);
-    cursor_begin_interactive(view, PARWM_CURSOR_MOVE, 0);
+    struct steppewm_view *view = wl_container_of(listener, view, request_move);
+    cursor_begin_interactive(view, STEPPEWM_CURSOR_MOVE, 0);
 }
 
 static void view_request_resize(struct wl_listener *listener, void *data) {
-    struct parwm_view *view = wl_container_of(listener, view, request_resize);
+    struct steppewm_view *view = wl_container_of(listener, view, request_resize);
     struct wlr_xdg_toplevel_resize_event *event = data;
-    cursor_begin_interactive(view, PARWM_CURSOR_RESIZE, event->edges);
+    cursor_begin_interactive(view, STEPPEWM_CURSOR_RESIZE, event->edges);
 }
 
 // maximize/full screen and save the old geometry
-static void view_apply_state(struct parwm_view *view, bool maximized, bool fullscreen) {
+static void view_apply_state(struct steppewm_view *view, bool maximized, bool fullscreen) {
     // stuff
-    struct parwm_server *server = view->server;
+    struct steppewm_server *server = view->server;
     struct wlr_scene_node *node = &view->scene_tree->node;
     bool was_special = view->maximized || view->fullscreen;
     bool now_special = maximized || fullscreen;
@@ -140,8 +140,8 @@ static void view_apply_state(struct parwm_view *view, bool maximized, bool fulls
         wlr_scene_node_set_position(node, out_box.x, out_box.y);
 
         // resize window to fill output minus the titlebars and borders
-        int ox = view->deco_mode == PARWM_DECO_SERVER ? PARWM_BORDER_W : 0;
-        int oy = view->deco_mode == PARWM_DECO_SERVER ? PARWM_TITLE_H : 0;
+        int ox = view->deco_mode == STEPPEWM_DECO_SERVER ? STEPPEWM_BORDER_W : 0;
+        int oy = view->deco_mode == STEPPEWM_DECO_SERVER ? STEPPEWM_TITLE_H : 0;
         wlr_xdg_toplevel_set_size(view->toplevel, out_box.width - 2 * ox, out_box.height - oy - ox);
 
         // restore state if we are exiting
@@ -163,27 +163,27 @@ static void view_apply_state(struct parwm_view *view, bool maximized, bool fulls
 
 // maximize a view
 static void view_request_maximize(struct wl_listener *listener, void *data) {
-    struct parwm_view *view = wl_container_of(listener, view, request_maximize);
+    struct steppewm_view *view = wl_container_of(listener, view, request_maximize);
     view_apply_state(view, view->toplevel->requested.maximized, view->fullscreen);
 }
 
 // fullscreen a view
 static void view_request_fullscreen(struct wl_listener *listener, void *data) {
-    struct parwm_view *view = wl_container_of(listener, view, request_fullscreen);
+    struct steppewm_view *view = wl_container_of(listener, view, request_fullscreen);
     view_apply_state(view, view->maximized, view->toplevel->requested.fullscreen);
 }
 
 // create a new view
 void view_new(struct wl_listener *listener, void *data) {
     // get objects
-    struct parwm_server *server = wl_container_of(listener, server, new_xdg_toplevel);
+    struct steppewm_server *server = wl_container_of(listener, server, new_xdg_toplevel);
     struct wlr_xdg_toplevel *toplevel = data;
-    struct parwm_view *view = calloc(1, sizeof(*view));
+    struct steppewm_view *view = calloc(1, sizeof(*view));
 
     view->server = server;
     view->toplevel = toplevel;
-    view->deco_mode = PARWM_DECO_CLIENT; // switched to SERVER by the client when it detects
-                                         // ssd support (which we do)
+    view->deco_mode = STEPPEWM_DECO_CLIENT; // switched to SERVER by the client when it detects
+                                            // ssd support (which we do)
 
     // whole scene for the window (title bar, border, surface)
     view->scene_tree = wlr_scene_tree_create(&server->scene->tree);
@@ -216,9 +216,9 @@ void view_new(struct wl_listener *listener, void *data) {
     wl_signal_add(&toplevel->events.request_fullscreen, &view->request_fullscreen);
 }
 
-// find which view is at a certain coord, and return its parwm_view
-struct parwm_view *view_at(struct parwm_server *server, double lx, double ly,
-                           struct wlr_surface **surface, double *sx, double *sy) {
+// find which view is at a certain coord, and return its steppewm_view
+struct steppewm_view *view_at(struct steppewm_server *server, double lx, double ly,
+                              struct wlr_surface **surface, double *sx, double *sy) {
 
     // get the scene node
     struct wlr_scene_node *node = wlr_scene_node_at(&server->scene->tree.node, lx, ly, sx, sy);
@@ -245,14 +245,14 @@ struct parwm_view *view_at(struct parwm_server *server, double lx, double ly,
 }
 
 // focus a view
-void view_focus(struct parwm_view *view, struct wlr_surface *surface) {
+void view_focus(struct steppewm_view *view, struct wlr_surface *surface) {
     // if no view was providewd
     if (!view) {
         return;
     }
 
     // get objs
-    struct parwm_server *server = view->server;
+    struct steppewm_server *server = view->server;
     struct wlr_seat *seat = server->seat;
     struct wlr_surface *prev = seat->keyboard_state.focused_surface;
 
@@ -266,7 +266,7 @@ void view_focus(struct parwm_view *view, struct wlr_surface *surface) {
         struct wlr_xdg_surface *xdg = wlr_xdg_surface_try_from_wlr_surface(prev);
         if (xdg && xdg->role == WLR_XDG_SURFACE_ROLE_TOPLEVEL) {
             wlr_xdg_toplevel_set_activated(xdg->toplevel, false);
-            struct parwm_view *prev_view = xdg->toplevel->base->data;
+            struct steppewm_view *prev_view = xdg->toplevel->base->data;
             deco_set_focus(prev_view, false);
         }
     }

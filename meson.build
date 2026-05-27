@@ -1,4 +1,4 @@
-project('parwm', 'c',
+project('steppewm', 'c',
   version : '0.1.0',
   default_options : [
     'c_std=gnu23',
@@ -42,7 +42,7 @@ sources = files(
   'src/deco.c',
 )
 
-executable('parwm',
+executable('steppewm',
   sources,
   protocol_headers,
   dependencies : deps,

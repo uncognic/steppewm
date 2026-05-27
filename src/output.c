@@ -9,7 +9,7 @@
 
 // called on output frame events
 static void output_frame(struct wl_listener *listener, void *data) {
-    struct parwm_output *output = wl_container_of(listener, output, frame);
+    struct steppewm_output *output = wl_container_of(listener, output, frame);
     struct wlr_scene_output *scene_output =
         wlr_scene_get_scene_output(output->server->scene, output->wlr_output);
 
@@ -21,14 +21,14 @@ static void output_frame(struct wl_listener *listener, void *data) {
 }
 
 static void output_request_state(struct wl_listener *listener, void *data) {
-    struct parwm_output *output = wl_container_of(listener, output, request_state);
+    struct steppewm_output *output = wl_container_of(listener, output, request_state);
     const struct wlr_output_event_request_state *event = data;
     wlr_output_commit_state(output->wlr_output, event->state);
 }
 
 // clean up output
 static void output_destroy(struct wl_listener *listener, void *data) {
-    struct parwm_output *output = wl_container_of(listener, output, destroy);
+    struct steppewm_output *output = wl_container_of(listener, output, destroy);
 
     wl_list_remove(&output->frame.link);
     wl_list_remove(&output->request_state.link);
@@ -39,7 +39,7 @@ static void output_destroy(struct wl_listener *listener, void *data) {
 
 // add new output and set it up
 void output_new(struct wl_listener *listener, void *data) {
-    struct parwm_server *server = wl_container_of(listener, server, new_output);
+    struct steppewm_server *server = wl_container_of(listener, server, new_output);
     struct wlr_output *wlr_output = data;
 
     wlr_output_init_render(wlr_output, server->allocator, server->renderer);
@@ -55,7 +55,7 @@ void output_new(struct wl_listener *listener, void *data) {
     wlr_output_commit_state(wlr_output, &state);
     wlr_output_state_finish(&state);
 
-    struct parwm_output *output = calloc(1, sizeof(*output));
+    struct steppewm_output *output = calloc(1, sizeof(*output));
     output->server = server;
     output->wlr_output = wlr_output;
 
