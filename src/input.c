@@ -434,7 +434,7 @@ void cursor_button(struct wl_listener *listener, void *data) {
             view_focus(dv, dv->toplevel->base->surface);
             if (dv->deco_mode == STEPPEWM_DECO_SERVER) {
                 // if the close button was clicked
-                if (hnode == &dv->deco.close_button->node) {
+                if (hnode == &dv->deco.close_button->node && event->button == BTN_LEFT) {
                     wlr_xdg_toplevel_send_close(dv->toplevel);
                 // if the titlebar was clicked
                 } else if (hnode == &dv->deco.titlebar->node) {
