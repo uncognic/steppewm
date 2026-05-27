@@ -26,7 +26,8 @@ struct wlr_scene_node;
 #define STEPPEWM_TITLE_H 20 // title height
 #define STEPPEWM_BORDER_W 3 // border width
 #define STEPPEWM_CORNER_SIZE 8 // corner size
-#define STEPPEWM_CLOSE_BUTTON_W 20 // close button width
+#define STEPPEWM_CLOSE_BUTTON_W 40 // close button width
+#define STEPPEWM_MINIMIZE_BUTTON_W 20 // minimuze button width
 
 void deco_new(struct wl_listener *listener, void *data);
 void deco_create(struct steppewm_view *view);
@@ -34,6 +35,6 @@ void deco_update(struct steppewm_view *view);
 void deco_destroy(struct steppewm_view *view);
 void deco_set_focus(struct steppewm_view *view, bool focused);
 const char *deco_cursor_name(struct steppewm_view *view, struct wlr_scene_node *node);
-bool deco_handle_button(struct steppewm_view *view, struct wlr_scene_node *node, uint32_t button);
+bool deco_handle_button(struct steppewm_view *view, struct steppewm_server *server, struct wlr_scene_node *node, uint32_t button);
 struct steppewm_view *deco_at(struct steppewm_server *server, double lx, double ly,
                               struct wlr_scene_node **node);

@@ -395,7 +395,7 @@ void cursor_button(struct wl_listener *listener, void *data) {
     struct steppewm_view *dview = deco_at(server, server->cursor->x, server->cursor->y, &hnode);
     if (dview) {
         view_focus(dview, dview->toplevel->base->surface);
-        deco_handle_button(dview, hnode, event->button);
+        deco_handle_button(dview, server, hnode, event->button);
     }
 }
 
