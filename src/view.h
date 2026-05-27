@@ -14,9 +14,12 @@ struct wlr_scene_rect;
 struct steppewm_deco {
     struct wlr_scene_rect *titlebar;
     struct wlr_scene_rect *close_button;
+    struct wlr_scene_rect *border_top;
     struct wlr_scene_rect *border_left;
     struct wlr_scene_rect *border_right;
     struct wlr_scene_rect *border_bottom;
+    struct wlr_scene_rect *corner_tl;
+    struct wlr_scene_rect *corner_tr;
     struct wlr_scene_rect *corner_bl;
     struct wlr_scene_rect *corner_br;
 };

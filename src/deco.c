@@ -31,6 +31,7 @@ static const float COLOR_TITLE_INACTIVE[4] = {0.14f, 0.14f, 0.14f, 1.0f};
 static const float COLOR_BORDER[4] = {0.20f, 0.20f, 0.20f, 1.0f};
 static const float COLOR_CLOSE_ACTIVE[4] = {0.85f, 0.08f, 0.08f, 1.0f};
 static const float COLOR_CLOSE_INACTIVE[4] = {0.45f, 0.06f, 0.06f, 1.0f};
+static const float COLOR_INVISIBLE[4] = {0.0f, 0.0f, 0.0f, 0.0f};
 
 // remove wl_listener
 static void remove_listener(struct wl_listener *listener) {
@@ -50,16 +51,23 @@ void deco_create(struct steppewm_view *view) {
     view->deco.close_button = wlr_scene_rect_create(view->scene_tree, STEPPEWM_CLOSE_BUTTON_W,
                                                     STEPPEWM_TITLE_H, COLOR_CLOSE_INACTIVE);
 
+    // create objects for corners and edges
+    view->deco.border_top =
+        wlr_scene_rect_create(view->scene_tree, 0, STEPPEWM_BORDER_W, COLOR_INVISIBLE);
     view->deco.border_left =
         wlr_scene_rect_create(view->scene_tree, STEPPEWM_BORDER_W, 0, COLOR_BORDER);
     view->deco.border_right =
         wlr_scene_rect_create(view->scene_tree, STEPPEWM_BORDER_W, 0, COLOR_BORDER);
     view->deco.border_bottom =
         wlr_scene_rect_create(view->scene_tree, 0, STEPPEWM_BORDER_W, COLOR_BORDER);
+    view->deco.corner_tl = wlr_scene_rect_create(view->scene_tree,
+        STEPPEWM_CORNER_SIZE, STEPPEWM_CORNER_SIZE, COLOR_INVISIBLE);
+    view->deco.corner_tr = wlr_scene_rect_create(view->scene_tree,
+        STEPPEWM_CORNER_SIZE, STEPPEWM_CORNER_SIZE, COLOR_INVISIBLE);
     view->deco.corner_bl = wlr_scene_rect_create(view->scene_tree,
-        STEPPEWM_CORNER_SIZE, STEPPEWM_CORNER_SIZE, COLOR_BORDER);
+        STEPPEWM_CORNER_SIZE, STEPPEWM_CORNER_SIZE, COLOR_INVISIBLE);
     view->deco.corner_br = wlr_scene_rect_create(view->scene_tree,
-        STEPPEWM_CORNER_SIZE, STEPPEWM_CORNER_SIZE, COLOR_BORDER);
+        STEPPEWM_CORNER_SIZE, STEPPEWM_CORNER_SIZE, COLOR_INVISIBLE);
 
     deco_update(view);
 }
@@ -80,6 +88,10 @@ void deco_update(struct steppewm_view *view) {
     wlr_scene_rect_set_size(view->deco.close_button, STEPPEWM_CLOSE_BUTTON_W, STEPPEWM_TITLE_H);
     wlr_scene_node_set_position(&view->deco.close_button->node, tw - STEPPEWM_CLOSE_BUTTON_W, 0);
 
+    // set sizes and positions for the corners and edges
+    wlr_scene_rect_set_size(view->deco.border_top, tw, STEPPEWM_BORDER_W);
+    wlr_scene_node_set_position(&view->deco.border_top->node, 0, 0);
+
     wlr_scene_rect_set_size(view->deco.border_left, STEPPEWM_BORDER_W, sh);
     wlr_scene_node_set_position(&view->deco.border_left->node, 0, STEPPEWM_TITLE_H);
 
@@ -89,6 +101,9 @@ void deco_update(struct steppewm_view *view) {
 
     wlr_scene_rect_set_size(view->deco.border_bottom, tw, STEPPEWM_BORDER_W);
     wlr_scene_node_set_position(&view->deco.border_bottom->node, 0, STEPPEWM_TITLE_H + sh);
+
+    wlr_scene_node_set_position(&view->deco.corner_tl->node, 0, 0);
+    wlr_scene_node_set_position(&view->deco.corner_tr->node, tw - STEPPEWM_CORNER_SIZE, 0);
 
     int corner_y = STEPPEWM_TITLE_H + sh + STEPPEWM_BORDER_W - STEPPEWM_CORNER_SIZE;
     wlr_scene_node_set_position(&view->deco.corner_bl->node, 0, corner_y);
@@ -103,9 +118,12 @@ void deco_destroy(struct steppewm_view *view) {
     // free stuff
     view->deco.titlebar = nullptr;
     view->deco.close_button = nullptr;
+    view->deco.border_top = nullptr;
     view->deco.border_left = nullptr;
     view->deco.border_right = nullptr;
     view->deco.border_bottom = nullptr;
+    view->deco.corner_tl = nullptr;
+    view->deco.corner_tr = nullptr;
     view->deco.corner_bl = nullptr;
     view->deco.corner_br = nullptr;
 }
@@ -127,6 +145,13 @@ const char *deco_cursor_name(struct steppewm_view *view, struct wlr_scene_node *
         return NULL;
     }
 
+    // set cursor when in a resize area
+    if (node == &view->deco.corner_tl->node) {
+        return "nw-resize";
+    }
+    if (node == &view->deco.corner_tr->node) {
+        return "ne-resize";
+    }
     if (node == &view->deco.corner_bl->node) {
         return "sw-resize";
     }
@@ -138,6 +163,9 @@ const char *deco_cursor_name(struct steppewm_view *view, struct wlr_scene_node *
     }
     if (node == &view->deco.border_right->node) {
         return "e-resize";
+    }
+    if (node == &view->deco.border_top->node) {
+        return "n-resize";
     }
     if (node == &view->deco.border_bottom->node) {
         return "s-resize";
@@ -172,14 +200,25 @@ bool deco_handle_button(struct steppewm_view *view, struct wlr_scene_node *node,
         return false;
     }
 
+    // handle close
     if (node == &view->deco.close_button->node) {
         if (button == BTN_LEFT) {
             wlr_xdg_toplevel_send_close(view->toplevel);
         }
         return true;
     }
+
+    // handle resizing
     if (node == &view->deco.titlebar->node) {
         cursor_begin_interactive(view, STEPPEWM_CURSOR_MOVE, 0);
+        return true;
+    }
+    if (node == &view->deco.corner_tl->node) {
+        cursor_begin_interactive(view, STEPPEWM_CURSOR_RESIZE, WLR_EDGE_TOP | WLR_EDGE_LEFT);
+        return true;
+    }
+    if (node == &view->deco.corner_tr->node) {
+        cursor_begin_interactive(view, STEPPEWM_CURSOR_RESIZE, WLR_EDGE_TOP | WLR_EDGE_RIGHT);
         return true;
     }
     if (node == &view->deco.corner_bl->node) {
@@ -196,6 +235,10 @@ bool deco_handle_button(struct steppewm_view *view, struct wlr_scene_node *node,
     }
     if (node == &view->deco.border_right->node) {
         cursor_begin_interactive(view, STEPPEWM_CURSOR_RESIZE, WLR_EDGE_RIGHT);
+        return true;
+    }
+    if (node == &view->deco.border_top->node) {
+        cursor_begin_interactive(view, STEPPEWM_CURSOR_RESIZE, WLR_EDGE_TOP);
         return true;
     }
     if (node == &view->deco.border_bottom->node) {
