@@ -13,12 +13,15 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <linux/input-event-codes.h>
 #include <wayland-server-core.h>
 #include <wlr/types/wlr_scene.h>
 #include <wlr/types/wlr_xdg_decoration_v1.h>
 #include <wlr/types/wlr_xdg_shell.h>
+#include <wlr/util/edges.h>
 
 #include "deco.h"
+#include "input.h"
 #include "server.h"
 #include "view.h"
 
@@ -114,6 +117,69 @@ void deco_set_focus(struct steppewm_view *view, bool focused) {
                              focused ? COLOR_TITLE_ACTIVE : COLOR_TITLE_INACTIVE);
 }
 
+const char *deco_cursor_name(struct steppewm_view *view, struct wlr_scene_node *node) {
+    if (!view || view->deco_mode != STEPPEWM_DECO_SERVER) {
+        return NULL;
+    }
+
+    if (node == &view->deco.corner_bl->node) {
+        return "sw-resize";
+    }
+    if (node == &view->deco.corner_br->node) {
+        return "se-resize";
+    }
+    if (node == &view->deco.border_left->node) {
+        return "w-resize";
+    }
+    if (node == &view->deco.border_right->node) {
+        return "e-resize";
+    }
+    if (node == &view->deco.border_bottom->node) {
+        return "s-resize";
+    }
+
+    return NULL;
+}
+
+bool deco_handle_button(struct steppewm_view *view, struct wlr_scene_node *node, uint32_t button) {
+    if (!view || view->deco_mode != STEPPEWM_DECO_SERVER) {
+        return false;
+    }
+
+    if (node == &view->deco.close_button->node) {
+        if (button == BTN_LEFT) {
+            wlr_xdg_toplevel_send_close(view->toplevel);
+        }
+        return true;
+    }
+    if (node == &view->deco.titlebar->node) {
+        cursor_begin_interactive(view, STEPPEWM_CURSOR_MOVE, 0);
+        return true;
+    }
+    if (node == &view->deco.corner_bl->node) {
+        cursor_begin_interactive(view, STEPPEWM_CURSOR_RESIZE, WLR_EDGE_BOTTOM | WLR_EDGE_LEFT);
+        return true;
+    }
+    if (node == &view->deco.corner_br->node) {
+        cursor_begin_interactive(view, STEPPEWM_CURSOR_RESIZE, WLR_EDGE_BOTTOM | WLR_EDGE_RIGHT);
+        return true;
+    }
+    if (node == &view->deco.border_left->node) {
+        cursor_begin_interactive(view, STEPPEWM_CURSOR_RESIZE, WLR_EDGE_LEFT);
+        return true;
+    }
+    if (node == &view->deco.border_right->node) {
+        cursor_begin_interactive(view, STEPPEWM_CURSOR_RESIZE, WLR_EDGE_RIGHT);
+        return true;
+    }
+    if (node == &view->deco.border_bottom->node) {
+        cursor_begin_interactive(view, STEPPEWM_CURSOR_RESIZE, WLR_EDGE_BOTTOM);
+        return true;
+    }
+
+    return false;
+}
+
 // called when a new xdg toplevel is created
 static void deco_request_mode(struct wl_listener *listener, void *data) {
     // get the steppewm_view from the listener
@@ -148,8 +214,7 @@ static void deco_handle_destroy(struct wl_listener *listener, void *data) {
 
 // called when a new xdg toplevel is created
 void deco_new(struct wl_listener *listener, void *data) {
-    // same as the function above
-    struct steppewm_server *server = wl_container_of(listener, server, new_deco);
+    (void)listener;
     struct wlr_xdg_toplevel_decoration_v1 *decoration = data;
 
     // get the steppewm_view from the decoration

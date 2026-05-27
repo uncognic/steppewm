@@ -16,9 +16,11 @@
 #pragma once
 
 #include <stdbool.h>
+#include <stdint.h>
 #include <wayland-server-core.h>
 
 struct steppewm_view;
+struct wlr_scene_node;
 
 #define STEPPEWM_TITLE_H 20 // title height
 #define STEPPEWM_BORDER_W 3 // border width
@@ -30,3 +32,5 @@ void deco_create(struct steppewm_view *view);
 void deco_update(struct steppewm_view *view);
 void deco_destroy(struct steppewm_view *view);
 void deco_set_focus(struct steppewm_view *view, bool focused);
+const char *deco_cursor_name(struct steppewm_view *view, struct wlr_scene_node *node);
+bool deco_handle_button(struct steppewm_view *view, struct wlr_scene_node *node, uint32_t button);

@@ -85,6 +85,7 @@ static bool handle_keybinding(struct steppewm_server *server, xkb_keysym_t sym) 
 
 // called when keyboard modifiers change
 static void keyboard_modifiers(struct wl_listener *listener, void *data) {
+    (void)data;
     // get the steppewm_keyboard from the listener
     struct steppewm_keyboard *keyboard = wl_container_of(listener, keyboard, modifiers);
 
@@ -134,6 +135,7 @@ static void keyboard_key(struct wl_listener *listener, void *data) {
 
 // destroy keyboard
 static void keyboard_destroy(struct wl_listener *listener, void *data) {
+    (void)data;
     struct steppewm_keyboard *keyboard = wl_container_of(listener, keyboard, destroy);
     wl_list_remove(&keyboard->modifiers.link);
     wl_list_remove(&keyboard->key.link);
@@ -317,20 +319,9 @@ static void process_cursor_motion(struct steppewm_server *server, uint32_t time_
                 tree = tree->node.parent;
             }
             if (tree) {
-                struct steppewm_view *dv = tree->node.data;
-                // change cursor depending on where its resizing
-                if (dv->deco_mode == STEPPEWM_DECO_SERVER) {
-                    if (hnode == &dv->deco.corner_bl->node) {
-                        cursor_name = "sw-resize";
-                    } else if (hnode == &dv->deco.corner_br->node) {
-                        cursor_name = "se-resize";
-                    } else if (hnode == &dv->deco.border_left->node) {
-                        cursor_name = "w-resize";
-                    } else if (hnode == &dv->deco.border_right->node) {
-                        cursor_name = "e-resize";
-                    } else if (hnode == &dv->deco.border_bottom->node) {
-                        cursor_name = "s-resize";
-                    }
+                const char *deco_cursor = deco_cursor_name(tree->node.data, hnode);
+                if (deco_cursor) {
+                    cursor_name = deco_cursor;
                 }
             }
         }
@@ -432,34 +423,7 @@ void cursor_button(struct wl_listener *listener, void *data) {
         if (tree) {
             struct steppewm_view *dv = tree->node.data;
             view_focus(dv, dv->toplevel->base->surface);
-            if (dv->deco_mode == STEPPEWM_DECO_SERVER) {
-                // if the close button was clicked
-                if (hnode == &dv->deco.close_button->node && event->button == BTN_LEFT) {
-                    wlr_xdg_toplevel_send_close(dv->toplevel);
-                // if the titlebar was clicked
-                } else if (hnode == &dv->deco.titlebar->node) {
-                    cursor_begin_interactive(dv, STEPPEWM_CURSOR_MOVE, 0);
-                // bottom left corner click
-                } else if (hnode == &dv->deco.corner_bl->node) {
-                    cursor_begin_interactive(dv, STEPPEWM_CURSOR_RESIZE,
-                                             WLR_EDGE_BOTTOM | WLR_EDGE_LEFT);
-                // bottom right corner click
-                } else if (hnode == &dv->deco.corner_br->node) {
-                    cursor_begin_interactive(dv, STEPPEWM_CURSOR_RESIZE,
-                                             WLR_EDGE_BOTTOM | WLR_EDGE_RIGHT);
-                // left border click
-                } else if (hnode == &dv->deco.border_left->node) {
-                    cursor_begin_interactive(dv, STEPPEWM_CURSOR_RESIZE, WLR_EDGE_LEFT);
-
-                // right border click
-                } else if (hnode == &dv->deco.border_right->node) {
-                    cursor_begin_interactive(dv, STEPPEWM_CURSOR_RESIZE, WLR_EDGE_RIGHT);
-
-                // bottom border click
-                } else if (hnode == &dv->deco.border_bottom->node) {
-                    cursor_begin_interactive(dv, STEPPEWM_CURSOR_RESIZE, WLR_EDGE_BOTTOM);
-                }
-            }
+            deco_handle_button(dv, hnode, event->button);
         }
     }
 }
@@ -477,6 +441,7 @@ void cursor_axis(struct wl_listener *listener, void *data) {
 
 // handle cursor frame events
 void cursor_frame(struct wl_listener *listener, void *data) {
+    (void)data;
     // get objects
     struct steppewm_server *server = wl_container_of(listener, server, cursor_frame);
 

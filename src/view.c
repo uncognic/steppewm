@@ -79,6 +79,7 @@ static void view_initial_configure(void *data) {
 
 // focus a new window
 static void view_map(struct wl_listener *listener, void *data) {
+    (void)data;
     struct steppewm_view *view = wl_container_of(listener, view, map);
 
     // set properties
@@ -90,6 +91,7 @@ static void view_map(struct wl_listener *listener, void *data) {
 
 // remove window (view)
 static void view_unmap(struct wl_listener *listener, void *data) {
+    (void)data;
     struct steppewm_view *view = wl_container_of(listener, view, unmap);
     if (view->server->grabbed_view == view) {
         view->server->grabbed_view = NULL;
@@ -118,6 +120,7 @@ static void view_unmap(struct wl_listener *listener, void *data) {
 
 // update/render window
 static void view_commit(struct wl_listener *listener, void *data) {
+    (void)data;
     struct steppewm_view *view = wl_container_of(listener, view, commit);
     if (view->toplevel->base->initial_commit) {
         if (!view->initial_configure_idle) {
@@ -133,6 +136,7 @@ static void view_commit(struct wl_listener *listener, void *data) {
 
 // clean up view
 static void view_destroy(struct wl_listener *listener, void *data) {
+    (void)data;
     struct steppewm_view *view = wl_container_of(listener, view, destroy);
     if (view->initial_configure_idle) {
         wl_event_source_remove(view->initial_configure_idle);
@@ -179,6 +183,7 @@ static void view_destroy(struct wl_listener *listener, void *data) {
 
 // when the client wants to move or resize a window
 static void view_request_move(struct wl_listener *listener, void *data) {
+    (void)data;
     struct steppewm_view *view = wl_container_of(listener, view, request_move);
     cursor_begin_interactive(view, STEPPEWM_CURSOR_MOVE, 0);
 }
@@ -246,18 +251,21 @@ static void view_apply_state(struct steppewm_view *view, bool maximized, bool fu
 
 // maximize a view
 static void view_request_maximize(struct wl_listener *listener, void *data) {
+    (void)data;
     struct steppewm_view *view = wl_container_of(listener, view, request_maximize);
     view_apply_state(view, view->toplevel->requested.maximized, view->fullscreen);
 }
 
 // fullscreen a view
 static void view_request_fullscreen(struct wl_listener *listener, void *data) {
+    (void)data;
     struct steppewm_view *view = wl_container_of(listener, view, request_fullscreen);
     view_apply_state(view, view->maximized, view->toplevel->requested.fullscreen);
 }
 
 // minimize a view, handing focus to the next visible window
 static void view_on_request_minimize(struct wl_listener *listener, void *data) {
+    (void)data;
     struct steppewm_view *view = wl_container_of(listener, view, request_minimize);
     if (!view->toplevel->requested.minimized) {
         return;
