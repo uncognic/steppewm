@@ -29,7 +29,8 @@
 static const float COLOR_TITLE_ACTIVE[4] = {0.24f, 0.24f, 0.24f, 1.0f};
 static const float COLOR_TITLE_INACTIVE[4] = {0.14f, 0.14f, 0.14f, 1.0f};
 static const float COLOR_BORDER[4] = {0.20f, 0.20f, 0.20f, 1.0f};
-static const float COLOR_CLOSE[4] = {0.85f, 0.08f, 0.08f, 1.0f};
+static const float COLOR_CLOSE_ACTIVE[4] = {0.85f, 0.08f, 0.08f, 1.0f};
+static const float COLOR_CLOSE_INACTIVE[4] = {0.45f, 0.06f, 0.06f, 1.0f};
 
 // remove wl_listener
 static void remove_listener(struct wl_listener *listener) {
@@ -47,7 +48,7 @@ void deco_create(struct steppewm_view *view) {
 
     // create rectangle for close button
     view->deco.close_button = wlr_scene_rect_create(view->scene_tree, STEPPEWM_CLOSE_BUTTON_W,
-                                                    STEPPEWM_TITLE_H, COLOR_CLOSE);
+                                                    STEPPEWM_TITLE_H, COLOR_CLOSE_INACTIVE);
 
     view->deco.border_left =
         wlr_scene_rect_create(view->scene_tree, STEPPEWM_BORDER_W, 0, COLOR_BORDER);
@@ -115,6 +116,8 @@ void deco_set_focus(struct steppewm_view *view, bool focused) {
     }
     wlr_scene_rect_set_color(view->deco.titlebar,
                              focused ? COLOR_TITLE_ACTIVE : COLOR_TITLE_INACTIVE);
+    wlr_scene_rect_set_color(view->deco.close_button,
+                             focused ? COLOR_CLOSE_ACTIVE : COLOR_CLOSE_INACTIVE);
 }
 
 
