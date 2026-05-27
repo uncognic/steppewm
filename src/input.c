@@ -298,20 +298,12 @@ static void process_cursor_motion(struct steppewm_server *server, uint32_t time_
 
     if (!view) {
         const char *cursor_name = "default";
-        double tmp_sx, tmp_sy;
-        struct wlr_scene_node *hnode = wlr_scene_node_at(
-            &server->scene->tree.node, server->cursor->x, server->cursor->y, &tmp_sx, &tmp_sy);
-        if (hnode && hnode->type == WLR_SCENE_NODE_RECT) {
-            struct wlr_scene_tree *tree = hnode->parent;
-            while (tree && !tree->node.data) {
-                tree = tree->node.parent;
-            }
-            if (tree) {
-                const char *deco_cursor = deco_cursor_name(tree->node.data, hnode);
-                if (deco_cursor) {
-                    cursor_name = deco_cursor;
-                }
-            }
+        struct wlr_scene_node *hnode = NULL;
+        struct steppewm_view *dview =
+            deco_at(server, server->cursor->x, server->cursor->y, &hnode);
+        const char *deco_cursor = deco_cursor_name(dview, hnode);
+        if (deco_cursor) {
+            cursor_name = deco_cursor;
         }
         wlr_cursor_set_xcursor(server->cursor, server->cursor_mgr, cursor_name);
     }
@@ -399,20 +391,11 @@ void cursor_button(struct wl_listener *listener, void *data) {
     }
 
     // no view was clicked, check if a titlebar or border was clicked for move/resize
-    double tmp_sx, tmp_sy;
-    struct wlr_scene_node *hnode = wlr_scene_node_at(&server->scene->tree.node, server->cursor->x,
-                                                     server->cursor->y, &tmp_sx, &tmp_sy);
-    if (hnode && hnode->type == WLR_SCENE_NODE_RECT) {
-        struct wlr_scene_tree *tree = hnode->parent;
-        while (tree && !tree->node.data) {
-            tree = tree->node.parent;
-        }
-
-        if (tree) {
-            struct steppewm_view *dv = tree->node.data;
-            view_focus(dv, dv->toplevel->base->surface);
-            deco_handle_button(dv, hnode, event->button);
-        }
+    struct wlr_scene_node *hnode = NULL;
+    struct steppewm_view *dview = deco_at(server, server->cursor->x, server->cursor->y, &hnode);
+    if (dview) {
+        view_focus(dview, dview->toplevel->base->surface);
+        deco_handle_button(dview, hnode, event->button);
     }
 }
 

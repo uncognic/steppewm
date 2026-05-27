@@ -117,6 +117,8 @@ void deco_set_focus(struct steppewm_view *view, bool focused) {
                              focused ? COLOR_TITLE_ACTIVE : COLOR_TITLE_INACTIVE);
 }
 
+
+
 const char *deco_cursor_name(struct steppewm_view *view, struct wlr_scene_node *node) {
     if (!view || view->deco_mode != STEPPEWM_DECO_SERVER) {
         return NULL;
@@ -139,6 +141,27 @@ const char *deco_cursor_name(struct steppewm_view *view, struct wlr_scene_node *
     }
 
     return NULL;
+}
+
+struct steppewm_view *deco_at(struct steppewm_server *server, double lx, double ly,
+                              struct wlr_scene_node **node) {
+    double sx, sy;
+    struct wlr_scene_node *hit =
+        wlr_scene_node_at(&server->scene->tree.node, lx, ly, &sx, &sy);
+    if (!hit || hit->type != WLR_SCENE_NODE_RECT) {
+        return NULL;
+    }
+
+    struct wlr_scene_tree *tree = hit->parent;
+    while (tree && !tree->node.data) {
+        tree = tree->node.parent;
+    }
+    if (!tree) {
+        return NULL;
+    }
+
+    *node = hit;
+    return tree->node.data;
 }
 
 bool deco_handle_button(struct steppewm_view *view, struct wlr_scene_node *node, uint32_t button) {

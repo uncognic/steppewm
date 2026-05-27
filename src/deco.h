@@ -20,6 +20,7 @@
 #include <wayland-server-core.h>
 
 struct steppewm_view;
+struct steppewm_server;
 struct wlr_scene_node;
 
 #define STEPPEWM_TITLE_H 20 // title height
@@ -34,3 +35,5 @@ void deco_destroy(struct steppewm_view *view);
 void deco_set_focus(struct steppewm_view *view, bool focused);
 const char *deco_cursor_name(struct steppewm_view *view, struct wlr_scene_node *node);
 bool deco_handle_button(struct steppewm_view *view, struct wlr_scene_node *node, uint32_t button);
+struct steppewm_view *deco_at(struct steppewm_server *server, double lx, double ly,
+                              struct wlr_scene_node **node);
