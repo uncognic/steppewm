@@ -279,7 +279,30 @@ static void process_cursor_motion(struct steppewm_server *server, uint32_t time_
         view_at(server, server->cursor->x, server->cursor->y, &surface, &sx, &sy);
 
     if (!view) {
-        wlr_cursor_set_xcursor(server->cursor, server->cursor_mgr, "default");
+        const char *cursor_name = "default";
+        double tmp_sx, tmp_sy;
+        struct wlr_scene_node *hnode = wlr_scene_node_at(
+            &server->scene->tree.node, server->cursor->x, server->cursor->y, &tmp_sx, &tmp_sy);
+        if (hnode && hnode->type == WLR_SCENE_NODE_RECT) {
+            struct wlr_scene_tree *tree = hnode->parent;
+            while (tree && !tree->node.data) {
+                tree = tree->node.parent;
+            }
+            if (tree) {
+                struct steppewm_view *dv = tree->node.data;
+                // change cursor depending on where its resizing
+                if (dv->deco_mode == STEPPEWM_DECO_SERVER) {
+                    if (hnode == &dv->deco.border_left->node) {
+                        cursor_name = "w-resize";
+                    } else if (hnode == &dv->deco.border_right->node) {
+                        cursor_name = "e-resize";
+                    } else if (hnode == &dv->deco.border_bottom->node) {
+                        cursor_name = "s-resize";
+                    }
+                }
+            }
+        }
+        wlr_cursor_set_xcursor(server->cursor, server->cursor_mgr, cursor_name);
     }
 
     struct wlr_seat *seat = server->seat;
