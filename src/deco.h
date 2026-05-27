@@ -20,8 +20,9 @@
 
 struct steppewm_view;
 
-#define STEPPEWM_TITLE_H 26
+#define STEPPEWM_TITLE_H 13
 #define STEPPEWM_BORDER_W 3
+#define STEPPEWM_CORNER_SIZE 8
 
 void deco_new(struct wl_listener *listener, void *data);
 void deco_create(struct steppewm_view *view);

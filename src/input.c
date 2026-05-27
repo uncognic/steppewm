@@ -292,7 +292,11 @@ static void process_cursor_motion(struct steppewm_server *server, uint32_t time_
                 struct steppewm_view *dv = tree->node.data;
                 // change cursor depending on where its resizing
                 if (dv->deco_mode == STEPPEWM_DECO_SERVER) {
-                    if (hnode == &dv->deco.border_left->node) {
+                    if (hnode == &dv->deco.corner_bl->node) {
+                        cursor_name = "sw-resize";
+                    } else if (hnode == &dv->deco.corner_br->node) {
+                        cursor_name = "se-resize";
+                    } else if (hnode == &dv->deco.border_left->node) {
                         cursor_name = "w-resize";
                     } else if (hnode == &dv->deco.border_right->node) {
                         cursor_name = "e-resize";
@@ -401,11 +405,14 @@ void cursor_button(struct wl_listener *listener, void *data) {
             struct steppewm_view *dv = tree->node.data;
             view_focus(dv, dv->toplevel->base->surface);
             if (dv->deco_mode == STEPPEWM_DECO_SERVER) {
-                // check titlebar for move
                 if (hnode == &dv->deco.titlebar->node) {
                     cursor_begin_interactive(dv, STEPPEWM_CURSOR_MOVE, 0);
-
-                    // check borders for resize
+                } else if (hnode == &dv->deco.corner_bl->node) {
+                    cursor_begin_interactive(dv, STEPPEWM_CURSOR_RESIZE,
+                                            WLR_EDGE_BOTTOM | WLR_EDGE_LEFT);
+                } else if (hnode == &dv->deco.corner_br->node) {
+                    cursor_begin_interactive(dv, STEPPEWM_CURSOR_RESIZE,
+                                            WLR_EDGE_BOTTOM | WLR_EDGE_RIGHT);
                 } else if (hnode == &dv->deco.border_left->node) {
                     cursor_begin_interactive(dv, STEPPEWM_CURSOR_RESIZE, WLR_EDGE_LEFT);
                 } else if (hnode == &dv->deco.border_right->node) {

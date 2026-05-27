@@ -39,6 +39,10 @@ void deco_create(struct steppewm_view *view) {
         wlr_scene_rect_create(view->scene_tree, STEPPEWM_BORDER_W, 0, COLOR_BORDER);
     view->deco.border_bottom =
         wlr_scene_rect_create(view->scene_tree, 0, STEPPEWM_BORDER_W, COLOR_BORDER);
+    view->deco.corner_bl = wlr_scene_rect_create(view->scene_tree,
+        STEPPEWM_CORNER_SIZE, STEPPEWM_CORNER_SIZE, COLOR_BORDER);
+    view->deco.corner_br = wlr_scene_rect_create(view->scene_tree,
+        STEPPEWM_CORNER_SIZE, STEPPEWM_CORNER_SIZE, COLOR_BORDER);
 }
 
 // called when the decoration needs to be updated
@@ -62,6 +66,10 @@ void deco_update(struct steppewm_view *view) {
 
     wlr_scene_rect_set_size(view->deco.border_bottom, tw, STEPPEWM_BORDER_W);
     wlr_scene_node_set_position(&view->deco.border_bottom->node, 0, STEPPEWM_TITLE_H + sh);
+
+    int corner_y = STEPPEWM_TITLE_H + sh + STEPPEWM_BORDER_W - STEPPEWM_CORNER_SIZE;
+    wlr_scene_node_set_position(&view->deco.corner_bl->node, 0, corner_y);
+    wlr_scene_node_set_position(&view->deco.corner_br->node, tw - STEPPEWM_CORNER_SIZE, corner_y);
 }
 
 // called when a view is destroyed
@@ -73,6 +81,8 @@ void deco_destroy(struct steppewm_view *view) {
     view->deco.border_left = NULL;
     view->deco.border_right = NULL;
     view->deco.border_bottom = NULL;
+    view->deco.corner_bl = NULL;
+    view->deco.corner_br = NULL;
 }
 
 void deco_set_focus(struct steppewm_view *view, bool focused) {

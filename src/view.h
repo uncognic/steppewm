@@ -16,6 +16,8 @@ struct steppewm_deco {
     struct wlr_scene_rect *border_left;
     struct wlr_scene_rect *border_right;
     struct wlr_scene_rect *border_bottom;
+    struct wlr_scene_rect *corner_bl;
+    struct wlr_scene_rect *corner_br;
 };
 
 enum steppewm_deco_mode {
