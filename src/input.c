@@ -14,6 +14,9 @@
  */
 
 #include <stdlib.h>
+#include <string.h>
+#include <sys/wait.h>
+#include <unistd.h>
 
 #include <linux/input-event-codes.h>
 #include <wlr/types/wlr_cursor.h>
@@ -36,39 +39,58 @@
 
 //// keyboard
 
-// this is where lua keybinds will be put but for now we dont have lua yet
-static bool handle_keybinding(struct steppewm_server *server, xkb_keysym_t sym) {
-    switch (sym) {
-        case XKB_KEY_Escape:
-            wl_display_terminate(server->display);
-            return true;
-        case XKB_KEY_Tab: {
-            // bail if no views
-            if (wl_list_empty(&server->views)) {
-                return true;
-            }
+static void spawn(const char *cmd) {
+    pid_t pid = fork();
+    if (pid == 0) {
+        setsid();
+        if (fork() > 0) _exit(0);
+        execl("/bin/sh", "sh", "-c", cmd, (char *)NULL);
+        _exit(1);
+    }
+    if (pid > 0) waitpid(pid, NULL, 0);
+}
+
+static struct steppewm_view *focused_view(struct steppewm_server *server) {
+    struct wlr_surface *surf = server->seat->keyboard_state.focused_surface;
+    if (!surf) return NULL;
+    struct wlr_xdg_surface *xdg = wlr_xdg_surface_try_from_wlr_surface(surf);
+    if (!xdg || xdg->role != WLR_XDG_SURFACE_ROLE_TOPLEVEL) return NULL;
+    return xdg->toplevel->base->data;
+}
+
+static void dispatch_action(struct steppewm_server *server, const char *action, const char *arg) {
+    if (strcmp(action, "quit") == 0) {
+        wl_display_terminate(server->display);
+    } else if (strcmp(action, "focus_next") == 0) {
+        if (!wl_list_empty(&server->views)) {
             struct steppewm_view *next = wl_container_of(server->views.prev, next, link);
             view_focus(next, next->toplevel->base->surface);
-            return true;
         }
-        case XKB_KEY_m: {
-            // minimize focused window
-            struct wlr_surface *focused = server->seat->keyboard_state.focused_surface;
-            if (!focused) {
-                return true;
-            }
-            struct wlr_xdg_surface *xdg = wlr_xdg_surface_try_from_wlr_surface(focused);
-            if (!xdg || xdg->role != WLR_XDG_SURFACE_ROLE_TOPLEVEL) {
-                return true;
-            }
-            struct steppewm_view *view = xdg->toplevel->base->data;
+    } else if (strcmp(action, "spawn") == 0) {
+        if (arg && arg[0]) spawn(arg);
+    } else {
+        struct steppewm_view *view = focused_view(server);
+        if (!view) return;
+        if (strcmp(action, "minimize") == 0) {
             view_minimize(view, true);
             view_focus_next(server, view);
+        } else if (strcmp(action, "maximize") == 0) {
+            view_toggle_maximize(view);
+        } else if (strcmp(action, "close") == 0) {
+            wlr_xdg_toplevel_send_close(view->toplevel);
+        }
+    }
+}
+
+static bool handle_keybinding(struct steppewm_server *server, uint32_t mods, xkb_keysym_t sym) {
+    for (int i = 0; i < server->config.nbinds; i++) {
+        struct steppewm_keybind *b = &server->config.binds[i];
+        if (b->modifiers == mods && b->sym == sym) {
+            dispatch_action(server, b->action, b->arg);
             return true;
         }
-        default:
-            return false;
     }
+    return false;
 }
 
 // called when keyboard modifiers change
@@ -105,12 +127,22 @@ static void keyboard_key(struct wl_listener *listener, void *data) {
     const xkb_keysym_t *syms;
     int nsyms = xkb_state_key_get_syms(keyboard->wlr_keyboard->xkb_state, keycode, &syms);
 
-    // check for keybinds
+    // check for keybinds, only when a modifier is held
     bool handled = false;
     uint32_t modifiers = wlr_keyboard_get_modifiers(keyboard->wlr_keyboard);
-    if ((modifiers & WLR_MODIFIER_ALT) && event->state == WL_KEYBOARD_KEY_STATE_PRESSED) {
+    if (event->state == WL_KEYBOARD_KEY_STATE_PRESSED) {
         for (int i = 0; i < nsyms; i++) {
-            handled = handle_keybinding(server, syms[i]) || handled;
+            if (syms[i] >= XKB_KEY_XF86Switch_VT_1 && syms[i] <= XKB_KEY_XF86Switch_VT_12) {
+                if (server->session) {
+                    wlr_session_change_vt(server->session, syms[i] - XKB_KEY_XF86Switch_VT_1 + 1);
+                }
+                handled = true;
+            }
+        }
+    }
+    if (!handled && modifiers && event->state == WL_KEYBOARD_KEY_STATE_PRESSED) {
+        for (int i = 0; i < nsyms; i++) {
+            handled = handle_keybinding(server, modifiers, syms[i]) || handled;
         }
     }
 
@@ -207,15 +239,12 @@ void cursor_begin_interactive(struct steppewm_view *view, enum steppewm_cursor_m
 
     // calculate grab offsets
     if (mode == STEPPEWM_CURSOR_MOVE) {
-        // store offset from cur to top left corner of window
-        // maintains relative grab point during dragging
         server->grab_x = server->cursor->x - node->x;
         server->grab_y = server->cursor->y - node->y;
     } else {
         struct wlr_box *geo = &view->toplevel->base->geometry;
-        // offset by ssd
-        int ox = view->deco_mode == STEPPEWM_DECO_SERVER ? STEPPEWM_BORDER_W : 0;
-        int oy = view->deco_mode == STEPPEWM_DECO_SERVER ? STEPPEWM_TITLE_H : 0;
+        int ox = view->deco_mode == STEPPEWM_DECO_SERVER ? server->config.border_w : 0;
+        int oy = view->deco_mode == STEPPEWM_DECO_SERVER ? server->config.title_h : 0;
         // calculate surface position in space
         int sx = node->x + ox + geo->x;
         int sy = node->y + oy + geo->y;
@@ -273,8 +302,8 @@ static void process_cursor_resize(struct steppewm_server *server) {
     }
 
     struct wlr_box *geo = &view->toplevel->base->geometry;
-    int ox = view->deco_mode == STEPPEWM_DECO_SERVER ? STEPPEWM_BORDER_W : 0;
-    int oy = view->deco_mode == STEPPEWM_DECO_SERVER ? STEPPEWM_TITLE_H : 0;
+    int ox = view->deco_mode == STEPPEWM_DECO_SERVER ? server->config.border_w : 0;
+    int oy = view->deco_mode == STEPPEWM_DECO_SERVER ? server->config.title_h : 0;
     wlr_scene_node_set_position(&view->scene_tree->node, new_left - ox - geo->x,
                                 new_top - oy - geo->y);
     wlr_xdg_toplevel_set_size(view->toplevel, new_right - new_left, new_bottom - new_top);

@@ -25,15 +25,6 @@
 #include "server.h"
 #include "view.h"
 
-// hardcoded for now hntil i can get lua working
-static const float COLOR_TITLE_ACTIVE[4] = {0.24f, 0.24f, 0.24f, 1.0f};
-static const float COLOR_TITLE_INACTIVE[4] = {0.14f, 0.14f, 0.14f, 1.0f};
-static const float COLOR_BORDER[4] = {0.20f, 0.20f, 0.20f, 1.0f};
-static const float COLOR_CLOSE_ACTIVE[4] = {0.85f, 0.08f, 0.08f, 1.0f};
-static const float COLOR_CLOSE_INACTIVE[4] = {0.45f, 0.06f, 0.06f, 1.0f};
-static const float COLOR_INVISIBLE[4] = {0.0f, 0.0f, 0.0f, 0.0f};
-static const float COLOR_BUTTON[4] = {0.38f, 0.38f, 0.38f, 1.0f};
-static const float COLOR_BUTTON_INACTIVE[4] = {0.32f, 0.32f, 0.32f, 1.0f};
 
 // remove wl_listener
 static void remove_listener(struct wl_listener *listener) {
@@ -45,34 +36,34 @@ static void remove_listener(struct wl_listener *listener) {
 
 // called when a new view is created
 void deco_create(struct steppewm_view *view) {
+    struct steppewm_config *cfg = &view->server->config;
+
     view->deco.titlebar =
-        wlr_scene_rect_create(view->scene_tree, 0, STEPPEWM_TITLE_H, COLOR_TITLE_INACTIVE);
+        wlr_scene_rect_create(view->scene_tree, 0, cfg->title_h, cfg->color_title_inactive);
     wlr_scene_node_set_position(&view->deco.titlebar->node, 0, 0);
 
-    // create rectangle for close button
-    view->deco.close_button = wlr_scene_rect_create(view->scene_tree, STEPPEWM_CLOSE_BUTTON_W,
-                                                    STEPPEWM_TITLE_H, COLOR_CLOSE_INACTIVE);
-
-    view->deco.minimize = wlr_scene_rect_create(view->scene_tree, STEPPEWM_MINIMIZE_BUTTON_W,
-                                                STEPPEWM_TITLE_H, COLOR_BUTTON);
+    view->deco.close_button = wlr_scene_rect_create(view->scene_tree, cfg->close_button_w,
+                                                    cfg->title_h, cfg->color_close_inactive);
+    view->deco.minimize = wlr_scene_rect_create(view->scene_tree, cfg->minimize_button_w,
+                                                cfg->title_h, cfg->color_button);
 
     // create objects for corners and edges
     view->deco.border_top =
-        wlr_scene_rect_create(view->scene_tree, 0, STEPPEWM_BORDER_W, COLOR_INVISIBLE);
+        wlr_scene_rect_create(view->scene_tree, 0, cfg->border_w, cfg->color_invisible);
     view->deco.border_left =
-        wlr_scene_rect_create(view->scene_tree, STEPPEWM_BORDER_W, 0, COLOR_BORDER);
+        wlr_scene_rect_create(view->scene_tree, cfg->border_w, 0, cfg->color_border);
     view->deco.border_right =
-        wlr_scene_rect_create(view->scene_tree, STEPPEWM_BORDER_W, 0, COLOR_BORDER);
+        wlr_scene_rect_create(view->scene_tree, cfg->border_w, 0, cfg->color_border);
     view->deco.border_bottom =
-        wlr_scene_rect_create(view->scene_tree, 0, STEPPEWM_BORDER_W, COLOR_BORDER);
-    view->deco.corner_tl = wlr_scene_rect_create(view->scene_tree, STEPPEWM_CORNER_SIZE,
-                                                 STEPPEWM_CORNER_SIZE, COLOR_INVISIBLE);
-    view->deco.corner_tr = wlr_scene_rect_create(view->scene_tree, STEPPEWM_CORNER_SIZE,
-                                                 STEPPEWM_CORNER_SIZE, COLOR_INVISIBLE);
-    view->deco.corner_bl = wlr_scene_rect_create(view->scene_tree, STEPPEWM_CORNER_SIZE,
-                                                 STEPPEWM_CORNER_SIZE, COLOR_INVISIBLE);
-    view->deco.corner_br = wlr_scene_rect_create(view->scene_tree, STEPPEWM_CORNER_SIZE,
-                                                 STEPPEWM_CORNER_SIZE, COLOR_INVISIBLE);
+        wlr_scene_rect_create(view->scene_tree, 0, cfg->border_w, cfg->color_border);
+    view->deco.corner_tl = wlr_scene_rect_create(view->scene_tree, cfg->corner_size,
+                                                 cfg->corner_size, cfg->color_invisible);
+    view->deco.corner_tr = wlr_scene_rect_create(view->scene_tree, cfg->corner_size,
+                                                 cfg->corner_size, cfg->color_invisible);
+    view->deco.corner_bl = wlr_scene_rect_create(view->scene_tree, cfg->corner_size,
+                                                 cfg->corner_size, cfg->color_invisible);
+    view->deco.corner_br = wlr_scene_rect_create(view->scene_tree, cfg->corner_size,
+                                                 cfg->corner_size, cfg->color_invisible);
 
     deco_update(view);
 }
@@ -83,42 +74,39 @@ void deco_update(struct steppewm_view *view) {
         return;
     }
 
+    struct steppewm_config *cfg = &view->server->config;
     int sw = view->toplevel->base->geometry.width;
     int sh = view->toplevel->base->geometry.height;
-    int tw = sw + 2 * STEPPEWM_BORDER_W; // total decorated width
+    int tw = sw + 2 * cfg->border_w;
 
-    wlr_scene_rect_set_size(view->deco.titlebar, tw, STEPPEWM_TITLE_H);
+    wlr_scene_rect_set_size(view->deco.titlebar, tw, cfg->title_h);
 
-    // set size and position of the close button
-    wlr_scene_rect_set_size(view->deco.close_button, STEPPEWM_CLOSE_BUTTON_W, STEPPEWM_TITLE_H - 4);
-    int close_x = tw - STEPPEWM_CLOSE_BUTTON_W - 4;
+    wlr_scene_rect_set_size(view->deco.close_button, cfg->close_button_w, cfg->title_h - 4);
+    int close_x = tw - cfg->close_button_w - 4;
     wlr_scene_node_set_position(&view->deco.close_button->node, close_x, 0);
 
-    // set size and position of the minimize button
-    wlr_scene_rect_set_size(view->deco.minimize, STEPPEWM_MINIMIZE_BUTTON_W, STEPPEWM_TITLE_H - 4);
-    wlr_scene_node_set_position(&view->deco.minimize->node, close_x - STEPPEWM_CLOSE_BUTTON_W/2 - 1,
-                                0);
+    wlr_scene_rect_set_size(view->deco.minimize, cfg->minimize_button_w, cfg->title_h - 4);
+    wlr_scene_node_set_position(&view->deco.minimize->node,
+                                close_x - cfg->close_button_w / 2 - 1, 0);
 
-    // set sizes and positions for the corners and edges
-    wlr_scene_rect_set_size(view->deco.border_top, tw, STEPPEWM_BORDER_W);
+    wlr_scene_rect_set_size(view->deco.border_top, tw, cfg->border_w);
     wlr_scene_node_set_position(&view->deco.border_top->node, 0, 0);
 
-    wlr_scene_rect_set_size(view->deco.border_left, STEPPEWM_BORDER_W, sh);
-    wlr_scene_node_set_position(&view->deco.border_left->node, 0, STEPPEWM_TITLE_H);
+    wlr_scene_rect_set_size(view->deco.border_left, cfg->border_w, sh);
+    wlr_scene_node_set_position(&view->deco.border_left->node, 0, cfg->title_h);
 
-    wlr_scene_rect_set_size(view->deco.border_right, STEPPEWM_BORDER_W, sh);
-    wlr_scene_node_set_position(&view->deco.border_right->node, tw - STEPPEWM_BORDER_W,
-                                STEPPEWM_TITLE_H);
+    wlr_scene_rect_set_size(view->deco.border_right, cfg->border_w, sh);
+    wlr_scene_node_set_position(&view->deco.border_right->node, tw - cfg->border_w, cfg->title_h);
 
-    wlr_scene_rect_set_size(view->deco.border_bottom, tw, STEPPEWM_BORDER_W);
-    wlr_scene_node_set_position(&view->deco.border_bottom->node, 0, STEPPEWM_TITLE_H + sh);
+    wlr_scene_rect_set_size(view->deco.border_bottom, tw, cfg->border_w);
+    wlr_scene_node_set_position(&view->deco.border_bottom->node, 0, cfg->title_h + sh);
 
     wlr_scene_node_set_position(&view->deco.corner_tl->node, 0, 0);
-    wlr_scene_node_set_position(&view->deco.corner_tr->node, tw - STEPPEWM_CORNER_SIZE, 0);
+    wlr_scene_node_set_position(&view->deco.corner_tr->node, tw - cfg->corner_size, 0);
 
-    int corner_y = STEPPEWM_TITLE_H + sh + STEPPEWM_BORDER_W - STEPPEWM_CORNER_SIZE;
+    int corner_y = cfg->title_h + sh + cfg->border_w - cfg->corner_size;
     wlr_scene_node_set_position(&view->deco.corner_bl->node, 0, corner_y);
-    wlr_scene_node_set_position(&view->deco.corner_br->node, tw - STEPPEWM_CORNER_SIZE, corner_y);
+    wlr_scene_node_set_position(&view->deco.corner_br->node, tw - cfg->corner_size, corner_y);
 }
 
 // called when a view is destroyed
@@ -144,12 +132,13 @@ void deco_set_focus(struct steppewm_view *view, bool focused) {
     if (!view || view->deco_mode != STEPPEWM_DECO_SERVER || !view->deco.titlebar) {
         return;
     }
+    struct steppewm_config *cfg = &view->server->config;
     wlr_scene_rect_set_color(view->deco.titlebar,
-                             focused ? COLOR_TITLE_ACTIVE : COLOR_TITLE_INACTIVE);
+                             focused ? cfg->color_title_active : cfg->color_title_inactive);
     wlr_scene_rect_set_color(view->deco.close_button,
-                             focused ? COLOR_CLOSE_ACTIVE : COLOR_CLOSE_INACTIVE);
+                             focused ? cfg->color_close_active : cfg->color_close_inactive);
     wlr_scene_rect_set_color(view->deco.minimize,
-                             focused ? COLOR_BUTTON : COLOR_BUTTON_INACTIVE);
+                             focused ? cfg->color_button : cfg->color_button_inactive);
 }
 
 const char *deco_cursor_name(struct steppewm_view *view, struct wlr_scene_node *node) {

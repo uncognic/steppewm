@@ -23,11 +23,6 @@ struct steppewm_view;
 struct steppewm_server;
 struct wlr_scene_node;
 
-#define STEPPEWM_TITLE_H 20 // title height
-#define STEPPEWM_BORDER_W 3 // border width
-#define STEPPEWM_CORNER_SIZE 8 // corner size
-#define STEPPEWM_CLOSE_BUTTON_W 40 // close button width
-#define STEPPEWM_MINIMIZE_BUTTON_W 20 // minimuze button width
 
 void deco_new(struct wl_listener *listener, void *data);
 void deco_create(struct steppewm_view *view);

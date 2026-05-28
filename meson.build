@@ -36,6 +36,7 @@ endforeach
 
 sources = files(
   'src/main.c',
+  'src/config.c',
   'src/output.c',
   'src/view.c',
   'src/input.c',

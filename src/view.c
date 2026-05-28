@@ -59,7 +59,8 @@ static void view_apply_pending_deco(struct steppewm_view *view) {
     wlr_xdg_toplevel_decoration_v1_set_mode(view->pending_deco,
                                             WLR_XDG_TOPLEVEL_DECORATION_V1_MODE_SERVER_SIDE);
     view->deco_mode = STEPPEWM_DECO_SERVER;
-    wlr_scene_node_set_position(&view->xdg_tree->node, STEPPEWM_BORDER_W, STEPPEWM_TITLE_H);
+    wlr_scene_node_set_position(&view->xdg_tree->node,
+                                view->server->config.border_w, view->server->config.title_h);
     deco_create(view);
     view->pending_deco = NULL;
 }
@@ -227,9 +228,8 @@ static void view_apply_state(struct steppewm_view *view, bool maximized, bool fu
         wlr_output_layout_get_box(server->output_layout, output, &out_box);
         wlr_scene_node_set_position(node, out_box.x, out_box.y);
 
-        // resize window to fill output minus the titlebars and borders
-        int ox = view->deco_mode == STEPPEWM_DECO_SERVER ? STEPPEWM_BORDER_W : 0;
-        int oy = view->deco_mode == STEPPEWM_DECO_SERVER ? STEPPEWM_TITLE_H : 0;
+        int ox = view->deco_mode == STEPPEWM_DECO_SERVER ? view->server->config.border_w : 0;
+        int oy = view->deco_mode == STEPPEWM_DECO_SERVER ? view->server->config.title_h : 0;
         wlr_xdg_toplevel_set_size(view->toplevel, out_box.width - 2 * ox, out_box.height - oy - ox);
 
         // restore state if we are exiting
@@ -274,6 +274,10 @@ static void view_on_request_minimize(struct wl_listener *listener, void *data) {
 
     // focus next window
     view_focus_next(view->server, view);
+}
+
+void view_toggle_maximize(struct steppewm_view *view) {
+    view_apply_state(view, !view->maximized, view->fullscreen);
 }
 
 // create a new view

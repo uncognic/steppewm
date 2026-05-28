@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 
 #include <wayland-server-core.h>
 #include <wlr/backend.h>
@@ -18,6 +19,7 @@
 #include <wlr/types/wlr_xdg_shell.h>
 #include <wlr/util/log.h>
 
+#include "config.h"
 #include "deco.h"
 #include "input.h"
 #include "output.h"
@@ -33,7 +35,7 @@ static bool server_init(struct steppewm_server *s) {
     }
 
     // create backend, renderer, allocator
-    s->backend = wlr_backend_autocreate(wl_display_get_event_loop(s->display), NULL);
+    s->backend = wlr_backend_autocreate(wl_display_get_event_loop(s->display), &s->session);
     if (!s->backend) {
         wlr_log(WLR_ERROR, "failed to create backend");
         return false;
@@ -144,10 +146,46 @@ static void server_fini(struct steppewm_server *s) {
 }
 
 // entry
-int main(void) {
+int main(int argc, char *argv[]) {
     wlr_log_init(WLR_DEBUG, NULL);
 
+    const char *cli_config_path = NULL;
+
+    int opt;
+    while ((opt = getopt(argc, argv, "c:")) != -1) {
+        switch (opt) {
+            case 'c':
+                cli_config_path = optarg;
+                break;
+            default:
+                fprintf(stderr, "Usage: %s [-c config_path]\n", argv[0]);
+                return EXIT_FAILURE;
+        }
+    }
+
     struct steppewm_server server = {0};
+    config_defaults(&server.config);
+
+    char config_path[512];
+
+    if (cli_config_path && cli_config_path[0]) {
+        snprintf(config_path, sizeof(config_path), "%s", cli_config_path);
+    } else {
+        const char *config_home = getenv("XDG_CONFIG_HOME");
+
+        if (config_home && config_home[0]) {
+            snprintf(config_path, sizeof(config_path),
+                     "%s/steppewm/config.lua", config_home);
+        } else {
+            const char *home = getenv("HOME");
+            snprintf(config_path, sizeof(config_path),
+                     "%s/.config/steppewm/config.lua",
+                     home ? home : "/root");
+        }
+    }
+
+    config_load(&server.config, config_path);
+
     if (!server_init(&server)) {
         return EXIT_FAILURE;
     }

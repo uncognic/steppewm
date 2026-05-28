@@ -1,7 +1,10 @@
 #pragma once
 
+#include "config.h"
+
 #include <wayland-server-core.h>
 #include <wlr/backend.h>
+#include <wlr/backend/session.h>
 #include <wlr/render/allocator.h>
 #include <wlr/render/wlr_renderer.h>
 #include <wlr/types/wlr_compositor.h>
@@ -27,6 +30,7 @@ enum steppewm_cursor_mode {
 struct steppewm_server {
     struct wl_display *display;
     struct wlr_backend *backend;
+    struct wlr_session *session;
     struct wlr_renderer *renderer;
     struct wlr_allocator *allocator;
 
@@ -69,4 +73,6 @@ struct steppewm_server {
     double grab_x, grab_y;
     struct wlr_box grab_geobox;
     uint32_t resize_edges;
+
+    struct steppewm_config config;
 };
