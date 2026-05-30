@@ -14,8 +14,9 @@ wayland    = dependency('wayland-server')
 xkbcommon  = dependency('xkbcommon')
 lua = dependency('lua5.4', 'lua-5.4', 'lua', version : '>=5.4')
 pixman     = dependency('pixman-1')
+cairo = dependency('cairo')
 
-deps = [wlroots, wayland, xkbcommon, lua, pixman]
+deps = [wlroots, wayland, xkbcommon, lua, pixman, cairo]
 
 wl_protocols = dependency('wayland-protocols')
 wl_protocol_dir = wl_protocols.get_variable('pkgdatadir')
@@ -41,6 +42,7 @@ sources = files(
   'src/view.c',
   'src/input.c',
   'src/deco.c',
+  'src/taskbar.c',
 )
 
 executable('steppewm',

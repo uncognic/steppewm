@@ -35,6 +35,7 @@
 #include "deco.h"
 #include "input.h"
 #include "server.h"
+#include "taskbar.h"
 #include "view.h"
 
 //// keyboard
@@ -425,6 +426,16 @@ void cursor_button(struct wl_listener *listener, void *data) {
     if (dview) {
         view_focus(dview, dview->toplevel->base->surface);
         deco_handle_button(dview, server, hnode, event->button);
+        return;
+    }
+
+    // if a taskbar item was clicked
+    if (server->taskbar && event->button == BTN_LEFT) {
+        struct steppewm_view *tv =
+            taskbar_view_at(server->taskbar, server->cursor->x, server->cursor->y);
+        if (tv) {
+            view_focus(tv, tv->toplevel->base->surface);
+        }
     }
 }
 

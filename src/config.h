@@ -47,6 +47,13 @@ struct steppewm_config {
     int corner_size;
     int close_button_w;
     int minimize_button_w;
+
+    int taskbar_h;
+    float color_taskbar_bg[4];
+    float color_task_normal[4];
+    float color_task_active[4];
+    float color_task_minimized[4];
+    float color_task_text[4];
 };
 
 void config_defaults(struct steppewm_config *cfg);

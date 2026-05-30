@@ -1,3 +1,18 @@
+/*
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 #include <stdlib.h>
 
 #include <wlr/types/wlr_output.h>
@@ -6,6 +21,7 @@
 
 #include "output.h"
 #include "server.h"
+#include "taskbar.h"
 
 // called on output frame events
 static void output_frame(struct wl_listener *listener, void *data) {
@@ -76,4 +92,9 @@ void output_new(struct wl_listener *listener, void *data) {
     wlr_scene_output_layout_add_output(server->scene_layout, layout_output, output->scene_output);
 
     wlr_log(WLR_INFO, "new output: %s", wlr_output->name);
+
+    if (server->taskbar) {
+        taskbar_update_geometry(server->taskbar);
+        wlr_scene_node_raise_to_top(&server->taskbar->tree->node);
+    }
 }

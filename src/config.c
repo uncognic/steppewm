@@ -155,6 +155,33 @@ void config_defaults(struct steppewm_config *cfg) {
     cfg->corner_size = 8;
     cfg->close_button_w = 40;
     cfg->minimize_button_w = 20;
+
+    cfg->taskbar_h = 24;
+
+    cfg->color_taskbar_bg[0] = 0.08f;
+    cfg->color_taskbar_bg[1] = 0.08f;
+    cfg->color_taskbar_bg[2] = 0.08f;
+    cfg->color_taskbar_bg[3] = 1.0f;
+
+    cfg->color_task_normal[0] = 0.18f;
+    cfg->color_task_normal[1] = 0.18f;
+    cfg->color_task_normal[2] = 0.18f;
+    cfg->color_task_normal[3] = 1.0f;
+
+    cfg->color_task_active[0] = 0.30f;
+    cfg->color_task_active[1] = 0.30f;
+    cfg->color_task_active[2] = 0.30f;
+    cfg->color_task_active[3] = 1.0f;
+
+    cfg->color_task_minimized[0] = 0.12f;
+    cfg->color_task_minimized[1] = 0.12f;
+    cfg->color_task_minimized[2] = 0.12f;
+    cfg->color_task_minimized[3] = 1.0f;
+
+    cfg->color_task_text[0] = 0.88f;
+    cfg->color_task_text[1] = 0.88f;
+    cfg->color_task_text[2] = 0.88f;
+    cfg->color_task_text[3] = 1.0f;
 }
 
 bool config_load(struct steppewm_config *cfg, const char *path) {
@@ -193,6 +220,13 @@ bool config_load(struct steppewm_config *cfg, const char *path) {
     read_int(L, "corner_size", &cfg->corner_size);
     read_int(L, "close_button_width", &cfg->close_button_w);
     read_int(L, "minimize_button_width", &cfg->minimize_button_w);
+
+    read_int(L, "taskbar_height", &cfg->taskbar_h);
+    read_color(L, "taskbar_bg", cfg->color_taskbar_bg);
+    read_color(L, "task_normal", cfg->color_task_normal);
+    read_color(L, "task_active", cfg->color_task_active);
+    read_color(L, "task_minimized", cfg->color_task_minimized);
+    read_color(L, "task_text", cfg->color_task_text);
 
     lua_close(L);
     return true;

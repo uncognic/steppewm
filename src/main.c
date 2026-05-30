@@ -1,3 +1,18 @@
+/*
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -24,6 +39,7 @@
 #include "input.h"
 #include "output.h"
 #include "server.h"
+#include "taskbar.h"
 #include "view.h"
 
 // initialize server
@@ -134,6 +150,10 @@ static void server_run(struct steppewm_server *s) {
 
 // clean up
 static void server_fini(struct steppewm_server *s) {
+    if (s->taskbar) {
+        taskbar_destroy(s->taskbar);
+        s->taskbar = NULL;
+    }
     wl_display_destroy_clients(s->display);
     wlr_scene_node_destroy(&s->scene->tree.node);
     wlr_xcursor_manager_destroy(s->cursor_mgr);
@@ -189,6 +209,8 @@ int main(int argc, char *argv[]) {
     if (!server_init(&server)) {
         return EXIT_FAILURE;
     }
+
+    server.taskbar = taskbar_create(&server);
 
     server_run(&server);
     server_fini(&server);

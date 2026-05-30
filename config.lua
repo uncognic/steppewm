@@ -21,3 +21,11 @@ bind("Super", "q", "close")
 -- corner_size = 8
 -- close_button_width = 40
 -- minimize_button_width = 20
+
+-- taskbar
+-- taskbar_height = 24
+-- taskbar_bg = {0.08, 0.08, 0.08, 1.0}
+-- task_normal = {0.18, 0.18, 0.18, 1.0}
+-- task_active = {0.30, 0.30, 0.30, 1.0}
+-- task_minimized = {0.12, 0.12, 0.12, 1.0}
+-- task_text = {0.88, 0.88, 0.88, 1.0}

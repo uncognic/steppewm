@@ -10,6 +10,7 @@
 #include "deco.h"
 #include "input.h"
 #include "server.h"
+#include "taskbar.h"
 #include "view.h"
 
 static bool view_can_configure(struct steppewm_view *view) {
@@ -41,6 +42,9 @@ void view_focus_next(struct steppewm_server *server, struct steppewm_view *skip)
         view_focus(next, next->toplevel->base->surface);
     } else {
         wlr_seat_keyboard_notify_clear_focus(server->seat);
+        if (server->taskbar) {
+            taskbar_refresh(server->taskbar);
+        }
     }
 }
 
@@ -48,6 +52,9 @@ void view_focus_next(struct steppewm_server *server, struct steppewm_view *skip)
 void view_minimize(struct steppewm_view *view, bool minimized) {
     view->minimized = minimized;
     wlr_scene_node_set_enabled(&view->scene_tree->node, !minimized);
+    if (view->server->taskbar) {
+        taskbar_refresh(view->server->taskbar);
+    }
 }
 
 // apply ssd deco
@@ -87,6 +94,11 @@ static void view_map(struct wl_listener *listener, void *data) {
     view->mapped = true;
     wlr_scene_node_set_enabled(&view->scene_tree->node, true);
     wl_list_insert(&view->server->views, &view->link);
+
+    // add window to taskbar
+    if (view->server->taskbar) {
+        taskbar_view_added(view->server->taskbar, view);
+    }
     view_focus(view, view->toplevel->base->surface);
 }
 
@@ -114,6 +126,11 @@ static void view_unmap(struct wl_listener *listener, void *data) {
     wl_list_remove(&view->link);
     wl_list_init(&view->link);
     wlr_scene_node_set_enabled(&view->scene_tree->node, false);
+
+    // remove view from taskbar
+    if (view->server->taskbar) {
+        taskbar_view_removed(view->server->taskbar, view);
+    }
 
     // focus next window
     view_focus_next(view->server, view);
@@ -230,7 +247,9 @@ static void view_apply_state(struct steppewm_view *view, bool maximized, bool fu
 
         int ox = view->deco_mode == STEPPEWM_DECO_SERVER ? view->server->config.border_w : 0;
         int oy = view->deco_mode == STEPPEWM_DECO_SERVER ? view->server->config.title_h : 0;
-        wlr_xdg_toplevel_set_size(view->toplevel, out_box.width - 2 * ox, out_box.height - oy - ox);
+        int bar_h = (maximized && !fullscreen) ? view->server->config.taskbar_h : 0;
+        wlr_xdg_toplevel_set_size(view->toplevel, out_box.width - 2 * ox,
+                                  out_box.height - oy - ox - bar_h);
 
         // restore state if we are exiting
     } else if (was_special) {
@@ -402,5 +421,10 @@ void view_focus(struct steppewm_view *view, struct wlr_surface *surface) {
     if (keyboard) {
         wlr_seat_keyboard_notify_enter(seat, surface, keyboard->keycodes, keyboard->num_keycodes,
                                        &keyboard->modifiers);
+    }
+
+    if (server->taskbar) {
+        wlr_scene_node_raise_to_top(&server->taskbar->tree->node);
+        taskbar_refresh(server->taskbar);
     }
 }
