@@ -8,8 +8,6 @@ bind("Super", "Down", "minimize")
 bind("Super", "Up", "maximize")
 bind("Super", "q", "close")
 
-taskbar_all_outputs = true
-
 -- colors {r, g, b, a}
 -- title_active = {0.24, 0.24, 0.24, 1.0}
 -- title_inactive = {0.14, 0.14, 0.14, 1.0}
@@ -26,6 +24,9 @@ taskbar_all_outputs = true
 -- minimize_button_width = 20
 
 -- taskbar
+-- taskbar_all_outputs = true
+-- taskbar_button_width = 200
+-- taskbar_button_pad = 2
 -- taskbar_height = 24
 -- taskbar_bg = {0.08, 0.08, 0.08, 1.0}
 -- task_normal = {0.18, 0.18, 0.18, 1.0}

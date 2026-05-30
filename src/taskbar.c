@@ -29,9 +29,6 @@
 #include "taskbar.h"
 #include "view.h"
 
-#define PAD 4
-#define BUTTON_W 200
-
 // cpu backed wlr_buffer for cairo
 struct cpu_buf {
     struct wlr_buffer base;
@@ -143,14 +140,14 @@ static void taskbar_layout(struct steppewm_taskbar *bar) {
         return;
     }
 
-    int bh = bar->height - 2 * PAD;
     struct steppewm_config *cfg = &bar->server->config;
+    int bh = bar->height - 2 * cfg->taskbar_button_pad;
     struct steppewm_view *fview = taskbar_focused_view(bar);
 
     for (int i = 0; i < bar->nbuttons; i++) {
         struct steppewm_task_button *btn = &bar->buttons[i];
-        int bx = PAD + i * (BUTTON_W + PAD);
-        wlr_scene_node_set_position(&btn->label->node, bx, PAD);
+        int bx = cfg->taskbar_button_pad + i * (cfg->taskbar_button_w + cfg->taskbar_button_pad);
+        wlr_scene_node_set_position(&btn->label->node, bx, cfg->taskbar_button_pad);
 
         float *bg;
         if (btn->view == fview) {
@@ -162,7 +159,7 @@ static void taskbar_layout(struct steppewm_taskbar *bar) {
         }
 
         const char *title = btn->view->toplevel->title ? btn->view->toplevel->title : "";
-        render_button(btn->label, title, BUTTON_W, bh, bg, cfg->color_task_text);
+        render_button(btn->label, title, cfg->taskbar_button_w, bh, bg, cfg->color_task_text);
     }
 }
 
@@ -283,9 +280,10 @@ struct steppewm_view *taskbar_view_at(struct steppewm_taskbar *bar, double x, do
 
     // find relative x position to taskbar
     int lx = (int) (x - bar->x);
+    struct steppewm_config *cfg = &bar->server->config;
 
     // find which button index we are on
-    int i = (lx - PAD) / (BUTTON_W + PAD);
+    int i = (lx - cfg->taskbar_button_pad) / (cfg->taskbar_button_w + cfg->taskbar_button_pad);
     if (i < 0 || i >= bar->nbuttons) {
         return NULL;
     }

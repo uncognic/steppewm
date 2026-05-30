@@ -166,6 +166,8 @@ void config_defaults(struct steppewm_config *cfg) {
 
     cfg->taskbar_h = 24;
     cfg->taskbar_all_outputs = false;
+    cfg->taskbar_button_w = 200;
+    cfg->taskbar_button_pad = 2;
 
     cfg->color_taskbar_bg[0] = 0.08f;
     cfg->color_taskbar_bg[1] = 0.08f;
@@ -231,6 +233,8 @@ bool config_load(struct steppewm_config *cfg, const char *path) {
     read_int(L, "minimize_button_width", &cfg->minimize_button_w);
 
     read_int(L, "taskbar_height", &cfg->taskbar_h);
+    read_int(L, "taskbar_button_width", &cfg->taskbar_button_w);
+    read_int(L, "taskbar_button_pad", &cfg->taskbar_button_pad);
     read_bool(L, "taskbar_all_outputs", &cfg->taskbar_all_outputs);
     read_color(L, "taskbar_bg", cfg->color_taskbar_bg);
     read_color(L, "task_normal", cfg->color_task_normal);
