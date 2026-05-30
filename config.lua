@@ -1,12 +1,19 @@
 -- steppewm config
 
-bind("Super", "Return", "spawn", "foot")
-bind("Super", "d", "spawn", "wofi --show drun")
+local terminal = "foot"
+local launcher = "wofi --show drun"
+local file_manager = "thunar"
+
+bind("Super", "Return", "spawn", terminal)
+bind("Super", "d", "spawn", launcher)
+bind("Super", "e", "spawn", file_manager)
 bind("Super", "Escape", "quit")
 bind("Alt", "Tab", "focus_next")
 bind("Super", "Down", "minimize")
 bind("Super", "Up", "maximize")
 bind("Super", "q", "close")
+
+-- exec("firefox")
 
 -- colors {r, g, b, a}
 -- title_active = {0.24, 0.24, 0.24, 1.0}
@@ -15,7 +22,7 @@ bind("Super", "q", "close")
 -- close_active = {0.85, 0.08, 0.08, 1.0}
 -- close_inactive = {0.45, 0.06, 0.06, 1.0}
 -- button_color = {0.38, 0.38, 0.38, 1.0}
--- button_inactive= {0.32, 0.32, 0.32, 1.0}
+-- button_inactive= {0.32, 0.32, 0.32, 1.0}W
 
 -- title_height = 20
 -- border_width = 3

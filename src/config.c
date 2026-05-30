@@ -17,6 +17,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <strings.h>
+#include <sys/types.h>
 #include <unistd.h>
 
 #include <lauxlib.h>
@@ -45,9 +46,24 @@ static uint32_t parse_modifiers(const char *str) {
         } else if (strcasecmp(tok, "ctrl") == 0 || strcasecmp(tok, "control") == 0) {
             mods |= WLR_MODIFIER_CTRL;
         }
-        tok = strtok_r(NULL, "+", &saveptr);
+        tok = strtok_r(nullptr, "+", &saveptr);
     }
     return mods;
+}
+
+// queue command to be run
+static int lua_exec(lua_State *L) {
+    lua_getfield(L, LUA_REGISTRYINDEX, "steppewm_cfg");
+    struct steppewm_config *cfg = lua_touserdata(L, -1);
+    lua_pop(L, 1);
+
+    if (cfg->nexecs >= CFG_MAX_EXECS) {
+        return luaL_error(L, "too many exec() calls (max %d)", CFG_MAX_EXECS);
+    }
+
+    const char *cmd = luaL_checkstring(L, 1);
+    strncpy(cfg->execs[cfg->nexecs++], cmd, CFG_MAX_CMD - 1);
+    return 0;
 }
 
 // bind()
@@ -209,6 +225,9 @@ bool config_load(struct steppewm_config *cfg, const char *path) {
     lua_pushlightuserdata(L, cfg);
     lua_setfield(L, LUA_REGISTRYINDEX, "steppewm_cfg");
 
+    lua_pushcfunction(L, lua_exec);
+    lua_setglobal(L, "exec");
+
     lua_pushcfunction(L, lua_bind);
     lua_setglobal(L, "bind");
 
@@ -244,4 +263,15 @@ bool config_load(struct steppewm_config *cfg, const char *path) {
 
     lua_close(L);
     return true;
+}
+
+void config_run_execs(struct steppewm_config *cfg) {
+    for (int i = 0; i < cfg->nexecs; i++) {
+        pid_t pid = fork();
+        if (pid == 0) {
+            setsid();
+            execl("/bin/sh", "sh", "-c", cfg->execs[i], NULL);
+            _exit(1);
+        }
+    }
 }

@@ -99,7 +99,7 @@ static bool server_init(struct steppewm_server *s) {
     s->cursor = wlr_cursor_create();
     wlr_cursor_attach_output_layout(s->cursor, s->output_layout);
 
-    s->cursor_mgr = wlr_xcursor_manager_create(NULL, 24);
+    s->cursor_mgr = wlr_xcursor_manager_create(nullptr, 24);
 
     s->cursor_motion.notify = cursor_motion;
     s->cursor_motion_absolute.notify = cursor_motion_absolute;
@@ -145,6 +145,9 @@ static void server_run(struct steppewm_server *s) {
     setenv("WAYLAND_DISPLAY", socket, true);
     wlr_log(WLR_INFO, "steppewm running on %s", socket);
 
+    // run exec()s after setting up environment
+    config_run_execs(&s->config);
+
     wl_display_run(s->display);
 }
 
@@ -163,9 +166,9 @@ static void server_fini(struct steppewm_server *s) {
 
 // entry
 int main(int argc, char *argv[]) {
-    wlr_log_init(WLR_DEBUG, NULL);
+    wlr_log_init(WLR_DEBUG, nullptr);
 
-    const char *cli_config_path = NULL;
+    const char *cli_config_path = nullptr;
 
     int opt;
     while ((opt = getopt(argc, argv, "c:")) != -1) {

@@ -21,6 +21,8 @@
 
 #define CFG_MAX_BINDS 128
 #define CFG_MAX_ARG 512
+#define CFG_MAX_EXECS 64
+#define CFG_MAX_CMD 512
 
 struct steppewm_keybind {
     uint32_t modifiers;
@@ -32,6 +34,9 @@ struct steppewm_keybind {
 struct steppewm_config {
     struct steppewm_keybind binds[CFG_MAX_BINDS];
     int nbinds;
+
+    char execs[CFG_MAX_EXECS][CFG_MAX_CMD];
+    int nexecs;
 
     float color_title_active[4];
     float color_title_inactive[4];
@@ -61,3 +66,4 @@ struct steppewm_config {
 
 void config_defaults(struct steppewm_config *cfg);
 bool config_load(struct steppewm_config *cfg, const char *path);
+void config_run_execs(struct steppewm_config *cfg);
