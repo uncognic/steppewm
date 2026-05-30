@@ -18,6 +18,7 @@
 #include <wayland-server-core.h>
 
 struct steppewm_server;
+struct steppewm_taskbar;
 struct wlr_output;
 struct wlr_scene_output;
 
@@ -25,6 +26,9 @@ struct steppewm_output {
     struct steppewm_server *server;
     struct wlr_output *wlr_output;
     struct wlr_scene_output *scene_output;
+
+    // taskbars are per output
+    struct steppewm_taskbar *taskbar;
 
     struct wl_list link;
 
@@ -34,3 +38,4 @@ struct steppewm_output {
 };
 
 void output_new(struct wl_listener *listener, void *data);
+void output_layout_change_register(struct steppewm_server *server);

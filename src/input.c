@@ -34,6 +34,7 @@
 
 #include "deco.h"
 #include "input.h"
+#include "output.h"
 #include "server.h"
 #include "taskbar.h"
 #include "view.h"
@@ -430,11 +431,15 @@ void cursor_button(struct wl_listener *listener, void *data) {
     }
 
     // if a taskbar item was clicked
-    if (server->taskbar && event->button == BTN_LEFT) {
-        struct steppewm_view *tv =
-            taskbar_view_at(server->taskbar, server->cursor->x, server->cursor->y);
-        if (tv) {
-            view_focus(tv, tv->toplevel->base->surface);
+    if (event->button == BTN_LEFT) {
+        struct steppewm_output *out;
+        wl_list_for_each(out, &server->outputs, link) {
+            struct steppewm_view *tv =
+                taskbar_view_at(out->taskbar, server->cursor->x, server->cursor->y);
+            if (tv) {
+                view_focus(tv, tv->toplevel->base->surface);
+                return;
+            }
         }
     }
 }

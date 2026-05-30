@@ -29,7 +29,8 @@
 #include "taskbar.h"
 #include "view.h"
 
-#define PAD 2
+#define PAD 4
+#define BUTTON_W 200
 
 // cpu backed wlr_buffer for cairo
 struct cpu_buf {
@@ -143,18 +144,12 @@ static void taskbar_layout(struct steppewm_taskbar *bar) {
     }
 
     int bh = bar->height - 2 * PAD;
-    int bw = (bar->width - (bar->nbuttons + 1) * PAD) / bar->nbuttons;
-    if (bw < 1) {
-        bw = 1;
-    }
-
     struct steppewm_config *cfg = &bar->server->config;
     struct steppewm_view *fview = taskbar_focused_view(bar);
 
-    // set size and properties for each button
     for (int i = 0; i < bar->nbuttons; i++) {
         struct steppewm_task_button *btn = &bar->buttons[i];
-        int bx = PAD + i * (bw + PAD);
+        int bx = PAD + i * (BUTTON_W + PAD);
         wlr_scene_node_set_position(&btn->label->node, bx, PAD);
 
         float *bg;
@@ -167,7 +162,7 @@ static void taskbar_layout(struct steppewm_taskbar *bar) {
         }
 
         const char *title = btn->view->toplevel->title ? btn->view->toplevel->title : "";
-        render_button(btn->label, title, bw, bh, bg, cfg->color_task_text);
+        render_button(btn->label, title, BUTTON_W, bh, bg, cfg->color_task_text);
     }
 }
 
@@ -179,9 +174,11 @@ static void on_title_changed(struct wl_listener *listener, void *data) {
 }
 
 // create taskbar, scene tree, and bg
-struct steppewm_taskbar *taskbar_create(struct steppewm_server *server) {
+struct steppewm_taskbar *taskbar_create(struct steppewm_server *server,
+                                        struct wlr_output *wlr_output) {
     struct steppewm_taskbar *bar = calloc(1, sizeof(*bar));
     bar->server = server;
+    bar->wlr_output = wlr_output;
     bar->height = server->config.taskbar_h;
     bar->tree = wlr_scene_tree_create(&server->scene->tree);
     bar->background =
@@ -255,9 +252,8 @@ void taskbar_refresh(struct steppewm_taskbar *bar) {
 
 // update size and position
 void taskbar_update_geometry(struct steppewm_taskbar *bar) {
-    // get taskbar object
     struct wlr_box box;
-    wlr_output_layout_get_box(bar->server->output_layout, NULL, &box);
+    wlr_output_layout_get_box(bar->server->output_layout, bar->wlr_output, &box);
     if (box.width <= 0 || box.height <= 0) {
         return;
     }
@@ -285,24 +281,13 @@ struct steppewm_view *taskbar_view_at(struct steppewm_taskbar *bar, double x, do
         return NULL;
     }
 
-    // make x relative
+    // find relative x position to taskbar
     int lx = (int) (x - bar->x);
 
-    // calculate width of each button
-    int bw = (bar->width - (bar->nbuttons + 1) * PAD) / bar->nbuttons;
-    if (bw < 1) {
+    // find which button index we are on
+    int i = (lx - PAD) / (BUTTON_W + PAD);
+    if (i < 0 || i >= bar->nbuttons) {
         return NULL;
-    }
-
-    // calculate button number
-    int i = (lx - PAD) / (bw + PAD);
-    if (i < 0) {
-        i = 0;
-    }
-
-    // overflow precvention
-    if (i >= bar->nbuttons) {
-        i = bar->nbuttons - 1;
     }
     return bar->buttons[i].view;
 }

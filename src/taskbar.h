@@ -19,6 +19,7 @@
 
 struct steppewm_server;
 struct steppewm_view;
+struct wlr_output;
 struct wlr_scene_tree;
 struct wlr_scene_rect;
 struct wlr_scene_buffer;
@@ -36,6 +37,7 @@ struct steppewm_task_button {
 // taskbar
 struct steppewm_taskbar {
     struct steppewm_server *server;
+    struct wlr_output *wlr_output;
     struct wlr_scene_tree *tree;
     struct wlr_scene_rect *background;
 
@@ -46,7 +48,8 @@ struct steppewm_taskbar {
 };
 
 // see taskbar.c for more info on these methods
-struct steppewm_taskbar *taskbar_create(struct steppewm_server *server);
+struct steppewm_taskbar *taskbar_create(struct steppewm_server *server,
+                                        struct wlr_output *wlr_output);
 void taskbar_destroy(struct steppewm_taskbar *bar);
 void taskbar_view_added(struct steppewm_taskbar *bar, struct steppewm_view *view);
 void taskbar_view_removed(struct steppewm_taskbar *bar, struct steppewm_view *view);

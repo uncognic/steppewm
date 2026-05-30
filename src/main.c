@@ -39,7 +39,6 @@
 #include "input.h"
 #include "output.h"
 #include "server.h"
-#include "taskbar.h"
 #include "view.h"
 
 // initialize server
@@ -78,6 +77,7 @@ static bool server_init(struct steppewm_server *s) {
 
     // create output layout
     s->output_layout = wlr_output_layout_create(s->display);
+    output_layout_change_register(s);
 
     // create listeners and signals
     wl_list_init(&s->outputs);
@@ -150,10 +150,6 @@ static void server_run(struct steppewm_server *s) {
 
 // clean up
 static void server_fini(struct steppewm_server *s) {
-    if (s->taskbar) {
-        taskbar_destroy(s->taskbar);
-        s->taskbar = NULL;
-    }
     wl_display_destroy_clients(s->display);
     wlr_scene_node_destroy(&s->scene->tree.node);
     wlr_xcursor_manager_destroy(s->cursor_mgr);
@@ -209,8 +205,6 @@ int main(int argc, char *argv[]) {
     if (!server_init(&server)) {
         return EXIT_FAILURE;
     }
-
-    server.taskbar = taskbar_create(&server);
 
     server_run(&server);
     server_fini(&server);

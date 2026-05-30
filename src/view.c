@@ -1,3 +1,18 @@
+/*
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 #include <stdlib.h>
 
 #include <wlr/types/wlr_compositor.h>
@@ -9,6 +24,7 @@
 
 #include "deco.h"
 #include "input.h"
+#include "output.h"
 #include "server.h"
 #include "taskbar.h"
 #include "view.h"
@@ -26,7 +42,7 @@ static void remove_listener(struct wl_listener *listener) {
 }
 
 void view_focus_next(struct steppewm_server *server, struct steppewm_view *skip) {
-    struct steppewm_view *next = NULL;
+    struct steppewm_view *next = nullptr;
     struct steppewm_view *view;
 
     // loop through views until we find one that isn't minimzed
@@ -42,8 +58,12 @@ void view_focus_next(struct steppewm_server *server, struct steppewm_view *skip)
         view_focus(next, next->toplevel->base->surface);
     } else {
         wlr_seat_keyboard_notify_clear_focus(server->seat);
-        if (server->taskbar) {
-            taskbar_refresh(server->taskbar);
+        struct steppewm_output *out;
+        // update for each output's taskbar
+        wl_list_for_each(out, &server->outputs, link) {
+            if (out->taskbar) {
+                taskbar_refresh(out->taskbar);
+            }
         }
     }
 }
@@ -52,8 +72,12 @@ void view_focus_next(struct steppewm_server *server, struct steppewm_view *skip)
 void view_minimize(struct steppewm_view *view, bool minimized) {
     view->minimized = minimized;
     wlr_scene_node_set_enabled(&view->scene_tree->node, !minimized);
-    if (view->server->taskbar) {
-        taskbar_refresh(view->server->taskbar);
+    struct steppewm_output *out;
+    // update for each output's taskbar
+    wl_list_for_each(out, &view->server->outputs, link) {
+        if (out->taskbar) {
+            taskbar_refresh(out->taskbar);
+        }
     }
 }
 
@@ -66,16 +90,16 @@ static void view_apply_pending_deco(struct steppewm_view *view) {
     wlr_xdg_toplevel_decoration_v1_set_mode(view->pending_deco,
                                             WLR_XDG_TOPLEVEL_DECORATION_V1_MODE_SERVER_SIDE);
     view->deco_mode = STEPPEWM_DECO_SERVER;
-    wlr_scene_node_set_position(&view->xdg_tree->node,
-                                view->server->config.border_w, view->server->config.title_h);
+    wlr_scene_node_set_position(&view->xdg_tree->node, view->server->config.border_w,
+                                view->server->config.title_h);
     deco_create(view);
-    view->pending_deco = NULL;
+    view->pending_deco = nullptr;
 }
 
 // move
 static void view_initial_configure(void *data) {
     struct steppewm_view *view = data;
-    view->initial_configure_idle = NULL;
+    view->initial_configure_idle = nullptr;
 
     if (!view_can_configure(view)) {
         return;
@@ -87,7 +111,7 @@ static void view_initial_configure(void *data) {
 
 // focus a new window
 static void view_map(struct wl_listener *listener, void *data) {
-    (void)data;
+    (void) data;
     struct steppewm_view *view = wl_container_of(listener, view, map);
 
     // set properties
@@ -95,19 +119,23 @@ static void view_map(struct wl_listener *listener, void *data) {
     wlr_scene_node_set_enabled(&view->scene_tree->node, true);
     wl_list_insert(&view->server->views, &view->link);
 
-    // add window to taskbar
-    if (view->server->taskbar) {
-        taskbar_view_added(view->server->taskbar, view);
+    // add window to all taskbars
+    struct steppewm_output *out;
+    // update for each output's taskbar
+    wl_list_for_each(out, &view->server->outputs, link) {
+        if (out->taskbar) {
+            taskbar_view_added(out->taskbar, view);
+        }
     }
     view_focus(view, view->toplevel->base->surface);
 }
 
 // remove window (view)
 static void view_unmap(struct wl_listener *listener, void *data) {
-    (void)data;
+    (void) data;
     struct steppewm_view *view = wl_container_of(listener, view, unmap);
     if (view->server->grabbed_view == view) {
-        view->server->grabbed_view = NULL;
+        view->server->grabbed_view = nullptr;
         view->server->cursor_mode = STEPPEWM_CURSOR_PASSTHROUGH;
     }
 
@@ -127,9 +155,13 @@ static void view_unmap(struct wl_listener *listener, void *data) {
     wl_list_init(&view->link);
     wlr_scene_node_set_enabled(&view->scene_tree->node, false);
 
-    // remove view from taskbar
-    if (view->server->taskbar) {
-        taskbar_view_removed(view->server->taskbar, view);
+    // remove view from all taskbars
+    struct steppewm_output *out2;
+    // update for each output's taskbar
+    wl_list_for_each(out2, &view->server->outputs, link) {
+        if (out2->taskbar) {
+            taskbar_view_removed(out2->taskbar, view);
+        }
     }
 
     // focus next window
@@ -138,7 +170,7 @@ static void view_unmap(struct wl_listener *listener, void *data) {
 
 // update/render window
 static void view_commit(struct wl_listener *listener, void *data) {
-    (void)data;
+    (void) data;
     struct steppewm_view *view = wl_container_of(listener, view, commit);
     if (view->toplevel->base->initial_commit) {
         if (!view->initial_configure_idle) {
@@ -154,7 +186,7 @@ static void view_commit(struct wl_listener *listener, void *data) {
 
 // clean up view
 static void view_destroy(struct wl_listener *listener, void *data) {
-    (void)data;
+    (void) data;
     struct steppewm_view *view = wl_container_of(listener, view, destroy);
     if (view->initial_configure_idle) {
         wl_event_source_remove(view->initial_configure_idle);
@@ -167,7 +199,7 @@ static void view_destroy(struct wl_listener *listener, void *data) {
 
     // clear grab on window
     if (view->server->grabbed_view == view) {
-        view->server->grabbed_view = NULL;
+        view->server->grabbed_view = nullptr;
         view->server->cursor_mode = STEPPEWM_CURSOR_PASSTHROUGH;
     }
 
@@ -201,7 +233,7 @@ static void view_destroy(struct wl_listener *listener, void *data) {
 
 // when the client wants to move or resize a window
 static void view_request_move(struct wl_listener *listener, void *data) {
-    (void)data;
+    (void) data;
     struct steppewm_view *view = wl_container_of(listener, view, request_move);
     cursor_begin_interactive(view, STEPPEWM_CURSOR_MOVE, 0);
 }
@@ -225,7 +257,7 @@ static void view_apply_state(struct steppewm_view *view, bool maximized, bool fu
         if (!was_special) {
             // save the current geometry before maximizing
             struct wlr_box *geo = &view->toplevel->base->geometry;
-            view->saved_geo = (struct wlr_box){
+            view->saved_geo = (struct wlr_box) {
                 .x = node->x,
                 .y = node->y,
                 .width = geo->width,
@@ -270,21 +302,21 @@ static void view_apply_state(struct steppewm_view *view, bool maximized, bool fu
 
 // maximize a view
 static void view_request_maximize(struct wl_listener *listener, void *data) {
-    (void)data;
+    (void) data;
     struct steppewm_view *view = wl_container_of(listener, view, request_maximize);
     view_apply_state(view, view->toplevel->requested.maximized, view->fullscreen);
 }
 
 // fullscreen a view
 static void view_request_fullscreen(struct wl_listener *listener, void *data) {
-    (void)data;
+    (void) data;
     struct steppewm_view *view = wl_container_of(listener, view, request_fullscreen);
     view_apply_state(view, view->maximized, view->toplevel->requested.fullscreen);
 }
 
 // minimize a view, handing focus to the next visible window
 static void view_on_request_minimize(struct wl_listener *listener, void *data) {
-    (void)data;
+    (void) data;
     struct steppewm_view *view = wl_container_of(listener, view, request_minimize);
     if (!view->toplevel->requested.minimized) {
         return;
@@ -352,14 +384,14 @@ struct steppewm_view *view_at(struct steppewm_server *server, double lx, double 
     // get the scene node
     struct wlr_scene_node *node = wlr_scene_node_at(&server->scene->tree.node, lx, ly, sx, sy);
     if (!node || node->type != WLR_SCENE_NODE_BUFFER) {
-        return NULL;
+        return nullptr;
     }
 
     // get the wayland surface from the node
     struct wlr_scene_buffer *scene_buffer = wlr_scene_buffer_from_node(node);
     struct wlr_scene_surface *scene_surface = wlr_scene_surface_try_from_buffer(scene_buffer);
     if (!scene_surface) {
-        return NULL;
+        return nullptr;
     }
     *surface = scene_surface->surface;
 
@@ -370,7 +402,10 @@ struct steppewm_view *view_at(struct steppewm_server *server, double lx, double 
     }
 
     // return null if no data
-    return tree ? tree->node.data : NULL;
+    if (!tree) {
+        return nullptr;
+    }
+    return tree->node.data;
 }
 
 // focus a view
@@ -423,8 +458,11 @@ void view_focus(struct steppewm_view *view, struct wlr_surface *surface) {
                                        &keyboard->modifiers);
     }
 
-    if (server->taskbar) {
-        wlr_scene_node_raise_to_top(&server->taskbar->tree->node);
-        taskbar_refresh(server->taskbar);
+    struct steppewm_output *out;
+    wl_list_for_each(out, &server->outputs, link) {
+        if (out->taskbar) {
+            wlr_scene_node_raise_to_top(&out->taskbar->tree->node);
+            taskbar_refresh(out->taskbar);
+        }
     }
 }

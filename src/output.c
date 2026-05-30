@@ -22,14 +22,16 @@
 #include "output.h"
 #include "server.h"
 #include "taskbar.h"
+#include "view.h"
 
 // called on output frame events
 static void output_frame(struct wl_listener *listener, void *data) {
+    (void) data;
     struct steppewm_output *output = wl_container_of(listener, output, frame);
     struct wlr_scene_output *scene_output =
         wlr_scene_get_scene_output(output->server->scene, output->wlr_output);
 
-    wlr_scene_output_commit(scene_output, NULL);
+    wlr_scene_output_commit(scene_output, nullptr);
 
     struct timespec now;
     clock_gettime(CLOCK_MONOTONIC, &now);
@@ -44,13 +46,39 @@ static void output_request_state(struct wl_listener *listener, void *data) {
 
 // clean up output
 static void output_destroy(struct wl_listener *listener, void *data) {
+    (void) data;
     struct steppewm_output *output = wl_container_of(listener, output, destroy);
+
+    // remove taskbar for listener (output)
+    if (output->taskbar) {
+        taskbar_destroy(output->taskbar);
+        output->taskbar = nullptr;
+    }
 
     wl_list_remove(&output->frame.link);
     wl_list_remove(&output->request_state.link);
     wl_list_remove(&output->destroy.link);
     wl_list_remove(&output->link);
     free(output);
+}
+
+// update geometry of taskbar for each output
+static void output_layout_change(struct wl_listener *listener, void *data) {
+    (void) data;
+    struct steppewm_server *server = wl_container_of(listener, server, output_layout_change);
+    struct steppewm_output *output;
+    wl_list_for_each(output, &server->outputs, link) {
+        if (output->taskbar) {
+            taskbar_update_geometry(output->taskbar);
+            wlr_scene_node_raise_to_top(&output->taskbar->tree->node);
+        }
+    }
+}
+
+// register a layout change
+void output_layout_change_register(struct steppewm_server *server) {
+    server->output_layout_change.notify = output_layout_change;
+    wl_signal_add(&server->output_layout->events.change, &server->output_layout_change);
 }
 
 // add new output and set it up
@@ -86,15 +114,21 @@ void output_new(struct wl_listener *listener, void *data) {
 
     wl_list_insert(&server->outputs, &output->link);
 
+    // create taskbar before add_auto
+    // taskbar must exist before then to be psoitioned correctly
+    bool is_primary = wl_list_length(&server->outputs) == 1;
+    if (is_primary || server->config.taskbar_all_outputs) {
+        output->taskbar = taskbar_create(server, wlr_output);
+        struct steppewm_view *view;
+        wl_list_for_each(view, &server->views, link) {
+            taskbar_view_added(output->taskbar, view);
+        }
+    }
+
     struct wlr_output_layout_output *layout_output =
         wlr_output_layout_add_auto(server->output_layout, wlr_output);
     output->scene_output = wlr_scene_output_create(server->scene, wlr_output);
     wlr_scene_output_layout_add_output(server->scene_layout, layout_output, output->scene_output);
 
     wlr_log(WLR_INFO, "new output: %s", wlr_output->name);
-
-    if (server->taskbar) {
-        taskbar_update_geometry(server->taskbar);
-        wlr_scene_node_raise_to_top(&server->taskbar->tree->node);
-    }
 }

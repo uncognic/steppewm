@@ -97,6 +97,14 @@ static void read_color(lua_State *L, const char *name, float out[4]) {
     lua_pop(L, 1);
 }
 
+static void read_bool(lua_State *L, const char *name, bool *out) {
+    lua_getglobal(L, name);
+    if (lua_isboolean(L, -1)) {
+        *out = lua_toboolean(L, -1);
+    }
+    lua_pop(L, 1);
+}
+
 static void read_int(lua_State *L, const char *name, int *out) {
     lua_getglobal(L, name);
     if (lua_isinteger(L, -1)) {
@@ -157,6 +165,7 @@ void config_defaults(struct steppewm_config *cfg) {
     cfg->minimize_button_w = 20;
 
     cfg->taskbar_h = 24;
+    cfg->taskbar_all_outputs = false;
 
     cfg->color_taskbar_bg[0] = 0.08f;
     cfg->color_taskbar_bg[1] = 0.08f;
@@ -222,6 +231,7 @@ bool config_load(struct steppewm_config *cfg, const char *path) {
     read_int(L, "minimize_button_width", &cfg->minimize_button_w);
 
     read_int(L, "taskbar_height", &cfg->taskbar_h);
+    read_bool(L, "taskbar_all_outputs", &cfg->taskbar_all_outputs);
     read_color(L, "taskbar_bg", cfg->color_taskbar_bg);
     read_color(L, "task_normal", cfg->color_task_normal);
     read_color(L, "task_active", cfg->color_task_active);

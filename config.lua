@@ -1,11 +1,14 @@
 -- steppewm config
 
 bind("Super", "Return", "spawn", "foot")
+bind("Super", "d", "spawn", "wofi --show drun")
 bind("Super", "Escape", "quit")
 bind("Alt", "Tab", "focus_next")
 bind("Super", "Down", "minimize")
 bind("Super", "Up", "maximize")
 bind("Super", "q", "close")
+
+taskbar_all_outputs = true
 
 -- colors {r, g, b, a}
 -- title_active = {0.24, 0.24, 0.24, 1.0}

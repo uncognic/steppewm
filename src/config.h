@@ -49,6 +49,7 @@ struct steppewm_config {
     int minimize_button_w;
 
     int taskbar_h;
+    bool taskbar_all_outputs;
     float color_taskbar_bg[4];
     float color_task_normal[4];
     float color_task_active[4];

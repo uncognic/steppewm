@@ -35,7 +35,6 @@
 #include <wlr/util/box.h>
 
 struct steppewm_view;
-struct steppewm_taskbar;
 
 enum steppewm_cursor_mode {
     STEPPEWM_CURSOR_PASSTHROUGH,
@@ -57,6 +56,7 @@ struct steppewm_server {
     struct wlr_output_layout *output_layout;
     struct wl_list outputs;
     struct wl_listener new_output;
+    struct wl_listener output_layout_change;
 
     // xdg shell
     struct wlr_xdg_shell *xdg_shell;
@@ -91,5 +91,4 @@ struct steppewm_server {
     uint32_t resize_edges;
 
     struct steppewm_config config;
-    struct steppewm_taskbar *taskbar;
 };
