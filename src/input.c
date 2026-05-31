@@ -96,9 +96,11 @@ static void dispatch_action(struct steppewm_server *server, const char *action, 
 }
 
 static bool handle_keybinding(struct steppewm_server *server, uint32_t mods, xkb_keysym_t sym) {
+    // make keysim lowercase so bindings still match
+    xkb_keysym_t lower = xkb_keysym_to_lower(sym);
     for (int i = 0; i < server->config.nbinds; i++) {
         struct steppewm_keybind *b = &server->config.binds[i];
-        if (b->modifiers == mods && b->sym == sym) {
+        if (b->modifiers == mods && b->sym == lower) {
             dispatch_action(server, b->action, b->arg);
             return true;
         }
