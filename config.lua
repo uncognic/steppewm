@@ -3,10 +3,12 @@
 local terminal = "foot"
 local launcher = "wofi --show drun"
 local file_manager = "thunar"
+local screenshot = "grim -g "$(slurp)" - | tee ~/Screenshots/$(date +'%Y-%m-%d_%H-%M-%S').png | wl-copy"
 
 bind("Super", "Return", "spawn", terminal)
 bind("Super", "d", "spawn", launcher)
 bind("Super", "e", "spawn", file_manager)
+bind("Super", "Shift", "s", "spawn", screenshot)
 bind("Super", "Escape", "quit")
 bind("Alt", "Tab", "focus_next")
 bind("Super", "Down", "minimize")
@@ -22,9 +24,12 @@ exec("swaybg -i ~/Pictures/Vallpapers/bolatbek-gabiden-dsL_tvf1Z-E-unsplash.jpg 
 -- close_active = {0.85, 0.08, 0.08, 1.0}
 -- close_inactive = {0.45, 0.06, 0.06, 1.0}
 -- button_color = {0.38, 0.38, 0.38, 1.0}
--- button_inactive= {0.32, 0.32, 0.32, 1.0}W
+-- button_inactive= {0.32, 0.32, 0.32, 1.0}
 
+-- titlebar
 -- title_height = 20
+-- title_text = {0.88, 0.88, 0.88, 1.0}
+-- show_title_text = true
 -- border_width = 3
 -- corner_size = 8
 -- close_button_width = 40

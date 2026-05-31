@@ -173,6 +173,12 @@ void config_defaults(struct steppewm_config *cfg) {
     cfg->color_invisible[2] = 0.0f;
     cfg->color_invisible[3] = 0.0f;
 
+    cfg->color_title_text[0] = 0.88f;
+    cfg->color_title_text[1] = 0.88f;
+    cfg->color_title_text[2] = 0.88f;
+    cfg->color_title_text[3] = 1.0f;
+    cfg->show_title_text = true;
+
     cfg->title_h = 20;
     cfg->border_w = 3;
     cfg->corner_size = 8;
@@ -244,6 +250,9 @@ bool config_load(struct steppewm_config *cfg, const char *path) {
     read_color(L, "close_inactive", cfg->color_close_inactive);
     read_color(L, "button_color", cfg->color_button);
     read_color(L, "button_inactive", cfg->color_button_inactive);
+
+    read_color(L, "title_text", cfg->color_title_text);
+    read_bool(L, "show_title_text", &cfg->show_title_text);
 
     read_int(L, "title_height", &cfg->title_h);
     read_int(L, "border_width", &cfg->border_w);

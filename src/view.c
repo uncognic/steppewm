@@ -224,11 +224,20 @@ static void view_destroy(struct wl_listener *listener, void *data) {
     wl_list_remove(&view->request_maximize.link);
     wl_list_remove(&view->request_fullscreen.link);
     wl_list_remove(&view->request_minimize.link);
+    wl_list_remove(&view->title_changed.link);
     remove_listener(&view->request_deco_mode);
     remove_listener(&view->destroy_deco);
     deco_destroy(view);
     wlr_scene_node_destroy(&view->scene_tree->node);
     free(view);
+}
+
+// called when title of window changed
+// updates decorations
+static void view_title_changed(struct wl_listener *listener, void *data) {
+    (void) data;
+    struct steppewm_view *view = wl_container_of(listener, view, title_changed);
+    deco_update(view);
 }
 
 // when the client wants to move or resize a window
@@ -365,6 +374,7 @@ void view_new(struct wl_listener *listener, void *data) {
     view->request_maximize.notify = view_request_maximize;
     view->request_fullscreen.notify = view_request_fullscreen;
     view->request_minimize.notify = view_on_request_minimize;
+    view->title_changed.notify = view_title_changed;
 
     wl_signal_add(&toplevel->base->surface->events.map, &view->map);
     wl_signal_add(&toplevel->base->surface->events.unmap, &view->unmap);
@@ -375,6 +385,7 @@ void view_new(struct wl_listener *listener, void *data) {
     wl_signal_add(&toplevel->events.request_maximize, &view->request_maximize);
     wl_signal_add(&toplevel->events.request_fullscreen, &view->request_fullscreen);
     wl_signal_add(&toplevel->events.request_minimize, &view->request_minimize);
+    wl_signal_add(&toplevel->events.set_title, &view->title_changed);
 }
 
 // find which view is at a certain coord, and return its steppewm_view

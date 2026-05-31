@@ -46,6 +46,9 @@ struct steppewm_config {
     float color_button_inactive[4];
     float color_invisible[4];
 
+    float color_title_text[4];
+    bool show_title_text;
+
     int title_h;
     int border_w;
     int corner_size;

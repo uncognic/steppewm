@@ -24,9 +24,11 @@ struct wlr_xdg_toplevel_decoration_v1;
 struct wlr_scene_tree;
 struct wlr_surface;
 struct wlr_scene_rect;
+struct wlr_scene_buffer;
 
 struct steppewm_deco {
     struct wlr_scene_rect *titlebar;
+    struct wlr_scene_buffer *title_label;
     struct wlr_scene_rect *close_button;
     struct wlr_scene_rect *maximize;
     struct wlr_scene_rect *minimize;
@@ -77,6 +79,7 @@ struct steppewm_view {
     struct wl_listener request_maximize;
     struct wl_listener request_fullscreen;
     struct wl_listener request_minimize;
+    struct wl_listener title_changed;
 };
 
 // once again see view.c
