@@ -29,6 +29,7 @@ struct wlr_scene_rect;
 struct steppewm_deco {
     struct wlr_scene_rect *titlebar;
     struct wlr_scene_rect *close_button;
+    struct wlr_scene_rect *maximize;
     struct wlr_scene_rect *minimize;
     struct wlr_scene_rect *border_top;
     struct wlr_scene_rect *border_left;

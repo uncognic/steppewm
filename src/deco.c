@@ -44,6 +44,8 @@ void deco_create(struct steppewm_view *view) {
 
     view->deco.close_button = wlr_scene_rect_create(view->scene_tree, cfg->close_button_w,
                                                     cfg->title_h, cfg->color_close_inactive);
+    view->deco.maximize = wlr_scene_rect_create(view->scene_tree, cfg->maximize_button_w,
+                                                cfg->title_h, cfg->color_button);
     view->deco.minimize = wlr_scene_rect_create(view->scene_tree, cfg->minimize_button_w,
                                                 cfg->title_h, cfg->color_button);
 
@@ -85,9 +87,13 @@ void deco_update(struct steppewm_view *view) {
     int close_x = tw - cfg->close_button_w - 4;
     wlr_scene_node_set_position(&view->deco.close_button->node, close_x, 0);
 
+    wlr_scene_rect_set_size(view->deco.maximize, cfg->maximize_button_w, cfg->title_h - 4);
+    int maximize_x = close_x - 4 - cfg->maximize_button_w;
+    wlr_scene_node_set_position(&view->deco.maximize->node, maximize_x, 0);
+
     wlr_scene_rect_set_size(view->deco.minimize, cfg->minimize_button_w, cfg->title_h - 4);
-    wlr_scene_node_set_position(&view->deco.minimize->node,
-                                close_x - cfg->close_button_w / 2 - 1, 0);
+    wlr_scene_node_set_position(&view->deco.minimize->node, maximize_x - 2 - cfg->minimize_button_w,
+                                0);
 
     wlr_scene_rect_set_size(view->deco.border_top, tw, cfg->border_w);
     wlr_scene_node_set_position(&view->deco.border_top->node, 0, 0);
@@ -117,6 +123,7 @@ void deco_destroy(struct steppewm_view *view) {
     // free stuff
     view->deco.titlebar = nullptr;
     view->deco.close_button = nullptr;
+    view->deco.maximize = nullptr;
     view->deco.minimize = nullptr;
     view->deco.border_top = nullptr;
     view->deco.border_left = nullptr;
@@ -137,6 +144,8 @@ void deco_set_focus(struct steppewm_view *view, bool focused) {
                              focused ? cfg->color_title_active : cfg->color_title_inactive);
     wlr_scene_rect_set_color(view->deco.close_button,
                              focused ? cfg->color_close_active : cfg->color_close_inactive);
+    wlr_scene_rect_set_color(view->deco.maximize,
+                             focused ? cfg->color_button : cfg->color_button_inactive);
     wlr_scene_rect_set_color(view->deco.minimize,
                              focused ? cfg->color_button : cfg->color_button_inactive);
 }
@@ -208,7 +217,15 @@ bool deco_handle_button(struct steppewm_view *view, struct steppewm_server *serv
         return true;
     }
 
-    // handle minimze
+    // handle maximize
+    if (node == &view->deco.maximize->node) {
+        if (button == BTN_LEFT) {
+            view_toggle_maximize(view);
+        }
+        return true;
+    }
+
+    // handle minimize
     if (node == &view->deco.minimize->node) {
         if (button == BTN_LEFT) {
             struct wlr_surface *focused = server->seat->keyboard_state.focused_surface;

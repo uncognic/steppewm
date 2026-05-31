@@ -178,6 +178,7 @@ void config_defaults(struct steppewm_config *cfg) {
     cfg->border_w = 3;
     cfg->corner_size = 8;
     cfg->close_button_w = 40;
+    cfg->maximize_button_w = 20;
     cfg->minimize_button_w = 20;
 
     cfg->taskbar_h = 24;
@@ -249,6 +250,7 @@ bool config_load(struct steppewm_config *cfg, const char *path) {
     read_int(L, "border_width", &cfg->border_w);
     read_int(L, "corner_size", &cfg->corner_size);
     read_int(L, "close_button_width", &cfg->close_button_w);
+    read_int(L, "maximize_button_width", &cfg->maximize_button_w);
     read_int(L, "minimize_button_width", &cfg->minimize_button_w);
 
     read_int(L, "taskbar_height", &cfg->taskbar_h);

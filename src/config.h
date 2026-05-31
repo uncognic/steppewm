@@ -51,6 +51,7 @@ struct steppewm_config {
     int border_w;
     int corner_size;
     int close_button_w;
+    int maximize_button_w;
     int minimize_button_w;
 
     int taskbar_h;
