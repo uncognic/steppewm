@@ -25,6 +25,7 @@
 #include <wlr/types/wlr_compositor.h>
 #include <wlr/types/wlr_cursor.h>
 #include <wlr/types/wlr_data_device.h>
+#include <wlr/types/wlr_layer_shell_v1.h>
 #include <wlr/types/wlr_output_layout.h>
 #include <wlr/types/wlr_scene.h>
 #include <wlr/types/wlr_seat.h>
@@ -62,6 +63,10 @@ struct steppewm_server {
     struct wlr_xdg_shell *xdg_shell;
     struct wl_listener new_xdg_toplevel;
     struct wl_list views;
+
+    // layer shell
+    struct wlr_layer_shell_v1 *layer_shell;
+    struct wl_listener new_layer_surface;
 
     // decorations
     struct wlr_xdg_decoration_manager_v1 *deco_manager;

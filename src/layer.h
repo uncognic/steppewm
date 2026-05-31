@@ -17,31 +17,20 @@
 
 #include <wayland-server-core.h>
 
-struct steppewm_server;
-struct steppewm_taskbar;
-struct steppewm_layer_surface;
-struct wlr_output;
-struct wlr_scene_output;
-struct wlr_scene_tree;
+struct steppewm_output;
+struct wlr_layer_surface_v1;
+struct wlr_scene_layer_surface_v1;
 
-struct steppewm_output {
-    struct steppewm_server *server;
-    struct wlr_output *wlr_output;
-    struct wlr_scene_output *scene_output;
-
-    // taskbars are per output
-    struct steppewm_taskbar *taskbar;
-
-    // layer shell trees and surfaces
-    struct wlr_scene_tree *layer_trees[4];
-    struct wl_list layer_surfaces;
+struct steppewm_layer_surface {
+    struct steppewm_output *output;
+    struct wlr_layer_surface_v1 *wlr_layer_surface;
+    struct wlr_scene_layer_surface_v1 *scene_layer_surface;
 
     struct wl_list link;
 
-    struct wl_listener frame;
-    struct wl_listener request_state;
+    struct wl_listener commit;
     struct wl_listener destroy;
 };
 
-void output_new(struct wl_listener *listener, void *data);
-void output_layout_change_register(struct steppewm_server *server);
+void layer_surface_new(struct wl_listener *listener, void *data);
+void layer_surface_configure(struct steppewm_layer_surface *ls);

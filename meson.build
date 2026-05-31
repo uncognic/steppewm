@@ -9,11 +9,11 @@ project('steppewm', 'c',
 add_project_arguments('-DWLR_USE_UNSTABLE', language : 'c')
 add_project_arguments('-D_POSIX_C_SOURCE=200809L', language : 'c')
 
-wlroots    = dependency('wlroots-0.19')
-wayland    = dependency('wayland-server')
-xkbcommon  = dependency('xkbcommon')
+wlroots = dependency('wlroots-0.19')
+wayland = dependency('wayland-server')
+xkbcommon = dependency('xkbcommon')
 lua = dependency('lua5.4', 'lua-5.4', 'lua', version : '>=5.4')
-pixman     = dependency('pixman-1')
+pixman = dependency('pixman-1')
 cairo = dependency('cairo')
 
 deps = [wlroots, wayland, xkbcommon, lua, pixman, cairo]
@@ -24,6 +24,7 @@ wl_scanner = find_program('wayland-scanner')
 
 protocols = [
   wl_protocol_dir / 'stable/xdg-shell/xdg-shell.xml',
+  'protocol/wlr-layer-shell-unstable-v1.xml',
 ]
 
 protocol_headers = []
@@ -43,6 +44,7 @@ sources = files(
   'src/input.c',
   'src/deco.c',
   'src/taskbar.c',
+  'src/layer.c',
 )
 
 executable('steppewm',

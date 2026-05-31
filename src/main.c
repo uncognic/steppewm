@@ -37,6 +37,7 @@
 #include "config.h"
 #include "deco.h"
 #include "input.h"
+#include "layer.h"
 #include "output.h"
 #include "server.h"
 #include "view.h"
@@ -91,6 +92,10 @@ static bool server_init(struct steppewm_server *s) {
     s->xdg_shell = wlr_xdg_shell_create(s->display, 6);
     s->new_xdg_toplevel.notify = view_new;
     wl_signal_add(&s->xdg_shell->events.new_toplevel, &s->new_xdg_toplevel);
+
+    s->layer_shell = wlr_layer_shell_v1_create(s->display, 4);
+    s->new_layer_surface.notify = layer_surface_new;
+    wl_signal_add(&s->layer_shell->events.new_surface, &s->new_layer_surface);
 
     s->deco_manager = wlr_xdg_decoration_manager_v1_create(s->display);
     s->new_deco.notify = deco_new;

@@ -19,6 +19,7 @@
 #include <wlr/types/wlr_output_layout.h>
 #include <wlr/util/log.h>
 
+#include "layer.h"
 #include "output.h"
 #include "server.h"
 #include "taskbar.h"
@@ -55,6 +56,20 @@ static void output_destroy(struct wl_listener *listener, void *data) {
         output->taskbar = nullptr;
     }
 
+    // destroy layer surfaces (sends closed to clients)
+    struct steppewm_layer_surface *ls, *tmp;
+    wl_list_for_each_safe(ls, tmp, &output->layer_surfaces, link) {
+        wlr_layer_surface_v1_destroy(ls->wlr_layer_surface);
+    }
+
+    // destroy layer trees
+    for (int i = 0; i < 4; i++) {
+        if (output->layer_trees[i]) {
+            wlr_scene_node_destroy(&output->layer_trees[i]->node);
+            output->layer_trees[i] = nullptr;
+        }
+    }
+
     wl_list_remove(&output->frame.link);
     wl_list_remove(&output->request_state.link);
     wl_list_remove(&output->destroy.link);
@@ -62,12 +77,31 @@ static void output_destroy(struct wl_listener *listener, void *data) {
     free(output);
 }
 
-// update geometry of taskbar for each output
+// update geometry of taskbar and layer surfaces for each output
 static void output_layout_change(struct wl_listener *listener, void *data) {
     (void) data;
     struct steppewm_server *server = wl_container_of(listener, server, output_layout_change);
     struct steppewm_output *output;
     wl_list_for_each(output, &server->outputs, link) {
+        struct wlr_box box;
+        wlr_output_layout_get_box(server->output_layout, output->wlr_output, &box);
+        if (box.width <= 0) {
+            continue;
+        }
+
+        // reposition layer trees to the output's new global origin
+        for (int i = 0; i < 4; i++) {
+            if (output->layer_trees[i]) {
+                wlr_scene_node_set_position(&output->layer_trees[i]->node, box.x, box.y);
+            }
+        }
+
+        // reconfigure layer surfaces with new dimensions
+        struct steppewm_layer_surface *ls;
+        wl_list_for_each(ls, &output->layer_surfaces, link) {
+            layer_surface_configure(ls);
+        }
+
         if (output->taskbar) {
             taskbar_update_geometry(output->taskbar);
             wlr_scene_node_raise_to_top(&output->taskbar->tree->node);
@@ -102,6 +136,7 @@ void output_new(struct wl_listener *listener, void *data) {
     struct steppewm_output *output = calloc(1, sizeof(*output));
     output->server = server;
     output->wlr_output = wlr_output;
+    wl_list_init(&output->layer_surfaces);
 
     output->frame.notify = output_frame;
     wl_signal_add(&wlr_output->events.frame, &output->frame);

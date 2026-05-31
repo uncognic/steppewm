@@ -24,6 +24,7 @@
 
 #include "deco.h"
 #include "input.h"
+#include "layer.h"
 #include "output.h"
 #include "server.h"
 #include "taskbar.h"
@@ -463,6 +464,12 @@ void view_focus(struct steppewm_view *view, struct wlr_surface *surface) {
         if (out->taskbar) {
             wlr_scene_node_raise_to_top(&out->taskbar->tree->node);
             taskbar_refresh(out->taskbar);
+        }
+        // keep TOP and OVERLAY layer surfaces above taskbar
+        for (int i = ZWLR_LAYER_SHELL_V1_LAYER_TOP; i <= ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY; i++) {
+            if (out->layer_trees[i]) {
+                wlr_scene_node_raise_to_top(&out->layer_trees[i]->node);
+            }
         }
     }
 }
