@@ -18,11 +18,27 @@
 #include <wlr/types/wlr_layer_shell_v1.h>
 #include <wlr/types/wlr_output_layout.h>
 #include <wlr/types/wlr_scene.h>
+#include <wlr/types/wlr_seat.h>
 #include <wlr/util/log.h>
 
 #include "layer.h"
 #include "output.h"
 #include "server.h"
+#include "view.h"
+
+// give keyboard focus to a layer surface like slurp
+static void layer_surface_focus(struct steppewm_layer_surface *ls) {
+    struct steppewm_server *server = ls->output->server;
+    struct wlr_seat *seat = server->seat;
+    struct wlr_surface *surface = ls->wlr_layer_surface->surface;
+
+    struct wlr_keyboard *keyboard = wlr_seat_get_keyboard(seat);
+    if (keyboard) {
+        wlr_seat_keyboard_notify_enter(seat, surface, keyboard->keycodes, keyboard->num_keycodes,
+                                       &keyboard->modifiers);
+    }
+    server->focused_layer = ls;
+}
 
 // configure a steppewm_layer_surface
 void layer_surface_configure(struct steppewm_layer_surface *ls) {
@@ -46,10 +62,39 @@ static void layer_commit(struct wl_listener *listener, void *data) {
     }
 }
 
+// map the layer surface
+// claim keyboard focus if the client asked for it
+static void layer_map(struct wl_listener *listener, void *data) {
+    (void) data;
+    struct steppewm_layer_surface *ls = wl_container_of(listener, ls, map);
+    if (ls->wlr_layer_surface->current.keyboard_interactive !=
+        ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_NONE) {
+        layer_surface_focus(ls);
+    }
+}
+
+// unmap the layer surface
+// hand keyboard focus back to a window
+static void layer_unmap(struct wl_listener *listener, void *data) {
+    (void) data;
+    struct steppewm_layer_surface *ls = wl_container_of(listener, ls, unmap);
+    struct steppewm_server *server = ls->output->server;
+    if (server->focused_layer == ls) {
+        server->focused_layer = nullptr;
+        view_focus_next(server, nullptr);
+    }
+}
+
 // destroy layer
 static void layer_destroy(struct wl_listener *listener, void *data) {
     (void) data;
     struct steppewm_layer_surface *ls = wl_container_of(listener, ls, destroy);
+    // guard against a dangling pointer
+    if (ls->output->server->focused_layer == ls) {
+        ls->output->server->focused_layer = nullptr;
+    }
+    wl_list_remove(&ls->map.link);
+    wl_list_remove(&ls->unmap.link);
     wl_list_remove(&ls->commit.link);
     wl_list_remove(&ls->destroy.link);
     wl_list_remove(&ls->link);
@@ -141,6 +186,12 @@ void layer_surface_new(struct wl_listener *listener, void *data) {
     // listen for commits
     ls->commit.notify = layer_commit;
     wl_signal_add(&wlr_ls->surface->events.commit, &ls->commit);
+
+    // listen for map/unmap to manage keyboard focus
+    ls->map.notify = layer_map;
+    wl_signal_add(&wlr_ls->surface->events.map, &ls->map);
+    ls->unmap.notify = layer_unmap;
+    wl_signal_add(&wlr_ls->surface->events.unmap, &ls->unmap);
 
     // listen for layer destruction
     ls->destroy.notify = layer_destroy;

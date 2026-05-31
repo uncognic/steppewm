@@ -36,6 +36,7 @@
 #include <wlr/util/box.h>
 
 struct steppewm_view;
+struct steppewm_layer_surface;
 
 enum steppewm_cursor_mode {
     STEPPEWM_CURSOR_PASSTHROUGH,
@@ -67,6 +68,8 @@ struct steppewm_server {
     // layer shell
     struct wlr_layer_shell_v1 *layer_shell;
     struct wl_listener new_layer_surface;
+    // layer surface currently holding keyboard focus
+    struct steppewm_layer_surface *focused_layer;
 
     // decorations
     struct wlr_xdg_decoration_manager_v1 *deco_manager;

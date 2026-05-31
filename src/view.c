@@ -469,6 +469,9 @@ void view_focus(struct steppewm_view *view, struct wlr_surface *surface) {
                                        &keyboard->modifiers);
     }
 
+    // a window now owns keyboard focus, so no layer surface does
+    server->focused_layer = nullptr;
+
     struct steppewm_output *out;
     wl_list_for_each(out, &server->outputs, link) {
         if (out->taskbar) {
