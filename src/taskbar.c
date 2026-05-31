@@ -14,7 +14,6 @@
  */
 
 #include <stdlib.h>
-#include <string.h>
 
 #include <cairo/cairo.h>
 #include <drm_fourcc.h>
@@ -117,11 +116,11 @@ static void render_button(struct wlr_scene_buffer *scene_buf, const char *text, 
 static struct steppewm_view *taskbar_focused_view(struct steppewm_taskbar *bar) {
     struct wlr_surface *surf = bar->server->seat->keyboard_state.focused_surface;
     if (!surf) {
-        return NULL;
+        return nullptr;
     }
     struct wlr_xdg_surface *xdg = wlr_xdg_surface_try_from_wlr_surface(surf);
     if (!xdg || xdg->role != WLR_XDG_SURFACE_ROLE_TOPLEVEL) {
-        return NULL;
+        return nullptr;
     }
     return xdg->toplevel->base->data;
 }
@@ -200,7 +199,7 @@ void taskbar_view_added(struct steppewm_taskbar *bar, struct steppewm_view *view
     struct steppewm_task_button *btn = &bar->buttons[bar->nbuttons++];
     btn->bar = bar;
     btn->view = view;
-    btn->label = wlr_scene_buffer_create(bar->tree, NULL);
+    btn->label = wlr_scene_buffer_create(bar->tree, nullptr);
 
     btn->title_changed.notify = on_title_changed;
     wl_signal_add(&view->toplevel->events.set_title, &btn->title_changed);
@@ -269,13 +268,13 @@ void taskbar_update_geometry(struct steppewm_taskbar *bar) {
 struct steppewm_view *taskbar_view_at(struct steppewm_taskbar *bar, double x, double y) {
     // safety
     if (bar->nbuttons == 0 || bar->width <= 0) {
-        return NULL;
+        return nullptr;
     }
     if (y < bar->y || y >= bar->y + bar->height) {
-        return NULL;
+        return nullptr;
     }
     if (x < bar->x || x >= bar->x + bar->width) {
-        return NULL;
+        return nullptr;
     }
 
     // find relative x position to taskbar
@@ -285,7 +284,7 @@ struct steppewm_view *taskbar_view_at(struct steppewm_taskbar *bar, double x, do
     // find which button index we are on
     int i = (lx - cfg->taskbar_button_pad) / (cfg->taskbar_button_w + cfg->taskbar_button_pad);
     if (i < 0 || i >= bar->nbuttons) {
-        return NULL;
+        return nullptr;
     }
     return bar->buttons[i].view;
 }

@@ -24,7 +24,6 @@
 
 #include "deco.h"
 #include "input.h"
-#include "layer.h"
 #include "output.h"
 #include "server.h"
 #include "taskbar.h"
@@ -280,7 +279,7 @@ static void view_apply_state(struct steppewm_view *view, bool maximized, bool fu
 
         int ox = view->deco_mode == STEPPEWM_DECO_SERVER ? view->server->config.border_w : 0;
         int oy = view->deco_mode == STEPPEWM_DECO_SERVER ? view->server->config.title_h : 0;
-        int bar_h = (maximized && !fullscreen) ? view->server->config.taskbar_h : 0;
+        int bar_h = maximized && !fullscreen ? view->server->config.taskbar_h : 0;
         wlr_xdg_toplevel_set_size(view->toplevel, out_box.width - 2 * ox,
                                   out_box.height - oy - ox - bar_h);
 

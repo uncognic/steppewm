@@ -152,7 +152,7 @@ void deco_set_focus(struct steppewm_view *view, bool focused) {
 
 const char *deco_cursor_name(struct steppewm_view *view, struct wlr_scene_node *node) {
     if (!view || view->deco_mode != STEPPEWM_DECO_SERVER) {
-        return NULL;
+        return nullptr;
     }
 
     // set cursor when in a resize area
@@ -181,7 +181,7 @@ const char *deco_cursor_name(struct steppewm_view *view, struct wlr_scene_node *
         return "s-resize";
     }
 
-    return NULL;
+    return nullptr;
 }
 
 struct steppewm_view *deco_at(struct steppewm_server *server, double lx, double ly,
@@ -189,7 +189,7 @@ struct steppewm_view *deco_at(struct steppewm_server *server, double lx, double 
     double sx, sy;
     struct wlr_scene_node *hit = wlr_scene_node_at(&server->scene->tree.node, lx, ly, &sx, &sy);
     if (!hit || hit->type != WLR_SCENE_NODE_RECT) {
-        return NULL;
+        return nullptr;
     }
 
     struct wlr_scene_tree *tree = hit->parent;
@@ -197,7 +197,7 @@ struct steppewm_view *deco_at(struct steppewm_server *server, double lx, double 
         tree = tree->node.parent;
     }
     if (!tree) {
-        return NULL;
+        return nullptr;
     }
 
     *node = hit;
@@ -228,15 +228,6 @@ bool deco_handle_button(struct steppewm_view *view, struct steppewm_server *serv
     // handle minimize
     if (node == &view->deco.minimize->node) {
         if (button == BTN_LEFT) {
-            struct wlr_surface *focused = server->seat->keyboard_state.focused_surface;
-            if (!focused) {
-                return true;
-            }
-            struct wlr_xdg_surface *xdg = wlr_xdg_surface_try_from_wlr_surface(focused);
-            if (!xdg || xdg->role != WLR_XDG_SURFACE_ROLE_TOPLEVEL) {
-                return true;
-            }
-            struct steppewm_view *view = xdg->toplevel->base->data;
             view_minimize(view, true);
             view_focus_next(server, view);
         }

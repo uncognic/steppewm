@@ -25,7 +25,6 @@
 #include <wlr/types/wlr_pointer.h>
 #include <wlr/types/wlr_primary_selection.h>
 #include <wlr/types/wlr_seat.h>
-#include <wlr/types/wlr_xcursor_manager.h>
 #include <wlr/types/wlr_xdg_shell.h>
 #include <wlr/util/edges.h>
 #include <wlr/util/log.h>
@@ -263,8 +262,8 @@ void cursor_begin_interactive(struct steppewm_view *view, enum steppewm_cursor_m
         int sx = node->x + ox + geo->x;
         int sy = node->y + oy + geo->y;
         // calculate which corner / edge the resize started from
-        double border_x = sx + ((edges & WLR_EDGE_RIGHT) ? geo->width : 0);
-        double border_y = sy + ((edges & WLR_EDGE_BOTTOM) ? geo->height : 0);
+        double border_x = sx + (edges & WLR_EDGE_RIGHT ? geo->width : 0);
+        double border_y = sy + (edges & WLR_EDGE_BOTTOM ? geo->height : 0);
         // store offset from cursor to border
         server->grab_x = server->cursor->x - border_x;
         server->grab_y = server->cursor->y - border_y;
@@ -278,8 +277,8 @@ void cursor_begin_interactive(struct steppewm_view *view, enum steppewm_cursor_m
 // set cursor position
 static void process_cursor_move(struct steppewm_server *server) {
     struct steppewm_view *view = server->grabbed_view;
-    wlr_scene_node_set_position(&view->scene_tree->node, server->cursor->x - server->grab_x,
-                                server->cursor->y - server->grab_y);
+    wlr_scene_node_set_position(&view->scene_tree->node, (int) (server->cursor->x - server->grab_x),
+                                (int) (server->cursor->y - server->grab_y));
 }
 
 // resize window with cursor movement
@@ -293,23 +292,23 @@ static void process_cursor_resize(struct steppewm_server *server) {
     int new_bottom = server->grab_geobox.y + server->grab_geobox.height;
 
     if (server->resize_edges & WLR_EDGE_TOP) {
-        new_top = border_y;
+        new_top = (int) border_y;
         if (new_top >= new_bottom) {
             new_top = new_bottom - 1;
         }
     } else if (server->resize_edges & WLR_EDGE_BOTTOM) {
-        new_bottom = border_y;
+        new_bottom = (int) border_y;
         if (new_bottom <= new_top) {
             new_bottom = new_top + 1;
         }
     }
     if (server->resize_edges & WLR_EDGE_LEFT) {
-        new_left = border_x;
+        new_left = (int) border_x;
         if (new_left >= new_right) {
             new_left = new_right - 1;
         }
     } else if (server->resize_edges & WLR_EDGE_RIGHT) {
-        new_right = border_x;
+        new_right = (int) border_x;
         if (new_right <= new_left) {
             new_right = new_left + 1;
         }
@@ -408,7 +407,7 @@ void cursor_button(struct wl_listener *listener, void *data) {
     // alt drag for compositor initiated move/resize
     struct wlr_keyboard *keyboard = wlr_seat_get_keyboard(server->seat);
     uint32_t mods = keyboard ? wlr_keyboard_get_modifiers(keyboard) : 0;
-    if ((mods & WLR_MODIFIER_ALT) && view) {
+    if (mods & WLR_MODIFIER_ALT && view) {
         view_focus(view, surface);
         // left click for move
         if (event->button == BTN_LEFT) {

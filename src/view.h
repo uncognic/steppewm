@@ -15,7 +15,6 @@
 
 #pragma once
 
-#include <stdbool.h>
 #include <wayland-server-core.h>
 #include <wlr/util/box.h>
 
