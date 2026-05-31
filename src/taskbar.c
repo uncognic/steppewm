@@ -14,9 +14,12 @@
  */
 
 #include <stdlib.h>
+#include <time.h>
 
 #include <cairo/cairo.h>
 #include <drm_fourcc.h>
+
+#include <wayland-server-core.h>
 
 #include <wlr/interfaces/wlr_buffer.h>
 #include <wlr/types/wlr_output_layout.h>
@@ -112,6 +115,84 @@ static void render_button(struct wlr_scene_buffer *scene_buf, const char *text, 
     wlr_buffer_drop(&buf->base);
 }
 
+// render the current datetime into the clock buffer and pin it to the right edge
+static void render_clock(struct steppewm_taskbar *bar) {
+    if (bar->width <= 0 || bar->height <= 0 || !bar->clock) {
+        return;
+    }
+
+    struct steppewm_config *cfg = &bar->server->config;
+    int h = bar->height - 2 * cfg->taskbar_button_pad;
+    if (h <= 0) {
+        return;
+    }
+    double font_size = h * 0.55;
+
+    // build the time string
+    char text[64];
+    time_t now = time(nullptr);
+    struct tm tm;
+    localtime_r(&now, &tm);
+    strftime(text, sizeof(text), "%-d %b %Y %I:%M %p", &tm);
+
+    // measure the text on a throwaway surface so we can size the buffer to fit
+    cairo_surface_t *measure = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, 1, 1);
+    cairo_t *mcr = cairo_create(measure);
+    cairo_select_font_face(mcr, "sans-serif", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
+    cairo_set_font_size(mcr, font_size);
+    cairo_text_extents_t ext;
+    cairo_text_extents(mcr, text, &ext);
+    cairo_destroy(mcr);
+    cairo_surface_destroy(measure);
+
+    int pad = cfg->taskbar_button_pad;
+    int w = (int) (ext.width + 2 * pad);
+    if (w <= 0) {
+        return;
+    }
+
+    // draw onto a buffer sized to the text
+    struct cpu_buf *buf = cpu_buf_create(w, h);
+    cairo_surface_t *surf = cairo_image_surface_create_for_data(buf->pixels, CAIRO_FORMAT_ARGB32, w,
+                                                                h, (int) buf->stride);
+    cairo_t *cr = cairo_create(surf);
+
+    float *bg = cfg->color_taskbar_bg;
+    cairo_set_source_rgba(cr, bg[0], bg[1], bg[2], bg[3]);
+    cairo_paint(cr);
+
+    float *fg = cfg->color_task_text;
+    cairo_select_font_face(cr, "sans-serif", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
+    cairo_set_font_size(cr, font_size);
+    cairo_set_source_rgba(cr, fg[0], fg[1], fg[2], fg[3]);
+    cairo_move_to(cr, pad - ext.x_bearing, h / 2.0 - ext.y_bearing - ext.height / 2.0);
+    cairo_show_text(cr, text);
+
+    cairo_destroy(cr);
+    cairo_surface_destroy(surf);
+
+    wlr_scene_buffer_set_buffer(bar->clock, &buf->base);
+    wlr_buffer_drop(&buf->base);
+
+    wlr_scene_node_set_position(&bar->clock->node, bar->width - w - pad, pad);
+}
+
+// redraw the clock and rearm the timer to fire on the next minute boundary
+static int clock_tick(void *data) {
+    struct steppewm_taskbar *bar = data;
+    render_clock(bar);
+
+    time_t now = time(nullptr);
+    struct tm tm;
+    localtime_r(&now, &tm);
+    int ms = (60 - tm.tm_sec) * 1000;
+    if (ms <= 0) {
+        ms = 60000;
+    }
+    wl_event_source_timer_update(bar->clock_timer, ms);
+    return 0;
+}
+
 // find current keyboard-focused steppewm_view and return it
 static struct steppewm_view *taskbar_focused_view(struct steppewm_taskbar *bar) {
     struct wlr_surface *surf = bar->server->seat->keyboard_state.focused_surface;
@@ -134,6 +215,8 @@ static void taskbar_layout(struct steppewm_taskbar *bar) {
 
     // set sizes
     wlr_scene_rect_set_size(bar->background, bar->width, bar->height);
+
+    render_clock(bar);
 
     if (bar->nbuttons == 0) {
         return;
@@ -179,11 +262,21 @@ struct steppewm_taskbar *taskbar_create(struct steppewm_server *server,
     bar->tree = wlr_scene_tree_create(&server->scene->tree);
     bar->background =
         wlr_scene_rect_create(bar->tree, 0, bar->height, server->config.color_taskbar_bg);
+
+    // clock label and a timer that ticks it over each minute
+    bar->clock = wlr_scene_buffer_create(bar->tree, nullptr);
+    struct wl_event_loop *loop = wl_display_get_event_loop(server->display);
+    bar->clock_timer = wl_event_loop_add_timer(loop, clock_tick, bar);
+    wl_event_source_timer_update(bar->clock_timer, 1);
+
     return bar;
 }
 
 // destroy and free bar
 void taskbar_destroy(struct steppewm_taskbar *bar) {
+    if (bar->clock_timer) {
+        wl_event_source_remove(bar->clock_timer);
+    }
     for (int i = 0; i < bar->nbuttons; i++) {
         wl_list_remove(&bar->buttons[i].title_changed.link);
     }

@@ -23,6 +23,7 @@ struct wlr_output;
 struct wlr_scene_tree;
 struct wlr_scene_rect;
 struct wlr_scene_buffer;
+struct wl_event_source;
 
 #define TASKBAR_MAX 64
 
@@ -40,6 +41,9 @@ struct steppewm_taskbar {
     struct wlr_output *wlr_output;
     struct wlr_scene_tree *tree;
     struct wlr_scene_rect *background;
+
+    struct wlr_scene_buffer *clock;
+    struct wl_event_source *clock_timer;
 
     struct steppewm_task_button buttons[TASKBAR_MAX];
     int nbuttons;
