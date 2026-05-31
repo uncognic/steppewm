@@ -115,6 +115,8 @@ static void render_button(struct wlr_scene_buffer *scene_buf, const char *text, 
     wlr_buffer_drop(&buf->base);
 }
 
+static void taskbar_layout(struct steppewm_taskbar *bar);
+
 // render the current datetime into the clock buffer and pin it to the right edge
 static void render_clock(struct steppewm_taskbar *bar) {
     if (bar->width <= 0 || bar->height <= 0 || !bar->clock) {
@@ -150,6 +152,7 @@ static void render_clock(struct steppewm_taskbar *bar) {
     if (w <= 0) {
         return;
     }
+    bar->clock_w = w;
 
     // draw onto a buffer sized to the text
     struct cpu_buf *buf = cpu_buf_create(w, h);
@@ -180,7 +183,8 @@ static void render_clock(struct steppewm_taskbar *bar) {
 // redraw the clock and rearm the timer to fire on the next minute boundary
 static int clock_tick(void *data) {
     struct steppewm_taskbar *bar = data;
-    render_clock(bar);
+    // full layout so buttons rerender if the clock's width changed
+    taskbar_layout(bar);
 
     time_t now = time(nullptr);
     struct tm tm;
@@ -223,13 +227,40 @@ static void taskbar_layout(struct steppewm_taskbar *bar) {
     }
 
     struct steppewm_config *cfg = &bar->server->config;
-    int bh = bar->height - 2 * cfg->taskbar_button_pad;
+    int pad = cfg->taskbar_button_pad;
+    int bh = bar->height - 2 * pad;
     struct steppewm_view *fview = taskbar_focused_view(bar);
+
+    // buttons share the space between the left edge and the clock, capped at the
+    // configured width. each button occupies (bw + pad)
+    // the row must end a pad before the clock's left edge
+
+    // x coord that clock starts at
+    int clock_left = bar->width - bar->clock_w - pad;
+
+    // remove right padding and left padding
+    int avail = clock_left - pad - pad;
+
+    // divide by number of buttons to get width
+    int bw = (avail - bar->nbuttons * pad) / bar->nbuttons;
+
+    // don't exceed configured max
+    if (bw > cfg->taskbar_button_w) {
+        bw = cfg->taskbar_button_w;
+    }
+
+    // never zero
+    if (bw < 1) {
+        bw = 1;
+    }
+    bar->button_w = bw;
 
     for (int i = 0; i < bar->nbuttons; i++) {
         struct steppewm_task_button *btn = &bar->buttons[i];
-        int bx = cfg->taskbar_button_pad + i * (cfg->taskbar_button_w + cfg->taskbar_button_pad);
-        wlr_scene_node_set_position(&btn->label->node, bx, cfg->taskbar_button_pad);
+
+        // set top left corner of the button
+        int bx = pad + i * (bw + pad);
+        wlr_scene_node_set_position(&btn->label->node, bx, pad);
 
         float *bg;
         if (btn->view == fview) {
@@ -241,7 +272,7 @@ static void taskbar_layout(struct steppewm_taskbar *bar) {
         }
 
         const char *title = btn->view->toplevel->title ? btn->view->toplevel->title : "";
-        render_button(btn->label, title, cfg->taskbar_button_w, bh, bg, cfg->color_task_text);
+        render_button(btn->label, title, bw, bh, bg, cfg->color_task_text);
     }
 }
 
@@ -304,7 +335,7 @@ void taskbar_view_added(struct steppewm_taskbar *bar, struct steppewm_view *view
 void taskbar_view_removed(struct steppewm_taskbar *bar, struct steppewm_view *view) {
     int idx = -1;
     for (int i = 0; i < bar->nbuttons; i++) {
-        if (bar->buttons[i].view == view) {
+        button if (bar->buttons[i].view == view) {
             idx = i;
             break;
         }
@@ -373,10 +404,16 @@ struct steppewm_view *taskbar_view_at(struct steppewm_taskbar *bar, double x, do
     // find relative x position to taskbar
     int lx = (int) (x - bar->x);
     struct steppewm_config *cfg = &bar->server->config;
+    int pad = cfg->taskbar_button_pad;
+    int bw = bar->button_w > 0 ? bar->button_w : cfg->taskbar_button_w;
 
     // find which button index we are on
-    int i = (lx - cfg->taskbar_button_pad) / (cfg->taskbar_button_w + cfg->taskbar_button_pad);
+    int i = (lx - pad) / (bw + pad);
     if (i < 0 || i >= bar->nbuttons) {
+        return nullptr;
+    }
+    // reject clicks in the gap or past the button's right edge
+    if (lx - pad - i * (bw + pad) >= bw) {
         return nullptr;
     }
     return bar->buttons[i].view;

@@ -48,6 +48,9 @@ struct steppewm_taskbar {
     struct steppewm_task_button buttons[TASKBAR_MAX];
     int nbuttons;
 
+    int clock_w;  // measured width of the clock label
+    int button_w; // dynamically adjusting button width
+
     int x, y, width, height;
 };
 
