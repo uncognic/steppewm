@@ -45,18 +45,26 @@ static void spawn(const char *cmd) {
     pid_t pid = fork();
     if (pid == 0) {
         setsid();
-        if (fork() > 0) _exit(0);
-        execl("/bin/sh", "sh", "-c", cmd, (char *)NULL);
+        if (fork() > 0) {
+            _exit(0);
+        }
+        execl("/bin/sh", "sh", "-c", cmd, (char *) NULL);
         _exit(1);
     }
-    if (pid > 0) waitpid(pid, NULL, 0);
+    if (pid > 0) {
+        waitpid(pid, nullptr, 0);
+    }
 }
 
 static struct steppewm_view *focused_view(struct steppewm_server *server) {
     struct wlr_surface *surf = server->seat->keyboard_state.focused_surface;
-    if (!surf) return NULL;
+    if (!surf) {
+        return nullptr;
+    }
     struct wlr_xdg_surface *xdg = wlr_xdg_surface_try_from_wlr_surface(surf);
-    if (!xdg || xdg->role != WLR_XDG_SURFACE_ROLE_TOPLEVEL) return NULL;
+    if (!xdg || xdg->role != WLR_XDG_SURFACE_ROLE_TOPLEVEL) {
+        return nullptr;
+    }
     return xdg->toplevel->base->data;
 }
 
@@ -69,10 +77,14 @@ static void dispatch_action(struct steppewm_server *server, const char *action, 
             view_focus(next, next->toplevel->base->surface);
         }
     } else if (strcmp(action, "spawn") == 0) {
-        if (arg && arg[0]) spawn(arg);
+        if (arg && arg[0]) {
+            spawn(arg);
+        }
     } else {
         struct steppewm_view *view = focused_view(server);
-        if (!view) return;
+        if (!view) {
+            return;
+        }
         if (strcmp(action, "minimize") == 0) {
             view_minimize(view, true);
             view_focus_next(server, view);
@@ -97,7 +109,7 @@ static bool handle_keybinding(struct steppewm_server *server, uint32_t mods, xkb
 
 // called when keyboard modifiers change
 static void keyboard_modifiers(struct wl_listener *listener, void *data) {
-    (void)data;
+    (void) data;
     // get the steppewm_keyboard from the listener
     struct steppewm_keyboard *keyboard = wl_container_of(listener, keyboard, modifiers);
 
@@ -157,7 +169,7 @@ static void keyboard_key(struct wl_listener *listener, void *data) {
 
 // destroy keyboard
 static void keyboard_destroy(struct wl_listener *listener, void *data) {
-    (void)data;
+    (void) data;
     struct steppewm_keyboard *keyboard = wl_container_of(listener, keyboard, destroy);
     wl_list_remove(&keyboard->modifiers.link);
     wl_list_remove(&keyboard->key.link);
@@ -179,7 +191,7 @@ static void keyboard_new(struct steppewm_server *server, struct wlr_input_device
     // set up xkb keymap with en-US
     struct xkb_context *context = xkb_context_new(XKB_CONTEXT_NO_FLAGS);
     struct xkb_keymap *keymap =
-        xkb_keymap_new_from_names(context, NULL, XKB_KEYMAP_COMPILE_NO_FLAGS);
+        xkb_keymap_new_from_names(context, nullptr, XKB_KEYMAP_COMPILE_NO_FLAGS);
 
     // set the keymap
     wlr_keyboard_set_keymap(wlr_keyboard, keymap);
@@ -258,7 +270,7 @@ void cursor_begin_interactive(struct steppewm_view *view, enum steppewm_cursor_m
         server->grab_y = server->cursor->y - border_y;
 
         // store original geometry
-        server->grab_geobox = (struct wlr_box){sx, sy, geo->width, geo->height};
+        server->grab_geobox = (struct wlr_box) {sx, sy, geo->width, geo->height};
         server->resize_edges = edges;
     }
 }
@@ -323,15 +335,14 @@ static void process_cursor_motion(struct steppewm_server *server, uint32_t time_
     }
 
     double sx, sy;
-    struct wlr_surface *surface = NULL;
+    struct wlr_surface *surface = nullptr;
     struct steppewm_view *view =
         view_at(server, server->cursor->x, server->cursor->y, &surface, &sx, &sy);
 
     if (!view) {
         const char *cursor_name = "default";
-        struct wlr_scene_node *hnode = NULL;
-        struct steppewm_view *dview =
-            deco_at(server, server->cursor->x, server->cursor->y, &hnode);
+        struct wlr_scene_node *hnode = nullptr;
+        struct steppewm_view *dview = deco_at(server, server->cursor->x, server->cursor->y, &hnode);
         const char *deco_cursor = deco_cursor_name(dview, hnode);
         if (deco_cursor) {
             cursor_name = deco_cursor;
@@ -340,7 +351,10 @@ static void process_cursor_motion(struct steppewm_server *server, uint32_t time_
     }
 
     struct wlr_seat *seat = server->seat;
-    if (surface) {
+    // only give cursor focus to xdg toplevel surfaces
+    // so that things like swaybg don't recieve mouse clicks
+    // those don't have a steppewm_view
+    if (view && surface) {
         wlr_seat_pointer_notify_enter(seat, surface, sx, sy);
         wlr_seat_pointer_notify_motion(seat, time_msec, sx, sy);
     } else {
@@ -382,12 +396,12 @@ void cursor_button(struct wl_listener *listener, void *data) {
     // if the button was released, end any operation
     if (event->state == WL_POINTER_BUTTON_STATE_RELEASED) {
         server->cursor_mode = STEPPEWM_CURSOR_PASSTHROUGH;
-        server->grabbed_view = NULL;
+        server->grabbed_view = nullptr;
         return;
     }
 
     double sx, sy;
-    struct wlr_surface *surface = NULL;
+    struct wlr_surface *surface = nullptr;
     struct steppewm_view *view =
         view_at(server, server->cursor->x, server->cursor->y, &surface, &sx, &sy);
 
@@ -422,7 +436,7 @@ void cursor_button(struct wl_listener *listener, void *data) {
     }
 
     // no view was clicked, check if a titlebar or border was clicked for move/resize
-    struct wlr_scene_node *hnode = NULL;
+    struct wlr_scene_node *hnode = nullptr;
     struct steppewm_view *dview = deco_at(server, server->cursor->x, server->cursor->y, &hnode);
     if (dview) {
         view_focus(dview, dview->toplevel->base->surface);
@@ -434,6 +448,10 @@ void cursor_button(struct wl_listener *listener, void *data) {
     if (event->button == BTN_LEFT) {
         struct steppewm_output *out;
         wl_list_for_each(out, &server->outputs, link) {
+            // prevent dereferencing NULL on outputs that don't have a taskbar
+            if (!out->taskbar) {
+                continue;
+            }
             struct steppewm_view *tv =
                 taskbar_view_at(out->taskbar, server->cursor->x, server->cursor->y);
             if (tv) {
@@ -457,7 +475,7 @@ void cursor_axis(struct wl_listener *listener, void *data) {
 
 // handle cursor frame events
 void cursor_frame(struct wl_listener *listener, void *data) {
-    (void)data;
+    (void) data;
     // get objects
     struct steppewm_server *server = wl_container_of(listener, server, cursor_frame);
 
