@@ -337,10 +337,17 @@ static void process_cursor_motion(struct steppewm_server *server, uint32_t time_
 
     double sx, sy;
     struct wlr_surface *surface = nullptr;
-    struct steppewm_view *view =
-        view_at(server, server->cursor->x, server->cursor->y, &surface, &sx, &sy);
+    // view_at populates surfaces from hit test, so swaybg doesn't show up since it doesn't have an
+    // input region, but slurp does
+    view_at(server, server->cursor->x, server->cursor->y, &surface, &sx, &sy);
 
-    if (!view) {
+    struct wlr_seat *seat = server->seat;
+    if (surface) {
+        // deliver pointer events to whatever surface is under the cursor
+        wlr_seat_pointer_notify_enter(seat, surface, sx, sy);
+        wlr_seat_pointer_notify_motion(seat, time_msec, sx, sy);
+    } else {
+        // empty area or decoration, pick the cursor ourselves and drop focus
         const char *cursor_name = "default";
         struct wlr_scene_node *hnode = nullptr;
         struct steppewm_view *dview = deco_at(server, server->cursor->x, server->cursor->y, &hnode);
@@ -349,16 +356,6 @@ static void process_cursor_motion(struct steppewm_server *server, uint32_t time_
             cursor_name = deco_cursor;
         }
         wlr_cursor_set_xcursor(server->cursor, server->cursor_mgr, cursor_name);
-    }
-
-    struct wlr_seat *seat = server->seat;
-    // only give cursor focus to xdg toplevel surfaces
-    // so that things like swaybg don't recieve mouse clicks
-    // those don't have a steppewm_view
-    if (view && surface) {
-        wlr_seat_pointer_notify_enter(seat, surface, sx, sy);
-        wlr_seat_pointer_notify_motion(seat, time_msec, sx, sy);
-    } else {
         wlr_seat_pointer_clear_focus(seat);
     }
 }

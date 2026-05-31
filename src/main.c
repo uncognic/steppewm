@@ -24,12 +24,14 @@
 #include <wlr/types/wlr_compositor.h>
 #include <wlr/types/wlr_cursor.h>
 #include <wlr/types/wlr_data_device.h>
-#include <wlr/types/wlr_primary_selection_v1.h>
 #include <wlr/types/wlr_output_layout.h>
+#include <wlr/types/wlr_primary_selection_v1.h>
 #include <wlr/types/wlr_scene.h>
+#include <wlr/types/wlr_screencopy_v1.h>
 #include <wlr/types/wlr_seat.h>
 #include <wlr/types/wlr_subcompositor.h>
 #include <wlr/types/wlr_xcursor_manager.h>
+#include <wlr/types/wlr_xdg_output_v1.h>
 #include <wlr/types/wlr_xdg_shell.h>
 #include <wlr/util/log.h>
 
@@ -78,6 +80,11 @@ static bool server_init(struct steppewm_server *s) {
     // create output layout
     s->output_layout = wlr_output_layout_create(s->display);
     output_layout_change_register(s);
+
+    // slurp needs xdg-output to enumerate output geometry
+    // grim needs screencopy to capture pixels
+    wlr_xdg_output_manager_v1_create(s->display, s->output_layout);
+    wlr_screencopy_manager_v1_create(s->display);
 
     // create listeners and signals
     wl_list_init(&s->outputs);
