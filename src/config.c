@@ -27,6 +27,10 @@
 #include <xkbcommon/xkbcommon.h>
 
 #include "config.h"
+#include "output.h"
+#include "server.h"
+#include "taskbar.h"
+#include "view.h"
 
 static uint32_t parse_modifiers(const char *str) {
     uint32_t mods = 0;
@@ -282,6 +286,29 @@ void config_run_execs(struct steppewm_config *cfg) {
             setsid();
             execl("/bin/sh", "sh", "-c", cfg->execs[i], NULL);
             _exit(1);
+        }
+    }
+}
+
+void config_reload(struct steppewm_server *server) {
+    struct steppewm_config *cfg = &server->config;
+
+    config_defaults(cfg);
+
+    // do not rerun exec()s
+    cfg->nexecs = 0;
+
+    // reload config and bindings
+    config_load(cfg, server->config_path);
+
+    // re-apply decoration colors/sizes and content layout to open windows
+    view_reconfigure_all(server);
+
+    // re-apply taskbar height/position and redraw with the new config
+    struct steppewm_output *output;
+    wl_list_for_each(output, &server->outputs, link) {
+        if (output->taskbar) {
+            taskbar_update_geometry(output->taskbar);
         }
     }
 }

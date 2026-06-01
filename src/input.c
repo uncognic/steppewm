@@ -79,6 +79,8 @@ static void dispatch_action(struct steppewm_server *server, const char *action, 
         if (arg && arg[0]) {
             spawn(arg);
         }
+    } else if (strcmp(action, "reload") == 0) {
+        config_reload(server);
     } else {
         struct steppewm_view *view = focused_view(server);
         if (!view) {

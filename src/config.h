@@ -67,6 +67,9 @@ struct steppewm_config {
     int taskbar_button_pad;
 };
 
+struct steppewm_server;
+
 void config_defaults(struct steppewm_config *cfg);
 bool config_load(struct steppewm_config *cfg, const char *path);
 void config_run_execs(struct steppewm_config *cfg);
+void config_reload(struct steppewm_server *server);

@@ -204,17 +204,16 @@ int main(int argc, char *argv[]) {
         const char *config_home = getenv("XDG_CONFIG_HOME");
 
         if (config_home && config_home[0]) {
-            snprintf(config_path, sizeof(config_path),
-                     "%s/steppewm/config.lua", config_home);
+            snprintf(config_path, sizeof(config_path), "%s/steppewm/config.lua", config_home);
         } else {
             const char *home = getenv("HOME");
-            snprintf(config_path, sizeof(config_path),
-                     "%s/.config/steppewm/config.lua",
+            snprintf(config_path, sizeof(config_path), "%s/.config/steppewm/config.lua",
                      home ? home : "/root");
         }
     }
 
-    config_load(&server.config, config_path);
+    snprintf(server.config_path, sizeof(server.config_path), "%s", config_path);
+    config_load(&server.config, server.config_path);
 
     if (!server_init(&server)) {
         return EXIT_FAILURE;

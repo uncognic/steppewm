@@ -14,6 +14,7 @@ bind("Alt", "Tab", "focus_next")
 bind("Super", "Down", "minimize")
 bind("Super", "Up", "maximize")
 bind("Super", "q", "close")
+bind("Super+Shift", "c", "reload")
 exec("swaybg -i ~/Pictures/Vallpapers/bolatbek-gabiden-dsL_tvf1Z-E-unsplash.jpg -m fill")
 -- exec("firefox")
 

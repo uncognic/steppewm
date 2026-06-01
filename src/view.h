@@ -55,7 +55,7 @@ struct steppewm_view {
     struct wlr_scene_tree *xdg_tree;   // content: the actual content w/o titlebar and borders
     enum steppewm_deco_mode deco_mode;
 
-    struct steppewm_deco deco;                           // the decoration
+    struct steppewm_deco deco; // the decoration
     struct wlr_xdg_toplevel_decoration_v1 *decoration;
     struct wlr_xdg_toplevel_decoration_v1 *pending_deco; // applied once configure events are legal
     struct wl_listener request_deco_mode;                // for xdg-decoration request_mode
@@ -88,5 +88,6 @@ void view_minimize(struct steppewm_view *view, bool minimized);
 void view_toggle_maximize(struct steppewm_view *view);
 void view_focus(struct steppewm_view *view, struct wlr_surface *surface);
 void view_focus_next(struct steppewm_server *server, struct steppewm_view *skip);
+void view_reconfigure_all(struct steppewm_server *server);
 struct steppewm_view *view_at(struct steppewm_server *server, double lx, double ly,
                               struct wlr_surface **surface, double *sx, double *sy);

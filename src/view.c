@@ -437,6 +437,20 @@ void view_toggle_maximize(struct steppewm_view *view) {
     view_apply_state(view, !view->maximized, view->fullscreen);
 }
 
+void view_reconfigure_all(struct steppewm_server *server) {
+    struct wlr_surface *focused = server->seat->keyboard_state.focused_surface;
+    struct steppewm_view *view;
+    wl_list_for_each(view, &server->views, link) {
+        if (view->deco_mode != STEPPEWM_DECO_SERVER) {
+            continue;
+        }
+        wlr_scene_node_set_position(&view->xdg_tree->node, server->config.border_w,
+                                    server->config.title_h);
+        deco_update(view);
+        deco_set_focus(view, focused && view->toplevel->base->surface == focused);
+    }
+}
+
 // create a new view
 void view_new(struct wl_listener *listener, void *data) {
     // get objects

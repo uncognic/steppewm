@@ -101,4 +101,5 @@ struct steppewm_server {
     uint32_t resize_edges;
 
     struct steppewm_config config;
+    char config_path[512];
 };

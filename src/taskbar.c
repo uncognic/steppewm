@@ -217,8 +217,9 @@ static void taskbar_layout(struct steppewm_taskbar *bar) {
         return;
     }
 
-    // set sizes
+    // set sizes and background color
     wlr_scene_rect_set_size(bar->background, bar->width, bar->height);
+    wlr_scene_rect_set_color(bar->background, bar->server->config.color_taskbar_bg);
 
     render_clock(bar);
 
