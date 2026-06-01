@@ -109,6 +109,100 @@ static void view_initial_configure(void *data) {
     wlr_xdg_toplevel_set_size(view->toplevel, 0, 0);
 }
 
+// full decorated bounding box of a view at its current scene position
+static void view_get_box(struct steppewm_view *view, struct wlr_box *box) {
+    struct wlr_box *geo = &view->toplevel->base->geometry;
+    int bw = view->deco_mode == STEPPEWM_DECO_SERVER ? view->server->config.border_w : 0;
+    int th = view->deco_mode == STEPPEWM_DECO_SERVER ? view->server->config.title_h : 0;
+    box->x = view->scene_tree->node.x;
+    box->y = view->scene_tree->node.y;
+    box->width = geo->width + 2 * bw;
+    box->height = geo->height + th + bw;
+}
+
+// cascadeing
+// each new window steps down right from the last
+// when it gets to the bottom we go back to the top but sdhifted to the right
+static void view_place(struct steppewm_view *view) {
+    struct steppewm_server *server = view->server;
+
+    // already-positioned states manage their own geometry
+    if (view->maximized || view->fullscreen) {
+        return;
+    }
+
+    // choose the output under the cursor, falling back to the first output
+    struct wlr_output *output =
+        wlr_output_layout_output_at(server->output_layout, server->cursor->x, server->cursor->y);
+    if (!output) {
+        struct steppewm_output *o;
+        wl_list_for_each(o, &server->outputs, link) {
+            output = o->wlr_output;
+            break;
+        }
+    }
+    if (!output) {
+        return;
+    }
+
+    // usable area is output box minus the taskbar at the bottom
+    struct wlr_box area;
+    wlr_output_layout_get_box(server->output_layout, output, &area);
+    area.height -= server->config.taskbar_h;
+    if (area.height < 0) {
+        area.height = 0;
+    }
+
+    // size of the window being placed with decorations
+    struct wlr_box self;
+    view_get_box(view, &self);
+    int w = self.width;
+    int h = self.height;
+
+    // diagonal step
+    // by default 23 px
+    int step = server->config.title_h + server->config.border_w;
+
+    // safety check
+    if (step <= 0) {
+        step = 30;
+    }
+
+    // rightward shift when starting a new column
+    int col_step = 2 * step;
+
+    int max_off_x = area.width - w;
+    int max_off_y = area.height - h;
+    if (max_off_x < 0) {
+        max_off_x = 0;
+    }
+    if (max_off_y < 0) {
+        max_off_y = 0;
+    }
+
+    // vertical position within the current column
+    int y_off = server->cascade_n * step;
+    if (y_off > max_off_y) {
+        // start a new column, offset to the right when hit to the bottom
+        server->cascade_n = 0;
+        y_off = 0;
+        server->cascade_x += col_step;
+    }
+    // columns filled the width, wrap back to the left edge
+    if (server->cascade_x > max_off_x) {
+        server->cascade_x = 0;
+    }
+
+    // diagonal offset down the column
+    int x_off = server->cascade_x + server->cascade_n * step;
+    if (x_off > max_off_x) {
+        x_off = max_off_x;
+    }
+    server->cascade_n++;
+
+    wlr_scene_node_set_position(&view->scene_tree->node, area.x + x_off, area.y + y_off);
+}
+
 // focus a new window
 static void view_map(struct wl_listener *listener, void *data) {
     (void) data;
@@ -118,6 +212,9 @@ static void view_map(struct wl_listener *listener, void *data) {
     view->mapped = true;
     wlr_scene_node_set_enabled(&view->scene_tree->node, true);
     wl_list_insert(&view->server->views, &view->link);
+
+    // position the window to avoid overlap
+    view_place(view);
 
     // add window to all taskbars
     struct steppewm_output *out;

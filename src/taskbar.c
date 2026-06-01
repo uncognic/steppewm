@@ -335,7 +335,7 @@ void taskbar_view_added(struct steppewm_taskbar *bar, struct steppewm_view *view
 void taskbar_view_removed(struct steppewm_taskbar *bar, struct steppewm_view *view) {
     int idx = -1;
     for (int i = 0; i < bar->nbuttons; i++) {
-        button if (bar->buttons[i].view == view) {
+        if (bar->buttons[i].view == view) {
             idx = i;
             break;
         }
