@@ -176,6 +176,17 @@ static void keyboard_key(struct wl_listener *listener, void *data) {
         for (int i = 0; i < nsyms; i++) {
             handled = handle_keybinding(server, modifiers, syms[i]) || handled;
         }
+
+        if (!handled) {
+            struct xkb_keymap *keymap = xkb_state_get_keymap(keyboard->wlr_keyboard->xkb_state);
+            xkb_layout_index_t layout =
+                xkb_state_key_get_layout(keyboard->wlr_keyboard->xkb_state, keycode);
+            const xkb_keysym_t *raw_syms;
+            int raw_nsyms = xkb_keymap_key_get_syms_by_level(keymap, keycode, layout, 0, &raw_syms);
+            for (int i = 0; i < raw_nsyms; i++) {
+                handled = handle_keybinding(server, modifiers, raw_syms[i]) || handled;
+            }
+        }
     }
 
     // if the key event wasnt a keybind, pass it to the focused client
