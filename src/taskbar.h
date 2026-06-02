@@ -17,6 +17,8 @@
 
 #include <wayland-server-core.h>
 
+#include "config.h"
+
 struct steppewm_server;
 struct steppewm_view;
 struct wlr_output;
@@ -45,6 +47,9 @@ struct steppewm_taskbar {
     struct wlr_scene_buffer *clock;
     struct wl_event_source *clock_timer;
 
+    struct wlr_scene_buffer *ws_labels[STEPPEWM_NUM_WORKSPACES];
+    int ws_button_w;
+
     struct steppewm_task_button buttons[TASKBAR_MAX];
     int nbuttons;
 
@@ -63,3 +68,5 @@ void taskbar_view_removed(struct steppewm_taskbar *bar, struct steppewm_view *vi
 void taskbar_refresh(struct steppewm_taskbar *bar);
 void taskbar_update_geometry(struct steppewm_taskbar *bar);
 struct steppewm_view *taskbar_view_at(struct steppewm_taskbar *bar, double x, double y);
+// return the workspace index under (x, y), or -1 if no indicator button is there
+int taskbar_workspace_at(struct steppewm_taskbar *bar, double x, double y);

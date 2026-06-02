@@ -66,6 +66,7 @@ struct steppewm_server {
     struct wl_list views;
     int cascade_n; // step index down the current cascade column
     int cascade_x; // x offset of the current cascade column
+    int current_workspace;
 
     // layer shell
     struct wlr_layer_shell_v1 *layer_shell;

@@ -23,6 +23,8 @@
 #define CFG_MAX_EXECS 64
 #define CFG_MAX_CMD 512
 
+#define STEPPEWM_NUM_WORKSPACES 9
+
 struct steppewm_keybind {
     uint32_t modifiers;
     xkb_keysym_t sym;

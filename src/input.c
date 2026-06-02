@@ -71,8 +71,14 @@ static void dispatch_action(struct steppewm_server *server, const char *action, 
     if (strcmp(action, "quit") == 0) {
         wl_display_terminate(server->display);
     } else if (strcmp(action, "focus_next") == 0) {
-        if (!wl_list_empty(&server->views)) {
-            struct steppewm_view *next = wl_container_of(server->views.prev, next, link);
+        struct steppewm_view *v, *next = nullptr;
+        wl_list_for_each_reverse(v, &server->views, link) {
+            if (v->mapped && v->workspace == server->current_workspace) {
+                next = v;
+                break;
+            }
+        }
+        if (next) {
             view_focus(next, next->toplevel->base->surface);
         }
     } else if (strcmp(action, "spawn") == 0) {
@@ -81,6 +87,15 @@ static void dispatch_action(struct steppewm_server *server, const char *action, 
         }
     } else if (strcmp(action, "reload") == 0) {
         config_reload(server);
+    } else if (strcmp(action, "workspace") == 0) {
+        if (arg && arg[0]) {
+            workspace_switch(server, atoi(arg) - 1);
+        }
+    } else if (strcmp(action, "move_to_workspace") == 0) {
+        struct steppewm_view *view = focused_view(server);
+        if (view && arg && arg[0]) {
+            view_move_to_workspace(view, atoi(arg) - 1);
+        }
     } else {
         struct steppewm_view *view = focused_view(server);
         if (!view) {
@@ -451,6 +466,12 @@ void cursor_button(struct wl_listener *listener, void *data) {
             // prevent dereferencing NULL on outputs that don't have a taskbar
             if (!out->taskbar) {
                 continue;
+            }
+            // if the workspace button was clicked
+            int ws = taskbar_workspace_at(out->taskbar, server->cursor->x, server->cursor->y);
+            if (ws >= 0) {
+                workspace_switch(server, ws);
+                return;
             }
             struct steppewm_view *tv =
                 taskbar_view_at(out->taskbar, server->cursor->x, server->cursor->y);

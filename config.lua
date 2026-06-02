@@ -15,6 +15,12 @@ bind("Super", "Down", "minimize")
 bind("Super", "Up", "maximize")
 bind("Super", "q", "close")
 bind("Super+Shift", "c", "reload")
+
+for i = 1, 9 do
+    bind("Super", tostring(i), "workspace", tostring(i))
+    bind("Super+Shift", tostring(i), "move_to_workspace", tostring(i))
+end
+
 exec("swaybg -i ~/Pictures/Vallpapers/bolatbek-gabiden-dsL_tvf1Z-E-unsplash.jpg -m fill")
 -- exec("firefox")
 

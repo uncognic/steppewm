@@ -41,13 +41,30 @@ static void remove_listener(struct wl_listener *listener) {
     wl_list_init(&listener->link);
 }
 
+// refresh every output's taskbar
+static void refresh_taskbars(struct steppewm_server *server) {
+    struct steppewm_output *out;
+    wl_list_for_each(out, &server->outputs, link) {
+        if (out->taskbar) {
+            taskbar_refresh(out->taskbar);
+        }
+    }
+}
+
+// show or hide a view depending on whether it lives on the current workspace
+void view_update_visibility(struct steppewm_view *view) {
+    bool visible = !view->minimized && view->workspace == view->server->current_workspace;
+    wlr_scene_node_set_enabled(&view->scene_tree->node, visible);
+}
+
 void view_focus_next(struct steppewm_server *server, struct steppewm_view *skip) {
     struct steppewm_view *next = nullptr;
     struct steppewm_view *view;
 
-    // loop through views until we find one that isn't minimzed
+    // loop through views until we find one on this workspace that isn't minimzed
     wl_list_for_each(view, &server->views, link) {
-        if (view != skip && view->mapped && !view->minimized) {
+        if (view != skip && view->mapped && !view->minimized &&
+            view->workspace == server->current_workspace) {
             next = view;
             break;
         }
@@ -58,27 +75,60 @@ void view_focus_next(struct steppewm_server *server, struct steppewm_view *skip)
         view_focus(next, next->toplevel->base->surface);
     } else {
         wlr_seat_keyboard_notify_clear_focus(server->seat);
-        struct steppewm_output *out;
-        // update for each output's taskbar
-        wl_list_for_each(out, &server->outputs, link) {
-            if (out->taskbar) {
-                taskbar_refresh(out->taskbar);
-            }
-        }
+        refresh_taskbars(server);
     }
 }
 
 // minimize a view and hide it from the scene
 void view_minimize(struct steppewm_view *view, bool minimized) {
     view->minimized = minimized;
-    wlr_scene_node_set_enabled(&view->scene_tree->node, !minimized);
-    struct steppewm_output *out;
-    // update for each output's taskbar
-    wl_list_for_each(out, &view->server->outputs, link) {
-        if (out->taskbar) {
-            taskbar_refresh(out->taskbar);
+    view_update_visibility(view);
+    refresh_taskbars(view->server);
+}
+
+// switch the visible workspace, hiding the old set and showing the new one
+void workspace_switch(struct steppewm_server *server, int workspace) {
+    if (workspace < 0 || workspace >= STEPPEWM_NUM_WORKSPACES ||
+        workspace == server->current_workspace) {
+        return;
+    }
+    server->current_workspace = workspace;
+
+    // toggle visibility of every window for the new workspace
+    struct steppewm_view *view;
+    wl_list_for_each(view, &server->views, link) {
+        view_update_visibility(view);
+    }
+
+    // focus the topmost window on the new workspace, otherwise clear focus
+    struct steppewm_view *focus = nullptr;
+    wl_list_for_each(view, &server->views, link) {
+        if (view->mapped && !view->minimized && view->workspace == workspace) {
+            focus = view;
+            break;
         }
     }
+    if (focus) {
+        view_focus(focus, focus->toplevel->base->surface);
+    } else {
+        wlr_seat_keyboard_notify_clear_focus(server->seat);
+    }
+
+    // redraw taskbars so the active workspace and window list update
+    refresh_taskbars(server);
+}
+
+// move a window to another workspace
+void view_move_to_workspace(struct steppewm_view *view, int workspace) {
+    if (workspace < 0 || workspace >= STEPPEWM_NUM_WORKSPACES || view->workspace == workspace) {
+        return;
+    }
+    view->workspace = workspace;
+    view_update_visibility(view);
+
+    // the window left the current workspace, hand focus to a remaining one
+    view_focus_next(view->server, view);
+    refresh_taskbars(view->server);
 }
 
 // apply ssd deco
@@ -208,10 +258,11 @@ static void view_map(struct wl_listener *listener, void *data) {
     (void) data;
     struct steppewm_view *view = wl_container_of(listener, view, map);
 
-    // set properties
+    // new windows open on the currently visible workspace
     view->mapped = true;
-    wlr_scene_node_set_enabled(&view->scene_tree->node, true);
+    view->workspace = view->server->current_workspace;
     wl_list_insert(&view->server->views, &view->link);
+    view_update_visibility(view);
 
     // position the window to avoid overlap
     view_place(view);

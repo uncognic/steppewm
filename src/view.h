@@ -66,6 +66,7 @@ struct steppewm_view {
     bool fullscreen;
     bool minimized;
     bool mapped;
+    int workspace;            // which workspace this window lives on
     struct wlr_box saved_geo; // saved geo to restore when exiting maximized state
 
     struct wl_list link;
@@ -89,5 +90,12 @@ void view_toggle_maximize(struct steppewm_view *view);
 void view_focus(struct steppewm_view *view, struct wlr_surface *surface);
 void view_focus_next(struct steppewm_server *server, struct steppewm_view *skip);
 void view_reconfigure_all(struct steppewm_server *server);
+
+// show/hide the view's scene node based on workspace + minimized state
+void view_update_visibility(struct steppewm_view *view);
+// switch the visible workspace (0-based); hides/shows views and moves focus
+void workspace_switch(struct steppewm_server *server, int workspace);
+// move a window to another workspace (0-based)
+void view_move_to_workspace(struct steppewm_view *view, int workspace);
 struct steppewm_view *view_at(struct steppewm_server *server, double lx, double ly,
                               struct wlr_surface **surface, double *sx, double *sy);

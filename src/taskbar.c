@@ -13,6 +13,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
 
@@ -223,48 +224,86 @@ static void taskbar_layout(struct steppewm_taskbar *bar) {
 
     render_clock(bar);
 
-    if (bar->nbuttons == 0) {
+    struct steppewm_config *cfg = &bar->server->config;
+    int pad = cfg->taskbar_button_pad;
+    int button_h = bar->height - 2 * pad;
+    if (button_h < 1) {
+        button_h = 1;
+    }
+    int current = bar->server->current_workspace;
+
+    // workspace indicator buttons
+    // width is the same as height since it is square
+    int ws_button_w = button_h;
+    bar->ws_button_w = ws_button_w;
+    int cursor_x = pad;
+
+    // draw each button
+    for (int i = 0; i < STEPPEWM_NUM_WORKSPACES; i++) {
+        wlr_scene_node_set_position(&bar->ws_labels[i]->node, cursor_x, pad);
+        char num[4];
+        snprintf(num, sizeof(num), "%d", i + 1);
+        float *bg = (i == current) ? cfg->color_task_active : cfg->color_task_normal;
+        render_button(bar->ws_labels[i], num, ws_button_w, button_h, bg, cfg->color_task_text);
+        cursor_x += ws_button_w + pad;
+    }
+
+    // first task button starts just past the indicators
+    int task_row_left = cursor_x;
+
+    // count windows that live on the current workspace
+    int visible_count = 0;
+    for (int i = 0; i < bar->nbuttons; i++) {
+        if (bar->buttons[i].view->workspace == current) {
+            visible_count++;
+        }
+    }
+
+    // if there's no windows on the current workspace, hide all of them
+    if (visible_count == 0) {
+        for (int i = 0; i < bar->nbuttons; i++) {
+            wlr_scene_node_set_enabled(&bar->buttons[i].label->node, false);
+        }
         return;
     }
 
-    struct steppewm_config *cfg = &bar->server->config;
-    int pad = cfg->taskbar_button_pad;
-    int bh = bar->height - 2 * pad;
-    struct steppewm_view *fview = taskbar_focused_view(bar);
+    struct steppewm_view *focused_view = taskbar_focused_view(bar);
 
-    // buttons share the space between the left edge and the clock, capped at the
-    // configured width. each button occupies (bw + pad)
-    // the row must end a pad before the clock's left edge
+    int clock_left_x = bar->width - bar->clock_w - pad;
+    int task_row_width = clock_left_x - pad - task_row_left;
 
-    // x coord that clock starts at
-    int clock_left = bar->width - bar->clock_w - pad;
-
-    // remove right padding and left padding
-    int avail = clock_left - pad - pad;
-
-    // divide by number of buttons to get width
-    int bw = (avail - bar->nbuttons * pad) / bar->nbuttons;
+    // divide by number of visible buttons to get width
+    int button_w = (task_row_width - visible_count * pad) / visible_count;
 
     // don't exceed configured max
-    if (bw > cfg->taskbar_button_w) {
-        bw = cfg->taskbar_button_w;
+    if (button_w > cfg->taskbar_button_w) {
+        button_w = cfg->taskbar_button_w;
     }
 
     // never zero
-    if (bw < 1) {
-        bw = 1;
+    if (button_w < 1) {
+        button_w = 1;
     }
-    bar->button_w = bw;
+    bar->button_w = button_w;
 
+    // draw each window button
+    int slot = 0;
     for (int i = 0; i < bar->nbuttons; i++) {
         struct steppewm_task_button *btn = &bar->buttons[i];
 
+        // skip and hide windows on other workspaces
+        if (btn->view->workspace != current) {
+            wlr_scene_node_set_enabled(&btn->label->node, false);
+            continue;
+        }
+        wlr_scene_node_set_enabled(&btn->label->node, true);
+
         // set top left corner of the button
-        int bx = pad + i * (bw + pad);
-        wlr_scene_node_set_position(&btn->label->node, bx, pad);
+        int button_x = task_row_left + slot * (button_w + pad);
+        wlr_scene_node_set_position(&btn->label->node, button_x, pad);
 
         float *bg;
-        if (btn->view == fview) {
+        if (btn->view == focused_view) {
             bg = cfg->color_task_active;
         } else if (btn->view->minimized) {
             bg = cfg->color_task_minimized;
@@ -273,7 +312,8 @@ static void taskbar_layout(struct steppewm_taskbar *bar) {
         }
 
         const char *title = btn->view->toplevel->title ? btn->view->toplevel->title : "";
-        render_button(btn->label, title, bw, bh, bg, cfg->color_task_text);
+        render_button(btn->label, title, button_w, button_h, bg, cfg->color_task_text);
+        slot++;
     }
 }
 
@@ -294,6 +334,10 @@ struct steppewm_taskbar *taskbar_create(struct steppewm_server *server,
     bar->tree = wlr_scene_tree_create(&server->scene->tree);
     bar->background =
         wlr_scene_rect_create(bar->tree, 0, bar->height, server->config.color_taskbar_bg);
+
+    for (int i = 0; i < STEPPEWM_NUM_WORKSPACES; i++) {
+        bar->ws_labels[i] = wlr_scene_buffer_create(bar->tree, nullptr);
+    }
 
     // clock label and a timer that ticks it over each minute
     bar->clock = wlr_scene_buffer_create(bar->tree, nullptr);
@@ -402,20 +446,72 @@ struct steppewm_view *taskbar_view_at(struct steppewm_taskbar *bar, double x, do
         return nullptr;
     }
 
-    // find relative x position to taskbar
-    int lx = (int) (x - bar->x);
+    // find x position relative to the taskbar's left edge
+    int local_x = (int) (x - bar->x);
+
     struct steppewm_config *cfg = &bar->server->config;
     int pad = cfg->taskbar_button_pad;
-    int bw = bar->button_w > 0 ? bar->button_w : cfg->taskbar_button_w;
+    int ws_button_w = bar->ws_button_w > 0 ? bar->ws_button_w : (bar->height - 2 * pad);
+    int button_w = bar->button_w > 0 ? bar->button_w : cfg->taskbar_button_w;
 
-    // find which button index we are on
-    int i = (lx - pad) / (bw + pad);
-    if (i < 0 || i >= bar->nbuttons) {
+    // task buttons begin just past the workspace indicators
+    int task_row_left = pad + STEPPEWM_NUM_WORKSPACES * (ws_button_w + pad);
+    if (local_x < task_row_left) {
         return nullptr;
     }
+
+    // find which visible slot we are on
+    int slot = (local_x - task_row_left) / (button_w + pad);
+    if (slot < 0) {
+        return nullptr;
+    }
+
     // reject clicks in the gap or past the button's right edge
-    if (lx - pad - i * (bw + pad) >= bw) {
+    if ((local_x - task_row_left) - slot * (button_w + pad) >= button_w) {
         return nullptr;
     }
-    return bar->buttons[i].view;
+
+    // map the slot to the slot-th window on the current workspace
+    int current = bar->server->current_workspace;
+    int count = 0;
+    for (int i = 0; i < bar->nbuttons; i++) {
+        if (bar->buttons[i].view->workspace != current) {
+            continue;
+        }
+        if (count == slot) {
+            return bar->buttons[i].view;
+        }
+        count++;
+    }
+    return nullptr;
+}
+
+int taskbar_workspace_at(struct steppewm_taskbar *bar, double x, double y) {
+    if (bar->width <= 0) {
+        return -1;
+    }
+    if (y < bar->y || y >= bar->y + bar->height) {
+        return -1;
+    }
+    if (x < bar->x || x >= bar->x + bar->width) {
+        return -1;
+    }
+
+    int local_x = (int) (x - bar->x);
+    struct steppewm_config *cfg = &bar->server->config;
+    int pad = cfg->taskbar_button_pad;
+    int ws_button_w = bar->ws_button_w > 0 ? bar->ws_button_w : (bar->height - 2 * pad);
+    if (ws_button_w < 1) {
+        ws_button_w = 1;
+    }
+
+    int idx = (local_x - pad) / (ws_button_w + pad);
+    if (idx < 0 || idx >= STEPPEWM_NUM_WORKSPACES) {
+        return -1;
+    }
+    // reject clicks in the gap between indicators
+    if ((local_x - pad) - idx * (ws_button_w + pad) >= ws_button_w) {
+        return -1;
+    }
+    return idx;
 }
