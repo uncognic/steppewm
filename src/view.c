@@ -285,6 +285,7 @@ static void view_unmap(struct wl_listener *listener, void *data) {
     if (view->server->grabbed_view == view) {
         view->server->grabbed_view = nullptr;
         view->server->cursor_mode = STEPPEWM_CURSOR_PASSTHROUGH;
+        view->server->grab_restore_pending = false;
     }
 
     // unfocus keyboard if is focused currently
@@ -349,6 +350,7 @@ static void view_destroy(struct wl_listener *listener, void *data) {
     if (view->server->grabbed_view == view) {
         view->server->grabbed_view = nullptr;
         view->server->cursor_mode = STEPPEWM_CURSOR_PASSTHROUGH;
+        view->server->grab_restore_pending = false;
     }
 
     // clear kb focus
@@ -486,6 +488,35 @@ static void view_on_request_minimize(struct wl_listener *listener, void *data) {
 
 void view_toggle_maximize(struct steppewm_view *view) {
     view_apply_state(view, !view->maximized, view->fullscreen);
+}
+
+// restore a maximized view under the cursor so it can be dragged
+void view_unmaximize_to_cursor(struct steppewm_view *view, double cursor_x, double cursor_y) {
+    if (!view->maximized && !view->fullscreen) {
+        return;
+    }
+
+    // fraction of the cursor across the current decorated width
+    struct wlr_box cur;
+    view_get_box(view, &cur);
+    double frac_x = cur.width > 0 ? (cursor_x - cur.x) / cur.width : 0.0;
+    if (frac_x < 0.0) {
+        frac_x = 0.0;
+    }
+    if (frac_x > 1.0) {
+        frac_x = 1.0;
+    }
+
+    // restore to the saved geometry size
+    view_apply_state(view, false, false);
+
+    // place so the cursor keeps the same horizontal fraction and grabs the titlebar
+    int bw = view->deco_mode == STEPPEWM_DECO_SERVER ? view->server->config.border_w : 0;
+    int th = view->deco_mode == STEPPEWM_DECO_SERVER ? view->server->config.title_h : 0;
+    int restored_w = view->saved_geo.width + 2 * bw;
+    int nx = (int) (cursor_x - frac_x * restored_w);
+    int ny = (int) (cursor_y - th / 2.0);
+    wlr_scene_node_set_position(&view->scene_tree->node, nx, ny);
 }
 
 void view_reconfigure_all(struct steppewm_server *server) {

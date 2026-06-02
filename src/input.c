@@ -279,9 +279,15 @@ void cursor_begin_interactive(struct steppewm_view *view, enum steppewm_cursor_m
 
     server->grabbed_view = view;
     server->cursor_mode = mode;
+    server->grab_restore_pending = false;
 
     // calculate grab offsets
     if (mode == STEPPEWM_CURSOR_MOVE) {
+        if (view->maximized || view->fullscreen) {
+            server->grab_restore_pending = true;
+            server->grab_start_x = server->cursor->x;
+            server->grab_start_y = server->cursor->y;
+        }
         server->grab_x = server->cursor->x - node->x;
         server->grab_y = server->cursor->y - node->y;
     } else {
@@ -304,9 +310,30 @@ void cursor_begin_interactive(struct steppewm_view *view, enum steppewm_cursor_m
     }
 }
 
+// distance the pointer must travel before a maximized window starts dragging
+#define STEPPEWM_DRAG_THRESHOLD 5.0
+
 // set cursor position
 static void process_cursor_move(struct steppewm_server *server) {
     struct steppewm_view *view = server->grabbed_view;
+
+    // a grab on a maximized window waits for a real drag before restoring it
+    if (server->grab_restore_pending) {
+        double dx = server->cursor->x - server->grab_start_x;
+        double dy = server->cursor->y - server->grab_start_y;
+
+        // still just a click, leave the window maximized
+        if (dx * dx + dy * dy < STEPPEWM_DRAG_THRESHOLD * STEPPEWM_DRAG_THRESHOLD) {
+            return;
+        }
+
+        // crossed the threshold, restore under the cursor and recompute the offset
+        view_unmaximize_to_cursor(view, server->cursor->x, server->cursor->y);
+        server->grab_x = server->cursor->x - view->scene_tree->node.x;
+        server->grab_y = server->cursor->y - view->scene_tree->node.y;
+        server->grab_restore_pending = false;
+    }
+
     wlr_scene_node_set_position(&view->scene_tree->node, (int) (server->cursor->x - server->grab_x),
                                 (int) (server->cursor->y - server->grab_y));
 }
@@ -423,6 +450,7 @@ void cursor_button(struct wl_listener *listener, void *data) {
     if (event->state == WL_POINTER_BUTTON_STATE_RELEASED) {
         server->cursor_mode = STEPPEWM_CURSOR_PASSTHROUGH;
         server->grabbed_view = nullptr;
+        server->grab_restore_pending = false;
         return;
     }
 

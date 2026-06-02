@@ -101,6 +101,9 @@ struct steppewm_server {
     struct wlr_box grab_geobox;
     uint32_t resize_edges;
 
+    bool grab_restore_pending;
+    double grab_start_x, grab_start_y;
+
     struct steppewm_config config;
     char config_path[512];
 };

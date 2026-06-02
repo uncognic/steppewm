@@ -87,6 +87,7 @@ struct steppewm_view {
 void view_new(struct wl_listener *listener, void *data);
 void view_minimize(struct steppewm_view *view, bool minimized);
 void view_toggle_maximize(struct steppewm_view *view);
+void view_unmaximize_to_cursor(struct steppewm_view *view, double cursor_x, double cursor_y);
 void view_focus(struct steppewm_view *view, struct wlr_surface *surface);
 void view_focus_next(struct steppewm_server *server, struct steppewm_view *skip);
 void view_reconfigure_all(struct steppewm_server *server);
