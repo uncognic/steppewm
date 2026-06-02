@@ -41,6 +41,13 @@ struct steppewm_deco {
     struct wlr_scene_rect *corner_bl;
     struct wlr_scene_rect *corner_br;
 };
+struct steppewm_popup {
+    struct wlr_xdg_popup *popup;
+    bool unconstrained;
+    struct wl_listener commit;
+    struct wl_listener reposition;
+    struct wl_listener destroy;
+};
 
 enum steppewm_deco_mode {
     STEPPEWM_DECO_SERVER,
@@ -85,6 +92,7 @@ struct steppewm_view {
 
 // once again see view.c
 void view_new(struct wl_listener *listener, void *data);
+void popup_new(struct wl_listener *listener, void *data);
 void view_minimize(struct steppewm_view *view, bool minimized);
 void view_toggle_maximize(struct steppewm_view *view);
 void view_unmaximize_to_cursor(struct steppewm_view *view, double cursor_x, double cursor_y);

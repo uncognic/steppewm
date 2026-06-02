@@ -63,6 +63,7 @@ struct steppewm_server {
     // xdg shell
     struct wlr_xdg_shell *xdg_shell;
     struct wl_listener new_xdg_toplevel;
+    struct wl_listener new_xdg_popup;
     struct wl_list views;
     int cascade_n; // step index down the current cascade column
     int cascade_x; // x offset of the current cascade column

@@ -98,6 +98,8 @@ static bool server_init(struct steppewm_server *s) {
     s->xdg_shell = wlr_xdg_shell_create(s->display, 6);
     s->new_xdg_toplevel.notify = view_new;
     wl_signal_add(&s->xdg_shell->events.new_toplevel, &s->new_xdg_toplevel);
+    s->new_xdg_popup.notify = popup_new;
+    wl_signal_add(&s->xdg_shell->events.new_popup, &s->new_xdg_popup);
 
     s->layer_shell = wlr_layer_shell_v1_create(s->display, 4);
     s->new_layer_surface.notify = layer_surface_new;

@@ -581,6 +581,102 @@ void view_new(struct wl_listener *listener, void *data) {
     wl_signal_add(&toplevel->events.set_title, &view->title_changed);
 }
 
+// place the popup so it fits on the output holding its root toplevel
+// returns true once it has actually been placed (only possible after the initial commit)
+static bool popup_unconstrain(struct steppewm_popup *p) {
+    struct wlr_xdg_popup *popup = p->popup;
+    if (!popup->base->initialized) {
+        return false; // configuring before the initial commit would assert
+    }
+
+    // walk up the popup chain to the toplevel that owns a steppewm_view
+    struct wlr_xdg_surface *parent = wlr_xdg_surface_try_from_wlr_surface(popup->parent);
+    while (parent && parent->role == WLR_XDG_SURFACE_ROLE_POPUP && parent->popup->parent) {
+        parent = wlr_xdg_surface_try_from_wlr_surface(parent->popup->parent);
+    }
+    struct steppewm_view *root =
+        parent && parent->role == WLR_XDG_SURFACE_ROLE_TOPLEVEL ? parent->data : nullptr;
+    if (!root) {
+        return false;
+    }
+
+    // output box translated into the root toplevel's surface coordinate system
+    struct steppewm_server *server = root->server;
+    int surf_lx = root->scene_tree->node.x + root->xdg_tree->node.x;
+    int surf_ly = root->scene_tree->node.y + root->xdg_tree->node.y;
+    struct wlr_output *output =
+        wlr_output_layout_output_at(server->output_layout, surf_lx, surf_ly);
+    if (!output) {
+        return false;
+    }
+    struct wlr_box ob;
+    wlr_output_layout_get_box(server->output_layout, output, &ob);
+    struct wlr_box rel = {ob.x - surf_lx, ob.y - surf_ly, ob.width, ob.height};
+    wlr_xdg_popup_unconstrain_from_box(popup, &rel);
+    return true;
+}
+
+static void popup_commit(struct wl_listener *listener, void *data) {
+    (void) data;
+    struct steppewm_popup *p = wl_container_of(listener, p, commit);
+    // unconstrain once, on the first commit after the surface is initialized
+    if (!p->unconstrained) {
+        p->unconstrained = popup_unconstrain(p);
+    }
+}
+
+static void popup_reposition(struct wl_listener *listener, void *data) {
+    (void) data;
+    struct steppewm_popup *p = wl_container_of(listener, p, reposition);
+    popup_unconstrain(p);
+}
+
+static void popup_destroy(struct wl_listener *listener, void *data) {
+    (void) data;
+    struct steppewm_popup *p = wl_container_of(listener, p, destroy);
+    wl_list_remove(&p->commit.link);
+    wl_list_remove(&p->reposition.link);
+    wl_list_remove(&p->destroy.link);
+    free(p);
+}
+
+void popup_new(struct wl_listener *listener, void *data) {
+    (void) listener;
+    struct wlr_xdg_popup *popup = data;
+    if (!popup->parent) {
+        return;
+    }
+    struct wlr_xdg_surface *parent = wlr_xdg_surface_try_from_wlr_surface(popup->parent);
+    if (!parent) {
+        return;
+    }
+
+    // find the scene tree to parent the popup under
+    struct wlr_scene_tree *parent_tree = nullptr;
+    if (parent->role == WLR_XDG_SURFACE_ROLE_TOPLEVEL) {
+        struct steppewm_view *view = parent->data;
+        if (view) {
+            parent_tree = view->xdg_tree;
+        }
+    } else if (parent->role == WLR_XDG_SURFACE_ROLE_POPUP) {
+        parent_tree = parent->data;
+    }
+    if (!parent_tree) {
+        return;
+    }
+
+    popup->base->data = wlr_scene_xdg_surface_create(parent_tree, popup->base);
+
+    struct steppewm_popup *p = calloc(1, sizeof(*p));
+    p->popup = popup;
+    p->commit.notify = popup_commit;
+    p->reposition.notify = popup_reposition;
+    p->destroy.notify = popup_destroy;
+    wl_signal_add(&popup->base->surface->events.commit, &p->commit);
+    wl_signal_add(&popup->events.reposition, &p->reposition);
+    wl_signal_add(&popup->events.destroy, &p->destroy);
+}
+
 // find which view is at a certain coord, and return its steppewm_view
 struct steppewm_view *view_at(struct steppewm_server *server, double lx, double ly,
                               struct wlr_surface **surface, double *sx, double *sy) {
