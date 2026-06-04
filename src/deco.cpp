@@ -13,13 +13,11 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <stdlib.h>
+#include "wlr.h"
 
 #include <cairo/cairo.h>
-#include <drm_fourcc.h>
 #include <linux/input-event-codes.h>
 #include <wayland-server-core.h>
-#include <wlr/interfaces/wlr_buffer.h>
 #include <wlr/types/wlr_scene.h>
 #include <wlr/types/wlr_xdg_decoration_v1.h>
 #include <wlr/types/wlr_xdg_shell.h>
@@ -27,62 +25,18 @@
 
 #include "deco.h"
 #include "input.h"
+#include "paint.hpp"
 #include "server.h"
 #include "view.h"
-
-// cairo stuff!
-// see taskbar.c for descriptions on this stuff
-struct cpu_buf {
-    struct wlr_buffer base;
-    uint8_t *pixels;
-    size_t stride;
-};
-
-static void cpu_buf_destroy(struct wlr_buffer *wlr_buf) {
-    struct cpu_buf *buf = wl_container_of(wlr_buf, buf, base);
-    free(buf->pixels);
-    free(buf);
-}
-
-static bool cpu_buf_begin_data_ptr_access(struct wlr_buffer *wlr_buf, uint32_t flags, void **data,
-                                          uint32_t *format, size_t *stride) {
-    (void) flags;
-    struct cpu_buf *buf = wl_container_of(wlr_buf, buf, base);
-    *data = buf->pixels;
-    *format = DRM_FORMAT_ARGB8888;
-    *stride = buf->stride;
-    return true;
-}
-
-static void cpu_buf_end_data_ptr_access(struct wlr_buffer *wlr_buf) {
-    (void) wlr_buf;
-}
-
-static const struct wlr_buffer_impl cpu_buf_impl = {
-    .destroy = cpu_buf_destroy,
-    .begin_data_ptr_access = cpu_buf_begin_data_ptr_access,
-    .end_data_ptr_access = cpu_buf_end_data_ptr_access,
-};
-
-static struct cpu_buf *cpu_buf_create(int w, int h) {
-    struct cpu_buf *buf = calloc(1, sizeof(*buf));
-    buf->stride = (size_t) w * 4;
-    buf->pixels = calloc(h, buf->stride);
-    wlr_buffer_init(&buf->base, &cpu_buf_impl, w, h);
-    return buf;
-}
 
 // render decoration window title
 static void deco_render_title(struct wlr_scene_buffer *scene_buf, const char *text, int w, int h,
                               float fg[4]) {
-    if (w <= 0 || h <= 0) {
+    paint::Canvas canvas(w, h);
+    if (!canvas.valid()) {
         return;
     }
-
-    struct cpu_buf *buf = cpu_buf_create(w, h);
-    cairo_surface_t *surf = cairo_image_surface_create_for_data(buf->pixels, CAIRO_FORMAT_ARGB32, w,
-                                                                h, (int) buf->stride);
-    cairo_t *cr = cairo_create(surf);
+    cairo_t *cr = canvas.cr();
 
     cairo_set_source_rgba(cr, 0, 0, 0, 0);
     cairo_paint(cr);
@@ -100,11 +54,7 @@ static void deco_render_title(struct wlr_scene_buffer *scene_buf, const char *te
         cairo_show_text(cr, text);
     }
 
-    cairo_destroy(cr);
-    cairo_surface_destroy(surf);
-
-    wlr_scene_buffer_set_buffer(scene_buf, &buf->base);
-    wlr_buffer_drop(&buf->base);
+    canvas.commit(scene_buf);
 }
 
 // remove wl_listener
@@ -296,7 +246,7 @@ struct steppewm_view *deco_at(struct steppewm_server *server, double lx, double 
     if (!tree) {
         return nullptr;
     }
-    struct steppewm_view *view = tree->node.data;
+    struct steppewm_view *view = static_cast<struct steppewm_view *>(tree->node.data);
 
     if (hit->type == WLR_SCENE_NODE_RECT) {
         *node = hit;
@@ -389,7 +339,8 @@ static void deco_request_mode(struct wl_listener *listener, void *data) {
     struct steppewm_view *view = wl_container_of(listener, view, request_deco_mode);
 
     // case where the view is pending
-    struct wlr_xdg_toplevel_decoration_v1 *decoration = data;
+    struct wlr_xdg_toplevel_decoration_v1 *decoration =
+        static_cast<struct wlr_xdg_toplevel_decoration_v1 *>(data);
 
     // if the top leel surface hasnt been init yet
     if (!decoration->toplevel->base->initialized) {
@@ -418,10 +369,12 @@ static void deco_handle_destroy(struct wl_listener *listener, void *data) {
 // called when a new xdg toplevel is created
 void deco_new(struct wl_listener *listener, void *data) {
     (void) listener;
-    struct wlr_xdg_toplevel_decoration_v1 *decoration = data;
+    struct wlr_xdg_toplevel_decoration_v1 *decoration =
+        static_cast<struct wlr_xdg_toplevel_decoration_v1 *>(data);
 
     // get the steppewm_view from the decoration
-    struct steppewm_view *view = decoration->toplevel->base->data;
+    struct steppewm_view *view =
+        static_cast<struct steppewm_view *>(decoration->toplevel->base->data);
     if (!view) {
         return;
     }

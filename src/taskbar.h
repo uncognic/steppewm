@@ -19,6 +19,10 @@
 
 #include "config.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 struct steppewm_server;
 struct steppewm_view;
 struct wlr_output;
@@ -70,3 +74,7 @@ void taskbar_update_geometry(struct steppewm_taskbar *bar);
 struct steppewm_view *taskbar_view_at(struct steppewm_taskbar *bar, double x, double y);
 // return the workspace index under (x, y), or -1 if no indicator button is there
 int taskbar_workspace_at(struct steppewm_taskbar *bar, double x, double y);
+
+#ifdef __cplusplus
+}
+#endif

@@ -18,6 +18,10 @@
 #include <wayland-server-core.h>
 #include <wlr/util/box.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 struct steppewm_server;
 struct wlr_xdg_toplevel;
 struct wlr_xdg_toplevel_decoration_v1;
@@ -108,3 +112,7 @@ void workspace_switch(struct steppewm_server *server, int workspace);
 void view_move_to_workspace(struct steppewm_view *view, int workspace);
 struct steppewm_view *view_at(struct steppewm_server *server, double lx, double ly,
                               struct wlr_surface **surface, double *sx, double *sy);
+
+#ifdef __cplusplus
+}
+#endif

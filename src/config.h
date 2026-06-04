@@ -18,6 +18,10 @@
 #include <stdint.h>
 #include <xkbcommon/xkbcommon.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define CFG_MAX_BINDS 128
 #define CFG_MAX_ARG 512
 #define CFG_MAX_EXECS 64
@@ -75,3 +79,7 @@ void config_defaults(struct steppewm_config *cfg);
 bool config_load(struct steppewm_config *cfg, const char *path);
 void config_run_execs(struct steppewm_config *cfg);
 void config_reload(struct steppewm_server *server);
+
+#ifdef __cplusplus
+}
+#endif

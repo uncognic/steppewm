@@ -17,6 +17,10 @@
 
 #include <wayland-server-core.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 struct steppewm_output;
 struct wlr_layer_surface_v1;
 struct wlr_scene_layer_surface_v1;
@@ -36,3 +40,7 @@ struct steppewm_layer_surface {
 
 void layer_surface_new(struct wl_listener *listener, void *data);
 void layer_surface_configure(struct steppewm_layer_surface *ls);
+
+#ifdef __cplusplus
+}
+#endif

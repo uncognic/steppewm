@@ -17,6 +17,10 @@
 
 #include <wayland-server-core.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 struct steppewm_server;
 struct steppewm_taskbar;
 struct steppewm_layer_surface;
@@ -45,3 +49,7 @@ struct steppewm_output {
 
 void output_new(struct wl_listener *listener, void *data);
 void output_layout_change_register(struct steppewm_server *server);
+
+#ifdef __cplusplus
+}
+#endif

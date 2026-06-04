@@ -18,6 +18,10 @@
 #include <stdint.h>
 #include <wayland-server-core.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 struct steppewm_view;
 struct steppewm_server;
 struct wlr_scene_node;
@@ -32,3 +36,7 @@ const char *deco_cursor_name(struct steppewm_view *view, struct wlr_scene_node *
 bool deco_handle_button(struct steppewm_view *view, struct steppewm_server *server, struct wlr_scene_node *node, uint32_t button);
 struct steppewm_view *deco_at(struct steppewm_server *server, double lx, double ly,
                               struct wlr_scene_node **node);
+
+#ifdef __cplusplus
+}
+#endif

@@ -1,13 +1,14 @@
-project('steppewm', 'c',
+project('steppewm', ['c', 'cpp'],
   version : '0.1.0',
   default_options : [
     'c_std=gnu23',
+    'cpp_std=c++20',
     'warning_level=2',
   ],
 )
 
-add_project_arguments('-DWLR_USE_UNSTABLE', language : 'c')
-add_project_arguments('-D_POSIX_C_SOURCE=200809L', language : 'c')
+add_project_arguments('-DWLR_USE_UNSTABLE', language : ['c', 'cpp'])
+add_project_arguments('-D_POSIX_C_SOURCE=200809L', language : ['c', 'cpp'])
 
 wlroots = dependency('wlroots-0.19')
 wayland = dependency('wayland-server')
@@ -42,8 +43,9 @@ sources = files(
   'src/output.c',
   'src/view.c',
   'src/input.c',
-  'src/deco.c',
-  'src/taskbar.c',
+  'src/deco.cpp',
+  'src/taskbar.cpp',
+  'src/paint.cpp',
   'src/layer.c',
 )
 

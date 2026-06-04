@@ -19,6 +19,10 @@
 
 #include "server.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 struct steppewm_view;
 struct wlr_keyboard;
 
@@ -49,3 +53,7 @@ void request_set_primary_selection(struct wl_listener *listener, void *data);
 
 void cursor_begin_interactive(struct steppewm_view *view, enum steppewm_cursor_mode mode,
                               uint32_t edges);
+
+#ifdef __cplusplus
+}
+#endif

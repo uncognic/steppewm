@@ -13,82 +13,34 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include "wlr.h" // must be first
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
 
 #include <cairo/cairo.h>
-#include <drm_fourcc.h>
 
 #include <wayland-server-core.h>
 
-#include <wlr/interfaces/wlr_buffer.h>
 #include <wlr/types/wlr_output_layout.h>
 #include <wlr/types/wlr_scene.h>
 #include <wlr/types/wlr_seat.h>
 #include <wlr/types/wlr_xdg_shell.h>
 
+#include "paint.hpp"
 #include "server.h"
 #include "taskbar.h"
 #include "view.h"
 
-// cpu backed wlr_buffer for cairo
-struct cpu_buf {
-    struct wlr_buffer base;
-    uint8_t *pixels;
-    size_t stride;
-};
-
-// free mem and struct
-static void cpu_buf_destroy(struct wlr_buffer *wlr_buf) {
-    struct cpu_buf *buf = wl_container_of(wlr_buf, buf, base);
-    free(buf->pixels);
-    free(buf);
-}
-
-// put cpu_buf data into a wlr_buf
-static bool cpu_buf_begin_data_ptr_access(struct wlr_buffer *wlr_buf, uint32_t flags, void **data,
-                                          uint32_t *format, size_t *stride) {
-    (void) flags;
-    struct cpu_buf *buf = wl_container_of(wlr_buf, buf, base);
-    *data = buf->pixels;
-    *format = DRM_FORMAT_ARGB8888;
-    *stride = buf->stride;
-    return true;
-}
-
-// no cleanup needed
-static void cpu_buf_end_data_ptr_access(struct wlr_buffer *wlr_buf) {
-    (void) wlr_buf;
-}
-
-static const struct wlr_buffer_impl cpu_buf_impl = {
-    .destroy = cpu_buf_destroy,
-    .begin_data_ptr_access = cpu_buf_begin_data_ptr_access,
-    .end_data_ptr_access = cpu_buf_end_data_ptr_access,
-};
-
-// allocate and init wlr_buffer
-static struct cpu_buf *cpu_buf_create(int w, int h) {
-    struct cpu_buf *buf = calloc(1, sizeof(*buf));
-    buf->stride = (size_t) w * 4;
-    buf->pixels = calloc(h, buf->stride);
-    wlr_buffer_init(&buf->base, &cpu_buf_impl, w, h);
-    return buf;
-}
-
 // render button into cairo then draw it
 static void render_button(struct wlr_scene_buffer *scene_buf, const char *text, int w, int h,
                           float bg[4], float fg[4]) {
-    if (w <= 0 || h <= 0) {
+    paint::Canvas canvas(w, h);
+    if (!canvas.valid()) {
         return;
     }
-
-    // create cairo surface from data
-    struct cpu_buf *buf = cpu_buf_create(w, h);
-    cairo_surface_t *surf = cairo_image_surface_create_for_data(buf->pixels, CAIRO_FORMAT_ARGB32, w,
-                                                                h, (int) buf->stride);
-    cairo_t *cr = cairo_create(surf);
+    cairo_t *cr = canvas.cr();
 
     cairo_set_source_rgba(cr, bg[0], bg[1], bg[2], bg[3]);
     cairo_paint(cr);
@@ -109,11 +61,7 @@ static void render_button(struct wlr_scene_buffer *scene_buf, const char *text, 
         cairo_show_text(cr, text);
     }
 
-    cairo_destroy(cr);
-    cairo_surface_destroy(surf);
-
-    wlr_scene_buffer_set_buffer(scene_buf, &buf->base);
-    wlr_buffer_drop(&buf->base);
+    canvas.commit(scene_buf);
 }
 
 static void taskbar_layout(struct steppewm_taskbar *bar);
@@ -138,15 +86,8 @@ static void render_clock(struct steppewm_taskbar *bar) {
     localtime_r(&now, &tm);
     strftime(text, sizeof(text), "%-d %b %Y %I:%M %p", &tm);
 
-    // measure the text on a throwaway surface so we can size the buffer to fit
-    cairo_surface_t *measure = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, 1, 1);
-    cairo_t *mcr = cairo_create(measure);
-    cairo_select_font_face(mcr, "sans-serif", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
-    cairo_set_font_size(mcr, font_size);
-    cairo_text_extents_t ext;
-    cairo_text_extents(mcr, text, &ext);
-    cairo_destroy(mcr);
-    cairo_surface_destroy(measure);
+    // measure the text so we can size the buffer to fit
+    cairo_text_extents_t ext = paint::text_extents(text, font_size);
 
     int pad = cfg->taskbar_button_pad;
     int w = (int) (ext.width + 2 * pad);
@@ -156,10 +97,11 @@ static void render_clock(struct steppewm_taskbar *bar) {
     bar->clock_w = w;
 
     // draw onto a buffer sized to the text
-    struct cpu_buf *buf = cpu_buf_create(w, h);
-    cairo_surface_t *surf = cairo_image_surface_create_for_data(buf->pixels, CAIRO_FORMAT_ARGB32, w,
-                                                                h, (int) buf->stride);
-    cairo_t *cr = cairo_create(surf);
+    paint::Canvas canvas(w, h);
+    if (!canvas.valid()) {
+        return;
+    }
+    cairo_t *cr = canvas.cr();
 
     float *bg = cfg->color_taskbar_bg;
     cairo_set_source_rgba(cr, bg[0], bg[1], bg[2], bg[3]);
@@ -172,18 +114,14 @@ static void render_clock(struct steppewm_taskbar *bar) {
     cairo_move_to(cr, pad - ext.x_bearing, h / 2.0 - ext.y_bearing - ext.height / 2.0);
     cairo_show_text(cr, text);
 
-    cairo_destroy(cr);
-    cairo_surface_destroy(surf);
-
-    wlr_scene_buffer_set_buffer(bar->clock, &buf->base);
-    wlr_buffer_drop(&buf->base);
+    canvas.commit(bar->clock);
 
     wlr_scene_node_set_position(&bar->clock->node, bar->width - w - pad, pad);
 }
 
 // redraw the clock and rearm the timer to fire on the next minute boundary
 static int clock_tick(void *data) {
-    struct steppewm_taskbar *bar = data;
+    struct steppewm_taskbar *bar = static_cast<struct steppewm_taskbar *>(data);
     // full layout so buttons rerender if the clock's width changed
     taskbar_layout(bar);
 
@@ -208,7 +146,7 @@ static struct steppewm_view *taskbar_focused_view(struct steppewm_taskbar *bar) 
     if (!xdg || xdg->role != WLR_XDG_SURFACE_ROLE_TOPLEVEL) {
         return nullptr;
     }
-    return xdg->toplevel->base->data;
+    return static_cast<struct steppewm_view *>(xdg->toplevel->base->data);
 }
 
 // redraw taskbar
@@ -327,7 +265,7 @@ static void on_title_changed(struct wl_listener *listener, void *data) {
 // create taskbar, scene tree, and bg
 struct steppewm_taskbar *taskbar_create(struct steppewm_server *server,
                                         struct wlr_output *wlr_output) {
-    struct steppewm_taskbar *bar = calloc(1, sizeof(*bar));
+    struct steppewm_taskbar *bar = static_cast<struct steppewm_taskbar *>(calloc(1, sizeof(*bar)));
     bar->server = server;
     bar->wlr_output = wlr_output;
     bar->height = server->config.taskbar_h;
