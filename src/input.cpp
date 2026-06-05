@@ -20,6 +20,7 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
+#include <libinput.h>
 #include <linux/input-event-codes.h>
 #include <xkbcommon/xkbcommon-keysyms.h>
 #include <xkbcommon/xkbcommon.h>
@@ -44,6 +45,16 @@ static void spawn(const char *cmd) {
     }
     if (pid > 0) {
         waitpid(pid, nullptr, 0);
+    }
+}
+
+// redraw every output's taskbar
+static void refresh_taskbars(struct steppewm_server* server) {
+    struct steppewm_output* out;
+    wl_list_for_each(out, &server->outputs, link) {
+        if (out->taskbar) {
+            taskbar_refresh(out->taskbar);
+        }
     }
 }
 
@@ -128,6 +139,12 @@ static void keyboard_modifiers(struct wl_listener *listener, void *data) {
 
     // send modifier
     wlr_seat_keyboard_notify_modifiers(keyboard->server->seat, &keyboard->wlr_keyboard->modifiers);
+
+    uint32_t group = keyboard->wlr_keyboard->modifiers.group;
+    if (group != keyboard->server->layout_group) {
+        keyboard->server->layout_group = group;
+        refresh_taskbars(keyboard->server);
+    }
 }
 
 // handles key presses and releases
@@ -199,6 +216,71 @@ static void keyboard_destroy(struct wl_listener *listener, void *data) {
     delete keyboard;
 }
 
+static void keyboard_apply_config(struct steppewm_server* server,
+                                  struct wlr_keyboard* wlr_keyboard) {
+    struct steppewm_config* cfg = &server->config;
+
+    // empty strings stay null so xkbcommon uses its defaults
+    struct xkb_rule_names rules = {};
+    rules.layout = cfg->xkb_layout[0] ? cfg->xkb_layout : nullptr;
+    rules.variant = cfg->xkb_variant[0] ? cfg->xkb_variant : nullptr;
+    rules.options = cfg->xkb_options[0] ? cfg->xkb_options : nullptr;
+
+    struct xkb_context* context = xkb_context_new(XKB_CONTEXT_NO_FLAGS);
+    struct xkb_keymap* keymap =
+        xkb_keymap_new_from_names(context, &rules, XKB_KEYMAP_COMPILE_NO_FLAGS);
+    if (keymap) {
+        wlr_keyboard_set_keymap(wlr_keyboard, keymap);
+        xkb_keymap_unref(keymap);
+    } else {
+        wlr_log(WLR_ERROR, "failed to compile keymap for layout '%s'", cfg->xkb_layout);
+    }
+    xkb_context_unref(context);
+
+    wlr_keyboard_set_repeat_info(wlr_keyboard, cfg->repeat_rate, cfg->repeat_delay);
+}
+
+// apply the configured libinput settings to a pointer
+static void pointer_apply_config(struct steppewm_server* server, struct wlr_input_device* device) {
+    if (!wlr_input_device_is_libinput(device)) {
+        return;
+    }
+    struct libinput_device* dev = wlr_libinput_get_device_handle(device);
+    if (!dev) {
+        return;
+    }
+    struct steppewm_config* cfg = &server->config;
+
+    // tap to click only on devices that support tapping
+    if (libinput_device_config_tap_get_finger_count(dev) > 0) {
+        libinput_device_config_tap_set_enabled(
+            dev, cfg->tap_to_click ? LIBINPUT_CONFIG_TAP_ENABLED : LIBINPUT_CONFIG_TAP_DISABLED);
+    }
+
+    // natural scrolling
+    if (libinput_device_config_scroll_has_natural_scroll(dev)) {
+        libinput_device_config_scroll_set_natural_scroll_enabled(dev, cfg->natural_scroll);
+    }
+
+    // pointer acceleration speed and profile
+    if (libinput_device_config_accel_is_available(dev)) {
+        double speed = cfg->pointer_accel;
+        if (speed < -1.0) {
+            speed = -1.0;
+        }
+        if (speed > 1.0) {
+            speed = 1.0;
+        }
+        libinput_device_config_accel_set_speed(dev, speed);
+
+        if (strcmp(cfg->accel_profile, "flat") == 0) {
+            libinput_device_config_accel_set_profile(dev, LIBINPUT_CONFIG_ACCEL_PROFILE_FLAT);
+        } else if (strcmp(cfg->accel_profile, "adaptive") == 0) {
+            libinput_device_config_accel_set_profile(dev, LIBINPUT_CONFIG_ACCEL_PROFILE_ADAPTIVE);
+        }
+    }
+}
+
 // add keyboard
 static void keyboard_new(struct steppewm_server *server, struct wlr_input_device *device) {
     // create keyboard
@@ -209,16 +291,7 @@ static void keyboard_new(struct steppewm_server *server, struct wlr_input_device
     keyboard->server = server;
     keyboard->wlr_keyboard = wlr_keyboard;
 
-    // set up xkb keymap with en-US
-    struct xkb_context *context = xkb_context_new(XKB_CONTEXT_NO_FLAGS);
-    struct xkb_keymap *keymap =
-        xkb_keymap_new_from_names(context, nullptr, XKB_KEYMAP_COMPILE_NO_FLAGS);
-
-    // set the keymap
-    wlr_keyboard_set_keymap(wlr_keyboard, keymap);
-    xkb_keymap_unref(keymap);
-    xkb_context_unref(context);
-    wlr_keyboard_set_repeat_info(wlr_keyboard, 25, 600);
+    keyboard_apply_config(server, wlr_keyboard);
 
     // set up listeners
     keyboard->modifiers.notify = keyboard_modifiers;
@@ -231,11 +304,32 @@ static void keyboard_new(struct steppewm_server *server, struct wlr_input_device
     wlr_seat_set_keyboard(server->seat, wlr_keyboard);
 
     wl_list_insert(&server->keyboards, &keyboard->link);
+
+    // show the layout indicator once a keyboard is present
+    refresh_taskbars(server);
+}
+
+// destroy pointer
+static void pointer_destroy(struct wl_listener* listener, void* data) {
+    (void) data;
+    struct steppewm_pointer* pointer = wl_container_of(listener, pointer, destroy);
+    wl_list_remove(&pointer->destroy.link);
+    wl_list_remove(&pointer->link);
+    delete pointer;
 }
 
 // add pointer
 static void pointer_new(struct steppewm_server *server, struct wlr_input_device *device) {
     wlr_cursor_attach_input_device(server->cursor, device);
+    pointer_apply_config(server, device);
+
+    // track the device so settings can be re-applied on config reload
+    auto* pointer = new steppewm_pointer();
+    pointer->server = server;
+    pointer->device = device;
+    pointer->destroy.notify = pointer_destroy;
+    wl_signal_add(&device->events.destroy, &pointer->destroy);
+    wl_list_insert(&server->pointers, &pointer->link);
 }
 
 // create new input
@@ -259,6 +353,19 @@ void input_new(struct wl_listener *listener, void *data) {
         caps |= WL_SEAT_CAPABILITY_KEYBOARD;
     }
     wlr_seat_set_capabilities(server->seat, caps);
+}
+
+// reapply input config to every existing device, called on config reload
+void input_reconfigure(struct steppewm_server* server) {
+    struct steppewm_keyboard* keyboard;
+    wl_list_for_each(keyboard, &server->keyboards, link) {
+        keyboard_apply_config(server, keyboard->wlr_keyboard);
+    }
+
+    struct steppewm_pointer* pointer;
+    wl_list_for_each(pointer, &server->pointers, link) {
+        pointer_apply_config(server, pointer->device);
+    }
 }
 
 //// cursor

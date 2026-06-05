@@ -43,6 +43,19 @@ struct steppewm_config {
     char execs[CFG_MAX_EXECS][CFG_MAX_CMD];
     int nexecs;
 
+    // keyboard
+    char xkb_layout[64];
+    char xkb_variant[64];
+    char xkb_options[128];
+    int repeat_rate;
+    int repeat_delay;
+
+    // pointer
+    bool tap_to_click;
+    bool natural_scroll;
+    float pointer_accel;    // [-1.0, 1.0]
+    char accel_profile[16]; // "flat" or "adaptive"
+
     float color_title_active[4];
     float color_title_inactive[4];
     float color_border[4];

@@ -13,11 +13,12 @@ add_project_arguments('-D_POSIX_C_SOURCE=200809L', language : ['c', 'cpp'])
 wlroots = dependency('wlroots-0.19')
 wayland = dependency('wayland-server')
 xkbcommon = dependency('xkbcommon')
+libinput = dependency('libinput')
 lua = dependency('lua5.4', 'lua-5.4', 'lua', version : '>=5.4')
 pixman = dependency('pixman-1')
 cairo = dependency('cairo')
 
-deps = [wlroots, wayland, xkbcommon, lua, pixman, cairo]
+deps = [wlroots, wayland, xkbcommon, libinput, lua, pixman, cairo]
 
 wl_protocols = dependency('wayland-protocols')
 wl_protocol_dir = wl_protocols.get_variable('pkgdatadir')

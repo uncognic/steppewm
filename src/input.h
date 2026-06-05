@@ -25,6 +25,7 @@ extern "C" {
 
 struct steppewm_view;
 struct wlr_keyboard;
+struct wlr_input_device;
 
 // struct for keyboard state
 struct steppewm_keyboard {
@@ -38,8 +39,19 @@ struct steppewm_keyboard {
     struct wl_listener destroy;
 };
 
+// struct for pointer state
+struct steppewm_pointer {
+    struct steppewm_server* server;
+    struct wlr_input_device* device;
+
+    struct wl_list link;
+
+    struct wl_listener destroy;
+};
+
 // see input.c for details on these functions
 void input_new(struct wl_listener *listener, void *data);
+void input_reconfigure(struct steppewm_server* server);
 
 void cursor_motion(struct wl_listener *listener, void *data);
 void cursor_motion_absolute(struct wl_listener *listener, void *data);

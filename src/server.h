@@ -84,6 +84,8 @@ struct steppewm_server {
     struct wlr_cursor *cursor;
     struct wlr_xcursor_manager *cursor_mgr;
     struct wl_list keyboards;
+    struct wl_list pointers;
+    uint32_t layout_group;
 
     struct wl_listener new_input;
     struct wl_listener cursor_motion;

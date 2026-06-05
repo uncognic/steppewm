@@ -16,7 +16,9 @@
 
 #include "wlr.h" // must be first
 
+#include <ctype.h>
 #include <stdio.h>
+#include <string.h>
 #include <time.h>
 
 #include <memory>
@@ -53,6 +55,9 @@ struct steppewm_taskbar {
 
     struct wlr_scene_buffer* clock;
     struct wl_event_source* clock_timer;
+
+    struct wlr_scene_buffer* layout_ind; // keyboard layout indicator
+    int layout_ind_w;                    // measured width of the layout indicator
 
     struct wlr_scene_buffer* ws_labels[STEPPEWM_NUM_WORKSPACES];
     int ws_button_w;
@@ -151,6 +156,84 @@ static void render_clock(struct steppewm_taskbar* bar) {
     wlr_scene_node_set_position(&bar->clock->node, bar->width - w - pad, pad);
 }
 
+// build the short layout code for the active keyboard group
+static void taskbar_layout_code(struct steppewm_taskbar* bar, char* out, size_t len) {
+    struct wlr_keyboard* kbd = wlr_seat_get_keyboard(bar->server->seat);
+    uint32_t group = kbd ? kbd->modifiers.group : 0;
+
+    // walk to the N-th comma-separated token in the configured layout string
+    const char* tok = bar->server->config.xkb_layout;
+    for (uint32_t i = 0; i < group && tok && *tok; i++) {
+        const char* comma = strchr(tok, ',');
+        tok = comma ? comma + 1 : nullptr;
+    }
+
+    size_t n = 0;
+    if (tok) {
+        while (tok[n] && tok[n] != ',' && n + 1 < len) {
+            out[n] = (char) toupper((unsigned char) tok[n]);
+            n++;
+        }
+    }
+    // no layout configured
+    if (n == 0) {
+        snprintf(out, len, "US");
+        return;
+    }
+    out[n] = '\0';
+}
+
+// render the keyboard layout indicator and pin it to the right, just left of the clock
+static void render_layout_indicator(struct steppewm_taskbar* bar) {
+    if (bar->width <= 0 || bar->height <= 0 || !bar->layout_ind) {
+        return;
+    }
+
+    struct steppewm_config* cfg = &bar->server->config;
+    int pad = cfg->taskbar_button_pad;
+    int h = bar->height - 2 * pad;
+    if (h <= 0) {
+        return;
+    }
+    double font_size = h * 0.55;
+
+    char text[32];
+    taskbar_layout_code(bar, text, sizeof(text));
+
+    cairo_text_extents_t ext = paint::text_extents(text, font_size);
+
+    // size the badge to the text plus padding
+    int w = (int) ext.width + h;
+    if (w <= 0) {
+        return;
+    }
+    bar->layout_ind_w = w;
+
+    paint::Canvas canvas(w, h);
+    if (!canvas.valid()) {
+        return;
+    }
+    cairo_t* cr = canvas.cr();
+
+    float* bg = cfg->color_task_normal;
+    cairo_set_source_rgba(cr, bg[0], bg[1], bg[2], bg[3]);
+    cairo_paint(cr);
+
+    float* fg = cfg->color_task_text;
+    cairo_select_font_face(cr, "sans-serif", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
+    cairo_set_font_size(cr, font_size);
+    cairo_set_source_rgba(cr, fg[0], fg[1], fg[2], fg[3]);
+    double tx = (w - ext.width) / 2.0 - ext.x_bearing;
+    double ty = h / 2.0 - ext.y_bearing - ext.height / 2.0;
+    cairo_move_to(cr, tx, ty);
+    cairo_show_text(cr, text);
+
+    canvas.commit(bar->layout_ind);
+
+    wlr_scene_node_set_position(&bar->layout_ind->node, bar->width - bar->clock_w - pad - w - pad,
+                                pad);
+}
+
 // redraw the clock and rearm the timer to fire on the next minute boundary
 static int clock_tick(void* data) {
     struct steppewm_taskbar* bar = static_cast<struct steppewm_taskbar*>(data);
@@ -193,6 +276,7 @@ static void taskbar_layout(struct steppewm_taskbar* bar) {
     wlr_scene_rect_set_color(bar->background, bar->server->config.color_taskbar_bg);
 
     render_clock(bar);
+    render_layout_indicator(bar);
 
     struct steppewm_config* cfg = &bar->server->config;
     int pad = cfg->taskbar_button_pad;
@@ -239,8 +323,9 @@ static void taskbar_layout(struct steppewm_taskbar* bar) {
 
     struct steppewm_view* focused_view = taskbar_focused_view(bar);
 
-    int clock_left_x = bar->width - bar->clock_w - pad;
-    int task_row_width = clock_left_x - pad - task_row_left;
+    // task row ends before the layout indicator and the clock on the right
+    int right_limit = bar->width - bar->clock_w - pad - bar->layout_ind_w - pad;
+    int task_row_width = right_limit - pad - task_row_left;
 
     // divide by number of visible buttons to get width
     int button_w = (task_row_width - visible_count * pad) / visible_count;
@@ -299,6 +384,9 @@ struct steppewm_taskbar* taskbar_create(struct steppewm_server* server,
     for (int i = 0; i < STEPPEWM_NUM_WORKSPACES; i++) {
         bar->ws_labels[i] = wlr_scene_buffer_create(bar->tree, nullptr);
     }
+
+    // keyboard layout indicator
+    bar->layout_ind = wlr_scene_buffer_create(bar->tree, nullptr);
 
     // clock label and a timer that ticks it over each minute
     bar->clock = wlr_scene_buffer_create(bar->tree, nullptr);

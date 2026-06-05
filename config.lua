@@ -24,6 +24,19 @@ end
 exec("swaybg -i ~/Pictures/Vallpapers/bolatbek-gabiden-dsL_tvf1Z-E-unsplash.jpg -m fill")
 -- exec("firefox")
 
+-- keyboard (xkb)
+-- keyboard_layout = "us,ru,ru,ca"        -- one entry per group
+-- keyboard_variant = ",,phonetic,multix" -- positional: us=-, ru=-, ru=phonetic, ca=multix
+-- keyboard_options = "grp:alt_shift_toggle"
+-- repeat_rate = 25
+-- repeat_delay = 600
+
+-- input: pointer / touchpad (libinput)
+-- tap_to_click = true
+-- natural_scroll = false
+-- pointer_accel = 0.0                    -- -1.0 (slow) .. 1.0 (fast)
+-- accel_profile = "flat"                     -- "flat" or "adaptive"
+
 -- colors {r, g, b, a}
 -- title_active = {0.24, 0.24, 0.24, 1.0}
 -- title_inactive = {0.14, 0.14, 0.14, 1.0}

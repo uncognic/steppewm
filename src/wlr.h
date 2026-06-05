@@ -39,6 +39,7 @@ extern "C" {
 #include <wlr/types/wlr_layer_shell_v1.h>
 #undef namespace
 #include <wlr/backend.h>
+#include <wlr/backend/libinput.h>
 #include <wlr/backend/session.h>
 #include <wlr/interfaces/wlr_buffer.h>
 #include <wlr/render/allocator.h>

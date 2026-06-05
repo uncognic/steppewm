@@ -27,6 +27,7 @@
 #include <xkbcommon/xkbcommon.h>
 
 #include "config.h"
+#include "input.h"
 #include "output.h"
 #include "server.h"
 #include "taskbar.h"
@@ -134,8 +135,35 @@ static void read_int(lua_State *L, const char *name, int *out) {
     lua_pop(L, 1);
 }
 
+static void read_float(lua_State* L, const char* name, float* out) {
+    lua_getglobal(L, name);
+    if (lua_isnumber(L, -1)) {
+        *out = (float) lua_tonumber(L, -1);
+    }
+    lua_pop(L, 1);
+}
+
+static void read_string(lua_State* L, const char* name, char* out, size_t len) {
+    lua_getglobal(L, name);
+    if (lua_isstring(L, -1)) {
+        strncpy(out, lua_tostring(L, -1), len - 1);
+        out[len - 1] = '\0';
+    }
+    lua_pop(L, 1);
+}
+
 void config_defaults(struct steppewm_config *cfg) {
     cfg->nbinds = 0;
+
+    cfg->xkb_layout[0] = '\0';
+    cfg->xkb_variant[0] = '\0';
+    cfg->xkb_options[0] = '\0';
+    cfg->repeat_rate = 25;
+    cfg->repeat_delay = 600;
+    cfg->tap_to_click = false;
+    cfg->natural_scroll = false;
+    cfg->pointer_accel = 0.0f;
+    cfg->accel_profile[0] = '\0';
 
     cfg->color_title_active[0] = 0.24f;
     cfg->color_title_active[1] = 0.24f;
@@ -247,6 +275,16 @@ bool config_load(struct steppewm_config *cfg, const char *path) {
         return false;
     }
 
+    read_string(L, "keyboard_layout", cfg->xkb_layout, sizeof(cfg->xkb_layout));
+    read_string(L, "keyboard_variant", cfg->xkb_variant, sizeof(cfg->xkb_variant));
+    read_string(L, "keyboard_options", cfg->xkb_options, sizeof(cfg->xkb_options));
+    read_int(L, "repeat_rate", &cfg->repeat_rate);
+    read_int(L, "repeat_delay", &cfg->repeat_delay);
+    read_bool(L, "tap_to_click", &cfg->tap_to_click);
+    read_bool(L, "natural_scroll", &cfg->natural_scroll);
+    read_float(L, "pointer_accel", &cfg->pointer_accel);
+    read_string(L, "accel_profile", cfg->accel_profile, sizeof(cfg->accel_profile));
+
     read_color(L, "title_active", cfg->color_title_active);
     read_color(L, "title_inactive", cfg->color_title_inactive);
     read_color(L, "border_color", cfg->color_border);
@@ -300,6 +338,9 @@ void config_reload(struct steppewm_server *server) {
 
     // reload config and bindings
     config_load(cfg, server->config_path);
+
+    // re-apply keymap, repeat info, and libinput settings to all input devices
+    input_reconfigure(server);
 
     // re-apply decoration colors/sizes and content layout to open windows
     view_reconfigure_all(server);

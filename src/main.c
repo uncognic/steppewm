@@ -126,6 +126,7 @@ static bool server_init(struct steppewm_server *s) {
     wl_signal_add(&s->cursor->events.frame, &s->cursor_frame);
 
     wl_list_init(&s->keyboards);
+    wl_list_init(&s->pointers);
     s->new_input.notify = input_new;
     wl_signal_add(&s->backend->events.new_input, &s->new_input);
 
