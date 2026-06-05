@@ -127,7 +127,7 @@ static void render_clock(struct steppewm_taskbar* bar) {
     cairo_text_extents_t ext = paint::text_extents(text, font_size);
 
     int pad = cfg->taskbar_button_pad;
-    int w = (int) (ext.width + 2 * pad);
+    int w = (int) ext.width + h;
     if (w <= 0) {
         return;
     }
@@ -140,7 +140,7 @@ static void render_clock(struct steppewm_taskbar* bar) {
     }
     cairo_t* cr = canvas.cr();
 
-    float* bg = cfg->color_taskbar_bg;
+    float* bg = cfg->color_task_normal;
     cairo_set_source_rgba(cr, bg[0], bg[1], bg[2], bg[3]);
     cairo_paint(cr);
 
@@ -148,7 +148,9 @@ static void render_clock(struct steppewm_taskbar* bar) {
     cairo_select_font_face(cr, "sans-serif", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
     cairo_set_font_size(cr, font_size);
     cairo_set_source_rgba(cr, fg[0], fg[1], fg[2], fg[3]);
-    cairo_move_to(cr, pad - ext.x_bearing, h / 2.0 - ext.y_bearing - ext.height / 2.0);
+    double tx = (w - ext.width) / 2.0 - ext.x_bearing;
+    double ty = h / 2.0 - ext.y_bearing - ext.height / 2.0;
+    cairo_move_to(cr, tx, ty);
     cairo_show_text(cr, text);
 
     canvas.commit(bar->clock);
