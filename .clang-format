@@ -14,7 +14,7 @@ AllowShortBlocksOnASingleLine: false
 ColumnLimit: 100
 
 PointerAlignment: Left
-DerivePointerAlignment: true
+DerivePointerAlignment: false
 
 SortIncludes: true
 

@@ -13,21 +13,14 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <stdlib.h>
-#include <string.h>
+#include "wlr.h" // must be first
+
+#include <cstdlib>
+#include <cstring>
 #include <sys/wait.h>
 #include <unistd.h>
 
 #include <linux/input-event-codes.h>
-#include <wlr/types/wlr_cursor.h>
-#include <wlr/types/wlr_input_device.h>
-#include <wlr/types/wlr_keyboard.h>
-#include <wlr/types/wlr_pointer.h>
-#include <wlr/types/wlr_primary_selection.h>
-#include <wlr/types/wlr_seat.h>
-#include <wlr/types/wlr_xdg_shell.h>
-#include <wlr/util/edges.h>
-#include <wlr/util/log.h>
 #include <xkbcommon/xkbcommon-keysyms.h>
 #include <xkbcommon/xkbcommon.h>
 
@@ -38,8 +31,7 @@
 #include "taskbar.h"
 #include "view.h"
 
-//// keyboard
-
+// keyboard
 static void spawn(const char *cmd) {
     pid_t pid = fork();
     if (pid == 0) {
@@ -47,7 +39,7 @@ static void spawn(const char *cmd) {
         if (fork() > 0) {
             _exit(0);
         }
-        execl("/bin/sh", "sh", "-c", cmd, (char *) NULL);
+        execl("/bin/sh", "sh", "-c", cmd, static_cast<char*>(nullptr));
         _exit(1);
     }
     if (pid > 0) {
@@ -64,7 +56,7 @@ static struct steppewm_view *focused_view(struct steppewm_server *server) {
     if (!xdg || xdg->role != WLR_XDG_SURFACE_ROLE_TOPLEVEL) {
         return nullptr;
     }
-    return xdg->toplevel->base->data;
+    return static_cast<struct steppewm_view*>(xdg->toplevel->base->data);
 }
 
 static void dispatch_action(struct steppewm_server *server, const char *action, const char *arg) {
@@ -147,7 +139,7 @@ static void keyboard_key(struct wl_listener *listener, void *data) {
     struct steppewm_server *server = keyboard->server;
 
     // get the key event
-    struct wlr_keyboard_key_event *event = data;
+    struct wlr_keyboard_key_event* event = static_cast<struct wlr_keyboard_key_event*>(data);
 
     // get the seat from the server
     struct wlr_seat *seat = server->seat;
@@ -204,7 +196,7 @@ static void keyboard_destroy(struct wl_listener *listener, void *data) {
     wl_list_remove(&keyboard->key.link);
     wl_list_remove(&keyboard->destroy.link);
     wl_list_remove(&keyboard->link);
-    free(keyboard);
+    delete keyboard;
 }
 
 // add keyboard
@@ -213,7 +205,7 @@ static void keyboard_new(struct steppewm_server *server, struct wlr_input_device
     struct wlr_keyboard *wlr_keyboard = wlr_keyboard_from_input_device(device);
 
     // create steppewm_keyboard
-    struct steppewm_keyboard *keyboard = calloc(1, sizeof(*keyboard));
+    auto* keyboard = new steppewm_keyboard();
     keyboard->server = server;
     keyboard->wlr_keyboard = wlr_keyboard;
 
@@ -249,7 +241,7 @@ static void pointer_new(struct steppewm_server *server, struct wlr_input_device 
 // create new input
 void input_new(struct wl_listener *listener, void *data) {
     struct steppewm_server *server = wl_container_of(listener, server, new_input);
-    struct wlr_input_device *device = data;
+    struct wlr_input_device* device = static_cast<struct wlr_input_device*>(data);
 
     switch (device->type) {
         case WLR_INPUT_DEVICE_KEYBOARD:
@@ -419,7 +411,7 @@ static void process_cursor_motion(struct steppewm_server *server, uint32_t time_
 void cursor_motion(struct wl_listener *listener, void *data) {
     // get objects
     struct steppewm_server *server = wl_container_of(listener, server, cursor_motion);
-    struct wlr_pointer_motion_event *event = data;
+    struct wlr_pointer_motion_event* event = static_cast<struct wlr_pointer_motion_event*>(data);
 
     // move the cursor
     wlr_cursor_move(server->cursor, &event->pointer->base, event->delta_x, event->delta_y);
@@ -430,7 +422,8 @@ void cursor_motion(struct wl_listener *listener, void *data) {
 void cursor_motion_absolute(struct wl_listener *listener, void *data) {
     // get objects
     struct steppewm_server *server = wl_container_of(listener, server, cursor_motion_absolute);
-    struct wlr_pointer_motion_absolute_event *event = data;
+    struct wlr_pointer_motion_absolute_event* event =
+        static_cast<struct wlr_pointer_motion_absolute_event*>(data);
 
     // do the absolute move
     wlr_cursor_warp_absolute(server->cursor, &event->pointer->base, event->x, event->y);
@@ -441,7 +434,7 @@ void cursor_motion_absolute(struct wl_listener *listener, void *data) {
 void cursor_button(struct wl_listener *listener, void *data) {
     // get objects
     struct steppewm_server *server = wl_container_of(listener, server, cursor_button);
-    struct wlr_pointer_button_event *event = data;
+    struct wlr_pointer_button_event* event = static_cast<struct wlr_pointer_button_event*>(data);
 
     // notify the seat of the event
     wlr_seat_pointer_notify_button(server->seat, event->time_msec, event->button, event->state);
@@ -526,7 +519,7 @@ void cursor_button(struct wl_listener *listener, void *data) {
 void cursor_axis(struct wl_listener *listener, void *data) {
     // get objects
     struct steppewm_server *server = wl_container_of(listener, server, cursor_axis);
-    struct wlr_pointer_axis_event *event = data;
+    struct wlr_pointer_axis_event* event = static_cast<struct wlr_pointer_axis_event*>(data);
 
     // forward scroll event to the seat
     wlr_seat_pointer_notify_axis(server->seat, event->time_msec, event->orientation, event->delta,
@@ -549,7 +542,8 @@ void cursor_frame(struct wl_listener *listener, void *data) {
 void request_set_cursor(struct wl_listener *listener, void *data) {
     // get objects
     struct steppewm_server *server = wl_container_of(listener, server, request_set_cursor);
-    struct wlr_seat_pointer_request_set_cursor_event *event = data;
+    struct wlr_seat_pointer_request_set_cursor_event* event =
+        static_cast<struct wlr_seat_pointer_request_set_cursor_event*>(data);
 
     // only allow focused client to change cursor
     struct wlr_seat_client *focused_client = server->seat->pointer_state.focused_client;
@@ -563,7 +557,8 @@ void request_set_cursor(struct wl_listener *listener, void *data) {
 void request_set_selection(struct wl_listener *listener, void *data) {
     // get objects
     struct steppewm_server *server = wl_container_of(listener, server, request_set_selection);
-    struct wlr_seat_request_set_selection_event *event = data;
+    struct wlr_seat_request_set_selection_event* event =
+        static_cast<struct wlr_seat_request_set_selection_event*>(data);
 
     // update seat selection (clipboard)
     wlr_seat_set_selection(server->seat, event->source, event->serial);
@@ -573,6 +568,7 @@ void request_set_selection(struct wl_listener *listener, void *data) {
 void request_set_primary_selection(struct wl_listener *listener, void *data) {
     struct steppewm_server *server =
         wl_container_of(listener, server, request_set_primary_selection);
-    struct wlr_seat_request_set_primary_selection_event *event = data;
+    struct wlr_seat_request_set_primary_selection_event* event =
+        static_cast<struct wlr_seat_request_set_primary_selection_event*>(data);
     wlr_seat_set_primary_selection(server->seat, event->source, event->serial);
 }

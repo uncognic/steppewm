@@ -40,9 +40,9 @@ endforeach
 sources = files(
   'src/main.c',
   'src/config.c',
-  'src/output.c',
-  'src/view.c',
-  'src/input.c',
+  'src/output.cpp',
+  'src/view.cpp',
+  'src/input.cpp',
   'src/deco.cpp',
   'src/taskbar.cpp',
   'src/paint.cpp',

@@ -15,55 +15,16 @@
 
 #pragma once
 
-#include <wayland-server-core.h>
-
-#include "config.h"
-
 #ifdef __cplusplus
 extern "C" {
 #endif
 
+struct steppewm_taskbar;
 struct steppewm_server;
 struct steppewm_view;
 struct wlr_output;
-struct wlr_scene_tree;
-struct wlr_scene_rect;
-struct wlr_scene_buffer;
-struct wl_event_source;
 
-#define TASKBAR_MAX 64
-
-// button
-struct steppewm_task_button {
-    struct steppewm_taskbar *bar;
-    struct steppewm_view *view;
-    struct wlr_scene_buffer *label;
-    struct wl_listener title_changed;
-};
-
-// taskbar
-struct steppewm_taskbar {
-    struct steppewm_server *server;
-    struct wlr_output *wlr_output;
-    struct wlr_scene_tree *tree;
-    struct wlr_scene_rect *background;
-
-    struct wlr_scene_buffer *clock;
-    struct wl_event_source *clock_timer;
-
-    struct wlr_scene_buffer *ws_labels[STEPPEWM_NUM_WORKSPACES];
-    int ws_button_w;
-
-    struct steppewm_task_button buttons[TASKBAR_MAX];
-    int nbuttons;
-
-    int clock_w;  // measured width of the clock label
-    int button_w; // dynamically adjusting button width
-
-    int x, y, width, height;
-};
-
-// see taskbar.c for more info on these methods
+// see taskbar.cpp for more info on these methods
 struct steppewm_taskbar *taskbar_create(struct steppewm_server *server,
                                         struct wlr_output *wlr_output);
 void taskbar_destroy(struct steppewm_taskbar *bar);
@@ -71,6 +32,8 @@ void taskbar_view_added(struct steppewm_taskbar *bar, struct steppewm_view *view
 void taskbar_view_removed(struct steppewm_taskbar *bar, struct steppewm_view *view);
 void taskbar_refresh(struct steppewm_taskbar *bar);
 void taskbar_update_geometry(struct steppewm_taskbar *bar);
+// raise the taskbar's scene tree above the windows below it
+void taskbar_raise(struct steppewm_taskbar* bar);
 struct steppewm_view *taskbar_view_at(struct steppewm_taskbar *bar, double x, double y);
 // return the workspace index under (x, y), or -1 if no indicator button is there
 int taskbar_workspace_at(struct steppewm_taskbar *bar, double x, double y);

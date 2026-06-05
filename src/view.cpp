@@ -13,14 +13,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <stdlib.h>
-
-#include <wlr/types/wlr_compositor.h>
-#include <wlr/types/wlr_output_layout.h>
-#include <wlr/types/wlr_seat.h>
-#include <wlr/types/wlr_xdg_decoration_v1.h>
-#include <wlr/types/wlr_xdg_shell.h>
-#include <wlr/util/log.h>
+#include "wlr.h" // must be first
 
 #include "deco.h"
 #include "input.h"
@@ -31,14 +24,6 @@
 
 static bool view_can_configure(struct steppewm_view *view) {
     return view->toplevel->base->initialized;
-}
-
-// remove wl_listener listener
-static void remove_listener(struct wl_listener *listener) {
-    if (listener->link.next && listener->link.next != &listener->link) {
-        wl_list_remove(&listener->link);
-    }
-    wl_list_init(&listener->link);
 }
 
 // refresh every output's taskbar
@@ -148,7 +133,7 @@ static void view_apply_pending_deco(struct steppewm_view *view) {
 
 // move
 static void view_initial_configure(void *data) {
-    struct steppewm_view *view = data;
+    struct steppewm_view* view = static_cast<struct steppewm_view*>(data);
     view->initial_configure_idle = nullptr;
 
     if (!view_can_configure(view)) {
@@ -254,10 +239,7 @@ static void view_place(struct steppewm_view *view) {
 }
 
 // focus a new window
-static void view_map(struct wl_listener *listener, void *data) {
-    (void) data;
-    struct steppewm_view *view = wl_container_of(listener, view, map);
-
+static void view_map(struct steppewm_view* view) {
     // new windows open on the currently visible workspace
     view->mapped = true;
     view->workspace = view->server->current_workspace;
@@ -279,9 +261,7 @@ static void view_map(struct wl_listener *listener, void *data) {
 }
 
 // remove window (view)
-static void view_unmap(struct wl_listener *listener, void *data) {
-    (void) data;
-    struct steppewm_view *view = wl_container_of(listener, view, unmap);
+static void view_unmap(struct steppewm_view* view) {
     if (view->server->grabbed_view == view) {
         view->server->grabbed_view = nullptr;
         view->server->cursor_mode = STEPPEWM_CURSOR_PASSTHROUGH;
@@ -318,9 +298,7 @@ static void view_unmap(struct wl_listener *listener, void *data) {
 }
 
 // update/render window
-static void view_commit(struct wl_listener *listener, void *data) {
-    (void) data;
-    struct steppewm_view *view = wl_container_of(listener, view, commit);
+static void view_commit(struct steppewm_view* view) {
     if (view->toplevel->base->initial_commit) {
         if (!view->initial_configure_idle) {
             struct wl_event_loop *event_loop = wl_display_get_event_loop(view->server->display);
@@ -334,9 +312,7 @@ static void view_commit(struct wl_listener *listener, void *data) {
 }
 
 // clean up view
-static void view_destroy(struct wl_listener *listener, void *data) {
-    (void) data;
-    struct steppewm_view *view = wl_container_of(listener, view, destroy);
+static void view_destroy(struct steppewm_view* view) {
     if (view->initial_configure_idle) {
         wl_event_source_remove(view->initial_configure_idle);
     }
@@ -364,42 +340,29 @@ static void view_destroy(struct wl_listener *listener, void *data) {
     }
 
     // set properties
-    view->toplevel->base->data = NULL;
-    wl_list_remove(&view->map.link);
-    wl_list_remove(&view->unmap.link);
-    wl_list_remove(&view->commit.link);
-    wl_list_remove(&view->destroy.link);
-    wl_list_remove(&view->request_move.link);
-    wl_list_remove(&view->request_resize.link);
-    wl_list_remove(&view->request_maximize.link);
-    wl_list_remove(&view->request_fullscreen.link);
-    wl_list_remove(&view->request_minimize.link);
-    wl_list_remove(&view->title_changed.link);
-    remove_listener(&view->request_deco_mode);
-    remove_listener(&view->destroy_deco);
+    view->toplevel->base->data = nullptr;
+
+    // the steppe::Listener members (incl. the deco ones) disconnect themselves
+    // when ~steppewm_view runs, so there is no hand-rolled teardown here
     deco_destroy(view);
     wlr_scene_node_destroy(&view->scene_tree->node);
-    free(view);
+    delete view;
 }
 
 // called when title of window changed
 // updates decorations
-static void view_title_changed(struct wl_listener *listener, void *data) {
-    (void) data;
-    struct steppewm_view *view = wl_container_of(listener, view, title_changed);
+static void view_title_changed(struct steppewm_view* view) {
     deco_update(view);
 }
 
 // when the client wants to move or resize a window
-static void view_request_move(struct wl_listener *listener, void *data) {
-    (void) data;
-    struct steppewm_view *view = wl_container_of(listener, view, request_move);
+static void view_request_move(struct steppewm_view* view) {
     cursor_begin_interactive(view, STEPPEWM_CURSOR_MOVE, 0);
 }
 
-static void view_request_resize(struct wl_listener *listener, void *data) {
-    struct steppewm_view *view = wl_container_of(listener, view, request_resize);
-    struct wlr_xdg_toplevel_resize_event *event = data;
+static void view_request_resize(struct steppewm_view* view, void* data) {
+    struct wlr_xdg_toplevel_resize_event* event =
+        static_cast<struct wlr_xdg_toplevel_resize_event*>(data);
     cursor_begin_interactive(view, STEPPEWM_CURSOR_RESIZE, event->edges);
 }
 
@@ -460,23 +423,17 @@ static void view_apply_state(struct steppewm_view *view, bool maximized, bool fu
 }
 
 // maximize a view
-static void view_request_maximize(struct wl_listener *listener, void *data) {
-    (void) data;
-    struct steppewm_view *view = wl_container_of(listener, view, request_maximize);
+static void view_request_maximize(struct steppewm_view* view) {
     view_apply_state(view, view->toplevel->requested.maximized, view->fullscreen);
 }
 
 // fullscreen a view
-static void view_request_fullscreen(struct wl_listener *listener, void *data) {
-    (void) data;
-    struct steppewm_view *view = wl_container_of(listener, view, request_fullscreen);
+static void view_request_fullscreen(struct steppewm_view* view) {
     view_apply_state(view, view->maximized, view->toplevel->requested.fullscreen);
 }
 
 // minimize a view, handing focus to the next visible window
-static void view_on_request_minimize(struct wl_listener *listener, void *data) {
-    (void) data;
-    struct steppewm_view *view = wl_container_of(listener, view, request_minimize);
+static void view_on_request_minimize(struct steppewm_view* view) {
     if (!view->toplevel->requested.minimized) {
         return;
     }
@@ -537,8 +494,8 @@ void view_reconfigure_all(struct steppewm_server *server) {
 void view_new(struct wl_listener *listener, void *data) {
     // get objects
     struct steppewm_server *server = wl_container_of(listener, server, new_xdg_toplevel);
-    struct wlr_xdg_toplevel *toplevel = data;
-    struct steppewm_view *view = calloc(1, sizeof(*view));
+    struct wlr_xdg_toplevel* toplevel = static_cast<struct wlr_xdg_toplevel*>(data);
+    struct steppewm_view* view = new steppewm_view();
 
     view->server = server;
     view->toplevel = toplevel;
@@ -554,31 +511,25 @@ void view_new(struct wl_listener *listener, void *data) {
     view->xdg_tree->node.data = view;
     toplevel->base->data = view; // for lookup by deco_new
 
-    wl_list_init(&view->request_deco_mode.link);
-    wl_list_init(&view->destroy_deco.link);
-
-    // set everything
-    view->map.notify = view_map;
-    view->unmap.notify = view_unmap;
-    view->commit.notify = view_commit;
-    view->destroy.notify = view_destroy;
-    view->request_move.notify = view_request_move;
-    view->request_resize.notify = view_request_resize;
-    view->request_maximize.notify = view_request_maximize;
-    view->request_fullscreen.notify = view_request_fullscreen;
-    view->request_minimize.notify = view_on_request_minimize;
-    view->title_changed.notify = view_title_changed;
-
-    wl_signal_add(&toplevel->base->surface->events.map, &view->map);
-    wl_signal_add(&toplevel->base->surface->events.unmap, &view->unmap);
-    wl_signal_add(&toplevel->base->surface->events.commit, &view->commit);
-    wl_signal_add(&toplevel->events.destroy, &view->destroy);
-    wl_signal_add(&toplevel->events.request_move, &view->request_move);
-    wl_signal_add(&toplevel->events.request_resize, &view->request_resize);
-    wl_signal_add(&toplevel->events.request_maximize, &view->request_maximize);
-    wl_signal_add(&toplevel->events.request_fullscreen, &view->request_fullscreen);
-    wl_signal_add(&toplevel->events.request_minimize, &view->request_minimize);
-    wl_signal_add(&toplevel->events.set_title, &view->title_changed);
+    // wire up the toplevel events; each Listener removes itself in ~steppewm_view
+    view->map.connect(&toplevel->base->surface->events.map, [view](void*) { view_map(view); });
+    view->unmap.connect(&toplevel->base->surface->events.unmap,
+                        [view](void*) { view_unmap(view); });
+    view->commit.connect(&toplevel->base->surface->events.commit,
+                         [view](void*) { view_commit(view); });
+    view->destroy.connect(&toplevel->events.destroy, [view](void*) { view_destroy(view); });
+    view->request_move.connect(&toplevel->events.request_move,
+                               [view](void*) { view_request_move(view); });
+    view->request_resize.connect(&toplevel->events.request_resize,
+                                 [view](void* data) { view_request_resize(view, data); });
+    view->request_maximize.connect(&toplevel->events.request_maximize,
+                                   [view](void*) { view_request_maximize(view); });
+    view->request_fullscreen.connect(&toplevel->events.request_fullscreen,
+                                     [view](void*) { view_request_fullscreen(view); });
+    view->request_minimize.connect(&toplevel->events.request_minimize,
+                                   [view](void*) { view_on_request_minimize(view); });
+    view->title_changed.connect(&toplevel->events.set_title,
+                                [view](void*) { view_title_changed(view); });
 }
 
 // place the popup so it fits on the output holding its root toplevel
@@ -595,7 +546,9 @@ static bool popup_unconstrain(struct steppewm_popup *p) {
         parent = wlr_xdg_surface_try_from_wlr_surface(parent->popup->parent);
     }
     struct steppewm_view *root =
-        parent && parent->role == WLR_XDG_SURFACE_ROLE_TOPLEVEL ? parent->data : nullptr;
+        parent && parent->role == WLR_XDG_SURFACE_ROLE_TOPLEVEL
+                                     ? static_cast<struct steppewm_view*>(parent->data)
+                                     : nullptr;
     if (!root) {
         return false;
     }
@@ -616,33 +569,25 @@ static bool popup_unconstrain(struct steppewm_popup *p) {
     return true;
 }
 
-static void popup_commit(struct wl_listener *listener, void *data) {
-    (void) data;
-    struct steppewm_popup *p = wl_container_of(listener, p, commit);
+static void popup_commit(struct steppewm_popup *p) {
     // unconstrain once, on the first commit after the surface is initialized
     if (!p->unconstrained) {
         p->unconstrained = popup_unconstrain(p);
     }
 }
 
-static void popup_reposition(struct wl_listener *listener, void *data) {
-    (void) data;
-    struct steppewm_popup *p = wl_container_of(listener, p, reposition);
+static void popup_reposition(struct steppewm_popup* p) {
     popup_unconstrain(p);
 }
 
-static void popup_destroy(struct wl_listener *listener, void *data) {
-    (void) data;
-    struct steppewm_popup *p = wl_container_of(listener, p, destroy);
-    wl_list_remove(&p->commit.link);
-    wl_list_remove(&p->reposition.link);
-    wl_list_remove(&p->destroy.link);
-    free(p);
+static void popup_destroy(struct steppewm_popup* p) {
+    // the Listener members disconnect themselves in ~steppewm_popup
+    delete p;
 }
 
-void popup_new(struct wl_listener *listener, void *data) {
+void popup_new(struct wl_listener * listener, void* data) {
     (void) listener;
-    struct wlr_xdg_popup *popup = data;
+    struct wlr_xdg_popup* popup = static_cast<struct wlr_xdg_popup *>(data);
     if (!popup->parent) {
         return;
     }
@@ -654,12 +599,12 @@ void popup_new(struct wl_listener *listener, void *data) {
     // find the scene tree to parent the popup under
     struct wlr_scene_tree *parent_tree = nullptr;
     if (parent->role == WLR_XDG_SURFACE_ROLE_TOPLEVEL) {
-        struct steppewm_view *view = parent->data;
+        struct steppewm_view* view = static_cast<struct steppewm_view *>(parent->data);
         if (view) {
             parent_tree = view->xdg_tree;
         }
     } else if (parent->role == WLR_XDG_SURFACE_ROLE_POPUP) {
-        parent_tree = parent->data;
+        parent_tree = static_cast<struct wlr_scene_tree *>(parent->data);
     }
     if (!parent_tree) {
         return;
@@ -667,14 +612,11 @@ void popup_new(struct wl_listener *listener, void *data) {
 
     popup->base->data = wlr_scene_xdg_surface_create(parent_tree, popup->base);
 
-    struct steppewm_popup *p = calloc(1, sizeof(*p));
+    struct steppewm_popup *p = new steppewm_popup();
     p->popup = popup;
-    p->commit.notify = popup_commit;
-    p->reposition.notify = popup_reposition;
-    p->destroy.notify = popup_destroy;
-    wl_signal_add(&popup->base->surface->events.commit, &p->commit);
-    wl_signal_add(&popup->events.reposition, &p->reposition);
-    wl_signal_add(&popup->events.destroy, &p->destroy);
+    p->commit.connect(&popup->base->surface->events.commit, [p](void*) { popup_commit(p); });
+    p->reposition.connect(&popup->events.reposition, [p](void*) { popup_reposition(p); });
+    p->destroy.connect(&popup->events.destroy, [p](void *) { popup_destroy(p); });
 }
 
 // find which view is at a certain coord, and return its steppewm_view
@@ -705,7 +647,7 @@ struct steppewm_view *view_at(struct steppewm_server *server, double lx, double 
     if (!tree) {
         return nullptr;
     }
-    return tree->node.data;
+    return static_cast<struct steppewm_view *>(tree->node.data);
 }
 
 // focus a view
@@ -735,7 +677,8 @@ void view_focus(struct steppewm_view *view, struct wlr_surface *surface) {
         struct wlr_xdg_surface *xdg = wlr_xdg_surface_try_from_wlr_surface(prev);
         if (xdg && xdg->role == WLR_XDG_SURFACE_ROLE_TOPLEVEL) {
             wlr_xdg_toplevel_set_activated(xdg->toplevel, false);
-            struct steppewm_view *prev_view = xdg->toplevel->base->data;
+            struct steppewm_view* prev_view =
+                static_cast<struct steppewm_view*>(xdg->toplevel->base->data);
 
             // unfocus it
             if (prev_view) {
@@ -764,7 +707,7 @@ void view_focus(struct steppewm_view *view, struct wlr_surface *surface) {
     struct steppewm_output *out;
     wl_list_for_each(out, &server->outputs, link) {
         if (out->taskbar) {
-            wlr_scene_node_raise_to_top(&out->taskbar->tree->node);
+            taskbar_raise(out->taskbar);
             taskbar_refresh(out->taskbar);
         }
         // keep TOP and OVERLAY layer surfaces above taskbar

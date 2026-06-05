@@ -1,3 +1,4 @@
+
 /*
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,8 +17,10 @@
 #include "wlr.h" // must be first
 
 #include <stdio.h>
-#include <stdlib.h>
 #include <time.h>
+
+#include <memory>
+#include <vector>
 
 #include <cairo/cairo.h>
 
@@ -28,19 +31,48 @@
 #include <wlr/types/wlr_seat.h>
 #include <wlr/types/wlr_xdg_shell.h>
 
-#include "paint.hpp"
+#include "listener.h"
+#include "paint.h"
 #include "server.h"
 #include "taskbar.h"
 #include "view.h"
 
+// one button in the task row, tracking the window it represents
+struct steppewm_task_button {
+    struct steppewm_taskbar* bar;
+    struct steppewm_view* view;
+    struct wlr_scene_buffer* label;
+    steppe::Listener title_changed;
+};
+
+struct steppewm_taskbar {
+    struct steppewm_server* server;
+    struct wlr_output* wlr_output;
+    struct wlr_scene_tree* tree;
+    struct wlr_scene_rect* background;
+
+    struct wlr_scene_buffer* clock;
+    struct wl_event_source* clock_timer;
+
+    struct wlr_scene_buffer* ws_labels[STEPPEWM_NUM_WORKSPACES];
+    int ws_button_w;
+
+    std::vector<std::unique_ptr<steppewm_task_button>> buttons;
+
+    int clock_w;  // measured width of the clock label
+    int button_w; // dynamically adjusting button width
+
+    int x, y, width, height;
+};
+
 // render button into cairo then draw it
-static void render_button(struct wlr_scene_buffer *scene_buf, const char *text, int w, int h,
+static void render_button(struct wlr_scene_buffer* scene_buf, const char* text, int w, int h,
                           float bg[4], float fg[4]) {
     paint::Canvas canvas(w, h);
     if (!canvas.valid()) {
         return;
     }
-    cairo_t *cr = canvas.cr();
+    cairo_t* cr = canvas.cr();
 
     cairo_set_source_rgba(cr, bg[0], bg[1], bg[2], bg[3]);
     cairo_paint(cr);
@@ -64,15 +96,15 @@ static void render_button(struct wlr_scene_buffer *scene_buf, const char *text, 
     canvas.commit(scene_buf);
 }
 
-static void taskbar_layout(struct steppewm_taskbar *bar);
+static void taskbar_layout(struct steppewm_taskbar* bar);
 
 // render the current datetime into the clock buffer and pin it to the right edge
-static void render_clock(struct steppewm_taskbar *bar) {
+static void render_clock(struct steppewm_taskbar* bar) {
     if (bar->width <= 0 || bar->height <= 0 || !bar->clock) {
         return;
     }
 
-    struct steppewm_config *cfg = &bar->server->config;
+    struct steppewm_config* cfg = &bar->server->config;
     int h = bar->height - 2 * cfg->taskbar_button_pad;
     if (h <= 0) {
         return;
@@ -101,13 +133,13 @@ static void render_clock(struct steppewm_taskbar *bar) {
     if (!canvas.valid()) {
         return;
     }
-    cairo_t *cr = canvas.cr();
+    cairo_t* cr = canvas.cr();
 
-    float *bg = cfg->color_taskbar_bg;
+    float* bg = cfg->color_taskbar_bg;
     cairo_set_source_rgba(cr, bg[0], bg[1], bg[2], bg[3]);
     cairo_paint(cr);
 
-    float *fg = cfg->color_task_text;
+    float* fg = cfg->color_task_text;
     cairo_select_font_face(cr, "sans-serif", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
     cairo_set_font_size(cr, font_size);
     cairo_set_source_rgba(cr, fg[0], fg[1], fg[2], fg[3]);
@@ -120,8 +152,8 @@ static void render_clock(struct steppewm_taskbar *bar) {
 }
 
 // redraw the clock and rearm the timer to fire on the next minute boundary
-static int clock_tick(void *data) {
-    struct steppewm_taskbar *bar = static_cast<struct steppewm_taskbar *>(data);
+static int clock_tick(void* data) {
+    struct steppewm_taskbar* bar = static_cast<struct steppewm_taskbar*>(data);
     // full layout so buttons rerender if the clock's width changed
     taskbar_layout(bar);
 
@@ -137,20 +169,20 @@ static int clock_tick(void *data) {
 }
 
 // find current keyboard-focused steppewm_view and return it
-static struct steppewm_view *taskbar_focused_view(struct steppewm_taskbar *bar) {
-    struct wlr_surface *surf = bar->server->seat->keyboard_state.focused_surface;
+static struct steppewm_view* taskbar_focused_view(struct steppewm_taskbar* bar) {
+    struct wlr_surface* surf = bar->server->seat->keyboard_state.focused_surface;
     if (!surf) {
         return nullptr;
     }
-    struct wlr_xdg_surface *xdg = wlr_xdg_surface_try_from_wlr_surface(surf);
+    struct wlr_xdg_surface* xdg = wlr_xdg_surface_try_from_wlr_surface(surf);
     if (!xdg || xdg->role != WLR_XDG_SURFACE_ROLE_TOPLEVEL) {
         return nullptr;
     }
-    return static_cast<struct steppewm_view *>(xdg->toplevel->base->data);
+    return static_cast<struct steppewm_view*>(xdg->toplevel->base->data);
 }
 
 // redraw taskbar
-static void taskbar_layout(struct steppewm_taskbar *bar) {
+static void taskbar_layout(struct steppewm_taskbar* bar) {
     // if the size is negative
     if (bar->width <= 0 || bar->height <= 0) {
         return;
@@ -162,7 +194,7 @@ static void taskbar_layout(struct steppewm_taskbar *bar) {
 
     render_clock(bar);
 
-    struct steppewm_config *cfg = &bar->server->config;
+    struct steppewm_config* cfg = &bar->server->config;
     int pad = cfg->taskbar_button_pad;
     int button_h = bar->height - 2 * pad;
     if (button_h < 1) {
@@ -181,7 +213,7 @@ static void taskbar_layout(struct steppewm_taskbar *bar) {
         wlr_scene_node_set_position(&bar->ws_labels[i]->node, cursor_x, pad);
         char num[4];
         snprintf(num, sizeof(num), "%d", i + 1);
-        float *bg = (i == current) ? cfg->color_task_active : cfg->color_task_normal;
+        float* bg = (i == current) ? cfg->color_task_active : cfg->color_task_normal;
         render_button(bar->ws_labels[i], num, ws_button_w, button_h, bg, cfg->color_task_text);
         cursor_x += ws_button_w + pad;
     }
@@ -191,21 +223,21 @@ static void taskbar_layout(struct steppewm_taskbar *bar) {
 
     // count windows that live on the current workspace
     int visible_count = 0;
-    for (int i = 0; i < bar->nbuttons; i++) {
-        if (bar->buttons[i].view->workspace == current) {
+    for (auto& btn : bar->buttons) {
+        if (btn->view->workspace == current) {
             visible_count++;
         }
     }
 
     // if there's no windows on the current workspace, hide all of them
     if (visible_count == 0) {
-        for (int i = 0; i < bar->nbuttons; i++) {
-            wlr_scene_node_set_enabled(&bar->buttons[i].label->node, false);
+        for (auto& btn : bar->buttons) {
+            wlr_scene_node_set_enabled(&btn->label->node, false);
         }
         return;
     }
 
-    struct steppewm_view *focused_view = taskbar_focused_view(bar);
+    struct steppewm_view* focused_view = taskbar_focused_view(bar);
 
     int clock_left_x = bar->width - bar->clock_w - pad;
     int task_row_width = clock_left_x - pad - task_row_left;
@@ -226,9 +258,7 @@ static void taskbar_layout(struct steppewm_taskbar *bar) {
 
     // draw each window button
     int slot = 0;
-    for (int i = 0; i < bar->nbuttons; i++) {
-        struct steppewm_task_button *btn = &bar->buttons[i];
-
+    for (auto& btn : bar->buttons) {
         // skip and hide windows on other workspaces
         if (btn->view->workspace != current) {
             wlr_scene_node_set_enabled(&btn->label->node, false);
@@ -240,7 +270,7 @@ static void taskbar_layout(struct steppewm_taskbar *bar) {
         int button_x = task_row_left + slot * (button_w + pad);
         wlr_scene_node_set_position(&btn->label->node, button_x, pad);
 
-        float *bg;
+        float* bg;
         if (btn->view == focused_view) {
             bg = cfg->color_task_active;
         } else if (btn->view->minimized) {
@@ -249,23 +279,16 @@ static void taskbar_layout(struct steppewm_taskbar *bar) {
             bg = cfg->color_task_normal;
         }
 
-        const char *title = btn->view->toplevel->title ? btn->view->toplevel->title : "";
+        const char* title = btn->view->toplevel->title ? btn->view->toplevel->title : "";
         render_button(btn->label, title, button_w, button_h, bg, cfg->color_task_text);
         slot++;
     }
 }
 
-// redraw taskbar when title changed
-static void on_title_changed(struct wl_listener *listener, void *data) {
-    (void) data;
-    struct steppewm_task_button *btn = wl_container_of(listener, btn, title_changed);
-    taskbar_layout(btn->bar);
-}
-
 // create taskbar, scene tree, and bg
-struct steppewm_taskbar *taskbar_create(struct steppewm_server *server,
-                                        struct wlr_output *wlr_output) {
-    struct steppewm_taskbar *bar = static_cast<struct steppewm_taskbar *>(calloc(1, sizeof(*bar)));
+struct steppewm_taskbar* taskbar_create(struct steppewm_server* server,
+                                        struct wlr_output* wlr_output) {
+    auto* bar = new steppewm_taskbar();
     bar->server = server;
     bar->wlr_output = wlr_output;
     bar->height = server->config.taskbar_h;
@@ -279,7 +302,7 @@ struct steppewm_taskbar *taskbar_create(struct steppewm_server *server,
 
     // clock label and a timer that ticks it over each minute
     bar->clock = wlr_scene_buffer_create(bar->tree, nullptr);
-    struct wl_event_loop *loop = wl_display_get_event_loop(server->display);
+    struct wl_event_loop* loop = wl_display_get_event_loop(server->display);
     bar->clock_timer = wl_event_loop_add_timer(loop, clock_tick, bar);
     wl_event_source_timer_update(bar->clock_timer, 1);
 
@@ -287,74 +310,48 @@ struct steppewm_taskbar *taskbar_create(struct steppewm_server *server,
 }
 
 // destroy and free bar
-void taskbar_destroy(struct steppewm_taskbar *bar) {
+void taskbar_destroy(struct steppewm_taskbar* bar) {
     if (bar->clock_timer) {
         wl_event_source_remove(bar->clock_timer);
     }
-    for (int i = 0; i < bar->nbuttons; i++) {
-        wl_list_remove(&bar->buttons[i].title_changed.link);
-    }
-    free(bar);
+    delete bar;
 }
 
 // create new taskbar button for new window
-void taskbar_view_added(struct steppewm_taskbar *bar, struct steppewm_view *view) {
-    if (bar->nbuttons >= TASKBAR_MAX) {
-        return;
-    }
-
-    struct steppewm_task_button *btn = &bar->buttons[bar->nbuttons++];
+void taskbar_view_added(struct steppewm_taskbar* bar, struct steppewm_view* view) {
+    auto btn = std::make_unique<steppewm_task_button>();
     btn->bar = bar;
     btn->view = view;
     btn->label = wlr_scene_buffer_create(bar->tree, nullptr);
 
-    btn->title_changed.notify = on_title_changed;
-    wl_signal_add(&view->toplevel->events.set_title, &btn->title_changed);
+    // redraw the taskbar whenever this window's title changes
+    btn->title_changed.connect(&view->toplevel->events.set_title,
+                               [bar](void*) { taskbar_layout(bar); });
 
+    bar->buttons.push_back(std::move(btn));
     taskbar_layout(bar);
 }
 
 // remove window's taskbar button and redraw the taskbar
-void taskbar_view_removed(struct steppewm_taskbar *bar, struct steppewm_view *view) {
-    int idx = -1;
-    for (int i = 0; i < bar->nbuttons; i++) {
-        if (bar->buttons[i].view == view) {
-            idx = i;
-            break;
+void taskbar_view_removed(struct steppewm_taskbar* bar, struct steppewm_view* view) {
+    for (auto it = bar->buttons.begin(); it != bar->buttons.end(); ++it) {
+        if ((*it)->view != view) {
+            continue;
         }
-    }
-    if (idx < 0) {
+        wlr_scene_node_destroy(&(*it)->label->node);
+        bar->buttons.erase(it);
+        taskbar_layout(bar);
         return;
     }
-
-    // remove listeners for addresses higher
-    for (int i = idx; i < bar->nbuttons; i++) {
-        wl_list_remove(&bar->buttons[i].title_changed.link);
-    }
-    wlr_scene_node_destroy(&bar->buttons[idx].label->node);
-
-    for (int i = idx; i < bar->nbuttons - 1; i++) {
-        bar->buttons[i] = bar->buttons[i + 1];
-    }
-    bar->nbuttons--;
-
-    // reregister listeners for buttons that shifted to new addresses
-    for (int i = idx; i < bar->nbuttons; i++) {
-        bar->buttons[i].title_changed.notify = on_title_changed;
-        wl_signal_add(&bar->buttons[i].view->toplevel->events.set_title,
-                      &bar->buttons[i].title_changed);
-    }
-
-    taskbar_layout(bar);
 }
 
 // refresh taskbar
-void taskbar_refresh(struct steppewm_taskbar *bar) {
+void taskbar_refresh(struct steppewm_taskbar* bar) {
     taskbar_layout(bar);
 }
 
 // update size and position
-void taskbar_update_geometry(struct steppewm_taskbar *bar) {
+void taskbar_update_geometry(struct steppewm_taskbar* bar) {
     struct wlr_box box;
     wlr_output_layout_get_box(bar->server->output_layout, bar->wlr_output, &box);
     if (box.width <= 0 || box.height <= 0) {
@@ -371,10 +368,15 @@ void taskbar_update_geometry(struct steppewm_taskbar *bar) {
     taskbar_layout(bar);
 }
 
+// raise the taskbar's scene tree above the windows below it
+void taskbar_raise(struct steppewm_taskbar* bar) {
+    wlr_scene_node_raise_to_top(&bar->tree->node);
+}
+
 // return corresponding steppewm_view depending on which taskbar button is at the xy position
-struct steppewm_view *taskbar_view_at(struct steppewm_taskbar *bar, double x, double y) {
+struct steppewm_view* taskbar_view_at(struct steppewm_taskbar* bar, double x, double y) {
     // safety
-    if (bar->nbuttons == 0 || bar->width <= 0) {
+    if (bar->buttons.empty() || bar->width <= 0) {
         return nullptr;
     }
     if (y < bar->y || y >= bar->y + bar->height) {
@@ -387,7 +389,7 @@ struct steppewm_view *taskbar_view_at(struct steppewm_taskbar *bar, double x, do
     // find x position relative to the taskbar's left edge
     int local_x = (int) (x - bar->x);
 
-    struct steppewm_config *cfg = &bar->server->config;
+    struct steppewm_config* cfg = &bar->server->config;
     int pad = cfg->taskbar_button_pad;
     int ws_button_w = bar->ws_button_w > 0 ? bar->ws_button_w : (bar->height - 2 * pad);
     int button_w = bar->button_w > 0 ? bar->button_w : cfg->taskbar_button_w;
@@ -412,19 +414,19 @@ struct steppewm_view *taskbar_view_at(struct steppewm_taskbar *bar, double x, do
     // map the slot to the slot-th window on the current workspace
     int current = bar->server->current_workspace;
     int count = 0;
-    for (int i = 0; i < bar->nbuttons; i++) {
-        if (bar->buttons[i].view->workspace != current) {
+    for (auto& btn : bar->buttons) {
+        if (btn->view->workspace != current) {
             continue;
         }
         if (count == slot) {
-            return bar->buttons[i].view;
+            return btn->view;
         }
         count++;
     }
     return nullptr;
 }
 
-int taskbar_workspace_at(struct steppewm_taskbar *bar, double x, double y) {
+int taskbar_workspace_at(struct steppewm_taskbar* bar, double x, double y) {
     if (bar->width <= 0) {
         return -1;
     }
@@ -436,7 +438,7 @@ int taskbar_workspace_at(struct steppewm_taskbar *bar, double x, double y) {
     }
 
     int local_x = (int) (x - bar->x);
-    struct steppewm_config *cfg = &bar->server->config;
+    struct steppewm_config* cfg = &bar->server->config;
     int pad = cfg->taskbar_button_pad;
     int ws_button_w = bar->ws_button_w > 0 ? bar->ws_button_w : (bar->height - 2 * pad);
     if (ws_button_w < 1) {

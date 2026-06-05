@@ -20,7 +20,7 @@
 
 #include <drm_fourcc.h>
 
-#include "paint.hpp"
+#include "paint.h"
 
 // cpu backed wlf buffer
 // cairo draws into this and the scene graph reads it

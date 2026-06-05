@@ -23,12 +23,32 @@ extern "C" {
 #endif
 
 struct steppewm_server;
-struct wlr_xdg_toplevel;
-struct wlr_xdg_toplevel_decoration_v1;
-struct wlr_scene_tree;
+struct steppewm_view;
+struct steppewm_popup;
 struct wlr_surface;
-struct wlr_scene_rect;
-struct wlr_scene_buffer;
+
+// once again see view.cpp
+void view_new(struct wl_listener* listener, void* data);
+void popup_new(struct wl_listener* listener, void* data);
+void view_minimize(struct steppewm_view* view, bool minimized);
+void view_toggle_maximize(struct steppewm_view* view);
+void view_unmaximize_to_cursor(struct steppewm_view* view, double cursor_x, double cursor_y);
+void view_focus(struct steppewm_view* view, struct wlr_surface* surface);
+void view_focus_next(struct steppewm_server* server, struct steppewm_view* skip);
+void view_reconfigure_all(struct steppewm_server* server);
+void view_update_visibility(struct steppewm_view* view);
+void workspace_switch(struct steppewm_server* server, int workspace);
+void view_move_to_workspace(struct steppewm_view* view, int workspace);
+struct steppewm_view* view_at(struct steppewm_server* server, double lx, double ly,
+                              struct wlr_surface** surface, double* sx, double* sy);
+
+#ifdef __cplusplus
+}
+#endif
+
+#ifdef __cplusplus
+
+#include "listener.h"
 
 struct steppewm_deco {
     struct wlr_scene_rect *titlebar;
@@ -45,17 +65,18 @@ struct steppewm_deco {
     struct wlr_scene_rect *corner_bl;
     struct wlr_scene_rect *corner_br;
 };
-struct steppewm_popup {
-    struct wlr_xdg_popup *popup;
-    bool unconstrained;
-    struct wl_listener commit;
-    struct wl_listener reposition;
-    struct wl_listener destroy;
-};
 
 enum steppewm_deco_mode {
     STEPPEWM_DECO_SERVER,
     STEPPEWM_DECO_CLIENT,
+};
+
+struct steppewm_popup {
+    struct wlr_xdg_popup *popup;
+    bool unconstrained;
+    steppe::Listener commit;
+    steppe::Listener reposition;
+    steppe::Listener destroy;
 };
 
 // a window
@@ -69,8 +90,8 @@ struct steppewm_view {
     struct steppewm_deco deco; // the decoration
     struct wlr_xdg_toplevel_decoration_v1 *decoration;
     struct wlr_xdg_toplevel_decoration_v1 *pending_deco; // applied once configure events are legal
-    struct wl_listener request_deco_mode;                // for xdg-decoration request_mode
-    struct wl_listener destroy_deco;
+    steppe::Listener request_deco_mode;                  // for xdg-decoration request_mode
+    steppe::Listener destroy_deco;
     struct wl_event_source *initial_configure_idle;
 
     bool maximized;
@@ -82,37 +103,16 @@ struct steppewm_view {
 
     struct wl_list link;
 
-    struct wl_listener map;
-    struct wl_listener unmap;
-    struct wl_listener commit;
-    struct wl_listener destroy;
-    struct wl_listener request_move;
-    struct wl_listener request_resize;
-    struct wl_listener request_maximize;
-    struct wl_listener request_fullscreen;
-    struct wl_listener request_minimize;
-    struct wl_listener title_changed;
+    steppe::Listener map;
+    steppe::Listener unmap;
+    steppe::Listener commit;
+    steppe::Listener destroy;
+    steppe::Listener request_move;
+    steppe::Listener request_resize;
+    steppe::Listener request_maximize;
+    steppe::Listener request_fullscreen;
+    steppe::Listener request_minimize;
+    steppe::Listener title_changed;
 };
 
-// once again see view.c
-void view_new(struct wl_listener *listener, void *data);
-void popup_new(struct wl_listener *listener, void *data);
-void view_minimize(struct steppewm_view *view, bool minimized);
-void view_toggle_maximize(struct steppewm_view *view);
-void view_unmaximize_to_cursor(struct steppewm_view *view, double cursor_x, double cursor_y);
-void view_focus(struct steppewm_view *view, struct wlr_surface *surface);
-void view_focus_next(struct steppewm_server *server, struct steppewm_view *skip);
-void view_reconfigure_all(struct steppewm_server *server);
-
-// show/hide the view's scene node based on workspace + minimized state
-void view_update_visibility(struct steppewm_view *view);
-// switch the visible workspace (0-based); hides/shows views and moves focus
-void workspace_switch(struct steppewm_server *server, int workspace);
-// move a window to another workspace (0-based)
-void view_move_to_workspace(struct steppewm_view *view, int workspace);
-struct steppewm_view *view_at(struct steppewm_server *server, double lx, double ly,
-                              struct wlr_surface **surface, double *sx, double *sy);
-
-#ifdef __cplusplus
-}
-#endif
+#endif // __cplusplus

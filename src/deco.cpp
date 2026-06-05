@@ -25,7 +25,7 @@
 
 #include "deco.h"
 #include "input.h"
-#include "paint.hpp"
+#include "paint.h"
 #include "server.h"
 #include "view.h"
 
@@ -55,14 +55,6 @@ static void deco_render_title(struct wlr_scene_buffer *scene_buf, const char *te
     }
 
     canvas.commit(scene_buf);
-}
-
-// remove wl_listener
-static void remove_listener(struct wl_listener *listener) {
-    if (listener->link.next && listener->link.next != &listener->link) {
-        wl_list_remove(&listener->link);
-    }
-    wl_list_init(&listener->link);
 }
 
 // called when a new view is created
@@ -333,37 +325,27 @@ bool deco_handle_button(struct steppewm_view *view, struct steppewm_server *serv
     return false;
 }
 
-// called when a new xdg toplevel is created
-static void deco_request_mode(struct wl_listener *listener, void *data) {
-    // get the steppewm_view from the listener
-    struct steppewm_view *view = wl_container_of(listener, view, request_deco_mode);
-
-    // case where the view is pending
-    struct wlr_xdg_toplevel_decoration_v1 *decoration =
-        static_cast<struct wlr_xdg_toplevel_decoration_v1 *>(data);
-
+// called when the client requests a decoration mode
+static void deco_request_mode(struct steppewm_view* view,
+                              struct wlr_xdg_toplevel_decoration_v1* decoration) {
     // if the top leel surface hasnt been init yet
     if (!decoration->toplevel->base->initialized) {
         view->pending_deco = decoration;
         return;
     }
 
-    // force server side decorations, apps are too stupid to do it right
-    // im looking at you, electron
+    // force server side decorations
     wlr_xdg_toplevel_decoration_v1_set_mode(decoration,
                                             WLR_XDG_TOPLEVEL_DECORATION_V1_MODE_SERVER_SIDE);
 }
 
 // destroy decoration handle
-static void deco_handle_destroy(struct wl_listener *listener, void *data) {
-    struct steppewm_view *view = wl_container_of(listener, view, destroy_deco);
-    (void) data;
-
+static void deco_handle_destroy(struct steppewm_view* view) {
     view->pending_deco = nullptr;
     view->decoration = nullptr;
 
-    remove_listener(&view->request_deco_mode);
-    remove_listener(&view->destroy_deco);
+    view->request_deco_mode.disconnect();
+    view->destroy_deco.disconnect();
 }
 
 // called when a new xdg toplevel is created
@@ -383,9 +365,9 @@ void deco_new(struct wl_listener *listener, void *data) {
     view->decoration = decoration;
     view->pending_deco = decoration;
 
-    view->request_deco_mode.notify = deco_request_mode;
-    wl_signal_add(&decoration->events.request_mode, &view->request_deco_mode);
-
-    view->destroy_deco.notify = deco_handle_destroy;
-    wl_signal_add(&decoration->events.destroy, &view->destroy_deco);
+    view->request_deco_mode.connect(&decoration->events.request_mode, [view](void* data) {
+        deco_request_mode(view, static_cast<struct wlr_xdg_toplevel_decoration_v1*>(data));
+    });
+    view->destroy_deco.connect(&decoration->events.destroy,
+                               [view](void*) { deco_handle_destroy(view); });
 }

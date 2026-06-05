@@ -13,11 +13,9 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <stdlib.h>
+#include "wlr.h" // must be first
 
-#include <wlr/types/wlr_output.h>
-#include <wlr/types/wlr_output_layout.h>
-#include <wlr/util/log.h>
+#include <time.h>
 
 #include "layer.h"
 #include "output.h"
@@ -41,7 +39,8 @@ static void output_frame(struct wl_listener *listener, void *data) {
 
 static void output_request_state(struct wl_listener *listener, void *data) {
     struct steppewm_output *output = wl_container_of(listener, output, request_state);
-    const struct wlr_output_event_request_state *event = data;
+    const struct wlr_output_event_request_state* event =
+        static_cast<const struct wlr_output_event_request_state*>(data);
     wlr_output_commit_state(output->wlr_output, event->state);
 }
 
@@ -74,7 +73,7 @@ static void output_destroy(struct wl_listener *listener, void *data) {
     wl_list_remove(&output->request_state.link);
     wl_list_remove(&output->destroy.link);
     wl_list_remove(&output->link);
-    free(output);
+    delete output;
 }
 
 // update geometry of taskbar and layer surfaces for each output
@@ -104,7 +103,7 @@ static void output_layout_change(struct wl_listener *listener, void *data) {
 
         if (output->taskbar) {
             taskbar_update_geometry(output->taskbar);
-            wlr_scene_node_raise_to_top(&output->taskbar->tree->node);
+            taskbar_raise(output->taskbar);
         }
     }
 }
@@ -118,7 +117,7 @@ void output_layout_change_register(struct steppewm_server *server) {
 // add new output and set it up
 void output_new(struct wl_listener *listener, void *data) {
     struct steppewm_server *server = wl_container_of(listener, server, new_output);
-    struct wlr_output *wlr_output = data;
+    struct wlr_output* wlr_output = static_cast<struct wlr_output*>(data);
 
     wlr_output_init_render(wlr_output, server->allocator, server->renderer);
 
@@ -133,7 +132,7 @@ void output_new(struct wl_listener *listener, void *data) {
     wlr_output_commit_state(wlr_output, &state);
     wlr_output_state_finish(&state);
 
-    struct steppewm_output *output = calloc(1, sizeof(*output));
+    struct steppewm_output* output = new steppewm_output();
     output->server = server;
     output->wlr_output = wlr_output;
     wl_list_init(&output->layer_surfaces);
