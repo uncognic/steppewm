@@ -63,6 +63,9 @@ static bool server_init(server* s) {
     wlr_data_device_manager_create(s->display);
     wlr_primary_selection_v1_device_manager_create(s->display);
 
+    // wp_viewporter protocol
+    wlr_viewporter_create(s->display);
+
     // create output layout
     s->output_layout = wlr_output_layout_create(s->display);
     output::register_layout_change(s);
