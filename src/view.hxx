@@ -15,7 +15,7 @@
 
 #pragma once
 
-#include "listener.h"
+#include "listener.hxx"
 
 #include <wayland-server-core.h>
 #include <wlr/util/box.h>

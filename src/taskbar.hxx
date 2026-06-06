@@ -19,7 +19,7 @@
 #include <memory>
 #include <vector>
 
-#include "config.h"
+#include "config.hxx"
 
 struct wlr_output;
 struct wlr_scene_buffer;

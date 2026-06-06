@@ -14,7 +14,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "wlr.h" // must be first
+#include "wlr.hxx" // must be first
 
 #include <ctype.h>
 #include <stdio.h>
@@ -33,12 +33,12 @@
 #include <wlr/types/wlr_seat.h>
 #include <wlr/types/wlr_xdg_shell.h>
 
-#include "config.h"
-#include "listener.h"
-#include "paint.h"
-#include "server.h"
-#include "taskbar.h"
-#include "view.h"
+#include "config.hxx"
+#include "listener.hxx"
+#include "paint.hxx"
+#include "server.hxx"
+#include "taskbar.hxx"
+#include "view.hxx"
 
 // one button in the task row, tracking the window it represents
 namespace steppewm {

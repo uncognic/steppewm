@@ -13,7 +13,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "wlr.h"
+#include "wlr.hxx"
 
 #include <cairo/cairo.h>
 #include <linux/input-event-codes.h>
@@ -23,11 +23,11 @@
 #include <wlr/types/wlr_xdg_shell.h>
 #include <wlr/util/edges.h>
 
-#include "deco.h"
-#include "input.h"
-#include "paint.h"
-#include "server.h"
-#include "view.h"
+#include "deco.hxx"
+#include "input.hxx"
+#include "paint.hxx"
+#include "server.hxx"
+#include "view.hxx"
 
 using namespace steppewm;
 

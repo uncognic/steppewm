@@ -15,7 +15,7 @@
 
 #pragma once
 
-#include "server.h"
+#include "server.hxx"
 
 #include <wayland-server-core.h>
 
