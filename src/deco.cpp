@@ -29,14 +29,16 @@
 #include "server.h"
 #include "view.h"
 
+using namespace steppewm;
+
 // render decoration window title
-static void deco_render_title(struct wlr_scene_buffer *scene_buf, const char *text, int w, int h,
-                              float fg[4]) {
+static void deco_render_title(struct wlr_scene_buffer* scene_buf, const char* text, const int w,
+                              const int h, float fg[4]) {
     paint::Canvas canvas(w, h);
     if (!canvas.valid()) {
         return;
     }
-    cairo_t *cr = canvas.cr();
+    cairo_t* cr = canvas.cr();
 
     cairo_set_source_rgba(cr, 0, 0, 0, 0);
     cairo_paint(cr);
@@ -58,267 +60,262 @@ static void deco_render_title(struct wlr_scene_buffer *scene_buf, const char *te
 }
 
 // called when a new view is created
-void deco_create(struct steppewm_view *view) {
-    struct steppewm_config *cfg = &view->server->config;
+void view::deco_create() {
+    const config* cfg = &srv->cfg;
 
-    view->deco.titlebar =
-        wlr_scene_rect_create(view->scene_tree, 0, cfg->title_h, cfg->color_title_inactive);
-    wlr_scene_node_set_position(&view->deco.titlebar->node, 0, 0);
+    deco.titlebar = wlr_scene_rect_create(scene_tree, 0, cfg->title_h, cfg->color_title_inactive);
+    wlr_scene_node_set_position(&deco.titlebar->node, 0, 0);
 
-    view->deco.title_label = wlr_scene_buffer_create(view->scene_tree, nullptr);
-    wlr_scene_node_set_enabled(&view->deco.title_label->node, cfg->show_title_text);
+    deco.title_label = wlr_scene_buffer_create(scene_tree, nullptr);
+    wlr_scene_node_set_enabled(&deco.title_label->node, cfg->show_title_text);
 
-    view->deco.close_button = wlr_scene_rect_create(view->scene_tree, cfg->close_button_w,
-                                                    cfg->title_h, cfg->color_close_inactive);
-    view->deco.maximize = wlr_scene_rect_create(view->scene_tree, cfg->maximize_button_w,
-                                                cfg->title_h, cfg->color_button);
-    view->deco.minimize = wlr_scene_rect_create(view->scene_tree, cfg->minimize_button_w,
-                                                cfg->title_h, cfg->color_button);
+    deco.close_button = wlr_scene_rect_create(scene_tree, cfg->close_button_w, cfg->title_h,
+                                              cfg->color_close_inactive);
+    deco.maximize =
+        wlr_scene_rect_create(scene_tree, cfg->maximize_button_w, cfg->title_h, cfg->color_button);
+    deco.minimize =
+        wlr_scene_rect_create(scene_tree, cfg->minimize_button_w, cfg->title_h, cfg->color_button);
 
     // create objects for corners and edges
-    view->deco.border_top =
-        wlr_scene_rect_create(view->scene_tree, 0, cfg->border_w, cfg->color_invisible);
-    view->deco.border_left =
-        wlr_scene_rect_create(view->scene_tree, cfg->border_w, 0, cfg->color_border);
-    view->deco.border_right =
-        wlr_scene_rect_create(view->scene_tree, cfg->border_w, 0, cfg->color_border);
-    view->deco.border_bottom =
-        wlr_scene_rect_create(view->scene_tree, 0, cfg->border_w, cfg->color_border);
-    view->deco.corner_tl = wlr_scene_rect_create(view->scene_tree, cfg->corner_size,
-                                                 cfg->corner_size, cfg->color_invisible);
-    view->deco.corner_tr = wlr_scene_rect_create(view->scene_tree, cfg->corner_size,
-                                                 cfg->corner_size, cfg->color_invisible);
-    view->deco.corner_bl = wlr_scene_rect_create(view->scene_tree, cfg->corner_size,
-                                                 cfg->corner_size, cfg->color_invisible);
-    view->deco.corner_br = wlr_scene_rect_create(view->scene_tree, cfg->corner_size,
-                                                 cfg->corner_size, cfg->color_invisible);
+    deco.border_top = wlr_scene_rect_create(scene_tree, 0, cfg->border_w, cfg->color_invisible);
+    deco.border_left = wlr_scene_rect_create(scene_tree, cfg->border_w, 0, cfg->color_border);
+    deco.border_right = wlr_scene_rect_create(scene_tree, cfg->border_w, 0, cfg->color_border);
+    deco.border_bottom = wlr_scene_rect_create(scene_tree, 0, cfg->border_w, cfg->color_border);
+    deco.corner_tl =
+        wlr_scene_rect_create(scene_tree, cfg->corner_size, cfg->corner_size, cfg->color_invisible);
+    deco.corner_tr =
+        wlr_scene_rect_create(scene_tree, cfg->corner_size, cfg->corner_size, cfg->color_invisible);
+    deco.corner_bl =
+        wlr_scene_rect_create(scene_tree, cfg->corner_size, cfg->corner_size, cfg->color_invisible);
+    deco.corner_br =
+        wlr_scene_rect_create(scene_tree, cfg->corner_size, cfg->corner_size, cfg->color_invisible);
 
-    deco_update(view);
+    deco_update();
 }
 
 // called when the decoration needs to be updated
-void deco_update(struct steppewm_view *view) {
-    if (view->deco_mode != STEPPEWM_DECO_SERVER || !view->deco.titlebar) {
+void view::deco_update() const {
+    if (decoration_mode != deco_mode::SERVER || !deco.titlebar) {
         return;
     }
 
-    struct steppewm_config *cfg = &view->server->config;
-    int sw = view->toplevel->base->geometry.width;
-    int sh = view->toplevel->base->geometry.height;
-    int tw = sw + 2 * cfg->border_w;
+    config* cfg = &srv->cfg;
+    const int sw = toplevel->base->geometry.width;
+    const int sh = toplevel->base->geometry.height;
+    const int tw = sw + 2 * cfg->border_w;
 
-    wlr_scene_rect_set_size(view->deco.titlebar, tw, cfg->title_h);
+    wlr_scene_rect_set_size(deco.titlebar, tw, cfg->title_h);
 
-    wlr_scene_rect_set_size(view->deco.close_button, cfg->close_button_w, cfg->title_h - 4);
-    int close_x = tw - cfg->close_button_w - 4;
-    wlr_scene_node_set_position(&view->deco.close_button->node, close_x, 0);
+    wlr_scene_rect_set_size(deco.close_button, cfg->close_button_w, cfg->title_h - 4);
+    const int close_x = tw - cfg->close_button_w - 4;
+    wlr_scene_node_set_position(&deco.close_button->node, close_x, 0);
 
-    wlr_scene_rect_set_size(view->deco.maximize, cfg->maximize_button_w, cfg->title_h - 4);
-    int maximize_x = close_x - 4 - cfg->maximize_button_w;
-    wlr_scene_node_set_position(&view->deco.maximize->node, maximize_x, 0);
+    wlr_scene_rect_set_size(deco.maximize, cfg->maximize_button_w, cfg->title_h - 4);
+    const int maximize_x = close_x - 4 - cfg->maximize_button_w;
+    wlr_scene_node_set_position(&deco.maximize->node, maximize_x, 0);
 
-    wlr_scene_rect_set_size(view->deco.minimize, cfg->minimize_button_w, cfg->title_h - 4);
-    int minimize_x = maximize_x - 2 - cfg->minimize_button_w;
-    wlr_scene_node_set_position(&view->deco.minimize->node, minimize_x, 0);
+    wlr_scene_rect_set_size(deco.minimize, cfg->minimize_button_w, cfg->title_h - 4);
+    const int minimize_x = maximize_x - 2 - cfg->minimize_button_w;
+    wlr_scene_node_set_position(&deco.minimize->node, minimize_x, 0);
 
-    if (view->deco.title_label) {
+    if (deco.title_label) {
         // render the titlebar text
-        wlr_scene_node_set_enabled(&view->deco.title_label->node, cfg->show_title_text);
+        wlr_scene_node_set_enabled(&deco.title_label->node, cfg->show_title_text);
         if (cfg->show_title_text) {
-            int label_w = minimize_x - 4;
-            const char *title = view->toplevel->title ? view->toplevel->title : "";
-            deco_render_title(view->deco.title_label, title, label_w, cfg->title_h,
+            const int label_w = minimize_x - 4;
+            const char* title = toplevel->title ? toplevel->title : "";
+            deco_render_title(deco.title_label, title, label_w, cfg->title_h,
                               cfg->color_title_text);
-            wlr_scene_node_set_position(&view->deco.title_label->node, 0, 0);
+            wlr_scene_node_set_position(&deco.title_label->node, 0, 0);
         }
     }
 
-    wlr_scene_rect_set_size(view->deco.border_top, tw, cfg->border_w);
-    wlr_scene_node_set_position(&view->deco.border_top->node, 0, 0);
+    wlr_scene_rect_set_size(deco.border_top, tw, cfg->border_w);
+    wlr_scene_node_set_position(&deco.border_top->node, 0, 0);
 
-    wlr_scene_rect_set_size(view->deco.border_left, cfg->border_w, sh);
-    wlr_scene_node_set_position(&view->deco.border_left->node, 0, cfg->title_h);
+    wlr_scene_rect_set_size(deco.border_left, cfg->border_w, sh);
+    wlr_scene_node_set_position(&deco.border_left->node, 0, cfg->title_h);
 
-    wlr_scene_rect_set_size(view->deco.border_right, cfg->border_w, sh);
-    wlr_scene_node_set_position(&view->deco.border_right->node, tw - cfg->border_w, cfg->title_h);
+    wlr_scene_rect_set_size(deco.border_right, cfg->border_w, sh);
+    wlr_scene_node_set_position(&deco.border_right->node, tw - cfg->border_w, cfg->title_h);
 
-    wlr_scene_rect_set_size(view->deco.border_bottom, tw, cfg->border_w);
-    wlr_scene_node_set_position(&view->deco.border_bottom->node, 0, cfg->title_h + sh);
+    wlr_scene_rect_set_size(deco.border_bottom, tw, cfg->border_w);
+    wlr_scene_node_set_position(&deco.border_bottom->node, 0, cfg->title_h + sh);
 
-    wlr_scene_node_set_position(&view->deco.corner_tl->node, 0, 0);
-    wlr_scene_node_set_position(&view->deco.corner_tr->node, tw - cfg->corner_size, 0);
+    wlr_scene_node_set_position(&deco.corner_tl->node, 0, 0);
+    wlr_scene_node_set_position(&deco.corner_tr->node, tw - cfg->corner_size, 0);
 
-    int corner_y = cfg->title_h + sh + cfg->border_w - cfg->corner_size;
-    wlr_scene_node_set_position(&view->deco.corner_bl->node, 0, corner_y);
-    wlr_scene_node_set_position(&view->deco.corner_br->node, tw - cfg->corner_size, corner_y);
+    const int corner_y = cfg->title_h + sh + cfg->border_w - cfg->corner_size;
+    wlr_scene_node_set_position(&deco.corner_bl->node, 0, corner_y);
+    wlr_scene_node_set_position(&deco.corner_br->node, tw - cfg->corner_size, corner_y);
 }
 
 // called when a view is destroyed
-void deco_destroy(struct steppewm_view *view) {
-    if (view->deco_mode != STEPPEWM_DECO_SERVER || !view->deco.titlebar) {
+void view::deco_destroy() {
+    if (decoration_mode != deco_mode::SERVER || !deco.titlebar) {
         return;
     }
     // free stuff
-    view->deco.titlebar = nullptr;
-    view->deco.title_label = nullptr;
-    view->deco.close_button = nullptr;
-    view->deco.maximize = nullptr;
-    view->deco.minimize = nullptr;
-    view->deco.border_top = nullptr;
-    view->deco.border_left = nullptr;
-    view->deco.border_right = nullptr;
-    view->deco.border_bottom = nullptr;
-    view->deco.corner_tl = nullptr;
-    view->deco.corner_tr = nullptr;
-    view->deco.corner_bl = nullptr;
-    view->deco.corner_br = nullptr;
+    deco.titlebar = nullptr;
+    deco.title_label = nullptr;
+    deco.close_button = nullptr;
+    deco.maximize = nullptr;
+    deco.minimize = nullptr;
+    deco.border_top = nullptr;
+    deco.border_left = nullptr;
+    deco.border_right = nullptr;
+    deco.border_bottom = nullptr;
+    deco.corner_tl = nullptr;
+    deco.corner_tr = nullptr;
+    deco.corner_bl = nullptr;
+    deco.corner_br = nullptr;
 }
 
-void deco_set_focus(struct steppewm_view *view, bool focused) {
-    if (!view || view->deco_mode != STEPPEWM_DECO_SERVER || !view->deco.titlebar) {
+void view::deco_set_focus(const bool focused) const {
+    if (decoration_mode != deco_mode::SERVER || !deco.titlebar) {
         return;
     }
-    struct steppewm_config *cfg = &view->server->config;
-    wlr_scene_rect_set_color(view->deco.titlebar,
+    const config* cfg = &srv->cfg;
+    wlr_scene_rect_set_color(deco.titlebar,
                              focused ? cfg->color_title_active : cfg->color_title_inactive);
-    wlr_scene_rect_set_color(view->deco.close_button,
+    wlr_scene_rect_set_color(deco.close_button,
                              focused ? cfg->color_close_active : cfg->color_close_inactive);
-    wlr_scene_rect_set_color(view->deco.maximize,
+    wlr_scene_rect_set_color(deco.maximize,
                              focused ? cfg->color_button : cfg->color_button_inactive);
-    wlr_scene_rect_set_color(view->deco.minimize,
+    wlr_scene_rect_set_color(deco.minimize,
                              focused ? cfg->color_button : cfg->color_button_inactive);
 }
 
-const char *deco_cursor_name(struct steppewm_view *view, struct wlr_scene_node *node) {
-    if (!view || view->deco_mode != STEPPEWM_DECO_SERVER) {
+const char* view::deco_cursor_name(const struct wlr_scene_node* node) const {
+    if (decoration_mode != deco_mode::SERVER) {
         return nullptr;
     }
 
     // set cursor when in a resize area
-    if (node == &view->deco.corner_tl->node) {
+    if (node == &deco.corner_tl->node) {
         return "nw-resize";
     }
-    if (node == &view->deco.corner_tr->node) {
+    if (node == &deco.corner_tr->node) {
         return "ne-resize";
     }
-    if (node == &view->deco.corner_bl->node) {
+    if (node == &deco.corner_bl->node) {
         return "sw-resize";
     }
-    if (node == &view->deco.corner_br->node) {
+    if (node == &deco.corner_br->node) {
         return "se-resize";
     }
-    if (node == &view->deco.border_left->node) {
+    if (node == &deco.border_left->node) {
         return "w-resize";
     }
-    if (node == &view->deco.border_right->node) {
+    if (node == &deco.border_right->node) {
         return "e-resize";
     }
-    if (node == &view->deco.border_top->node) {
+    if (node == &deco.border_top->node) {
         return "n-resize";
     }
-    if (node == &view->deco.border_bottom->node) {
+    if (node == &deco.border_bottom->node) {
         return "s-resize";
     }
 
     return nullptr;
 }
 
-struct steppewm_view *deco_at(struct steppewm_server *server, double lx, double ly,
-                              struct wlr_scene_node **node) {
+view* steppewm::deco_at(const server* s, const double lx, const double ly,
+                        struct wlr_scene_node** node) {
     double sx, sy;
-    struct wlr_scene_node *hit = wlr_scene_node_at(&server->scene->tree.node, lx, ly, &sx, &sy);
+    struct wlr_scene_node* hit = wlr_scene_node_at(&s->scene->tree.node, lx, ly, &sx, &sy);
     if (!hit) {
         return nullptr;
     }
 
-    struct wlr_scene_tree *tree = hit->parent;
+    const struct wlr_scene_tree* tree = hit->parent;
     while (tree && !tree->node.data) {
         tree = tree->node.parent;
     }
     if (!tree) {
         return nullptr;
     }
-    struct steppewm_view *view = static_cast<struct steppewm_view *>(tree->node.data);
+    const auto v = static_cast<view*>(tree->node.data);
 
     if (hit->type == WLR_SCENE_NODE_RECT) {
         *node = hit;
-        return view;
+        return v;
     }
 
     // clicking on the title label should behave like clicking the titlebar
-    if (hit->type == WLR_SCENE_NODE_BUFFER && view->deco_mode == STEPPEWM_DECO_SERVER &&
-        view->deco.title_label && hit == &view->deco.title_label->node) {
-        *node = &view->deco.titlebar->node;
-        return view;
+    if (hit->type == WLR_SCENE_NODE_BUFFER && v->decoration_mode == deco_mode::SERVER &&
+        v->deco.title_label && hit == &v->deco.title_label->node) {
+        *node = &v->deco.titlebar->node;
+        return v;
     }
 
     return nullptr;
 }
 
-bool deco_handle_button(struct steppewm_view *view, struct steppewm_server *server, struct wlr_scene_node *node, uint32_t button) {
-    if (!view || view->deco_mode != STEPPEWM_DECO_SERVER) {
+bool view::deco_handle_button(server* s, const struct wlr_scene_node* node, const uint32_t button) {
+    if (decoration_mode != deco_mode::SERVER) {
         return false;
     }
 
     // handle close
-    if (node == &view->deco.close_button->node) {
+    if (node == &deco.close_button->node) {
         if (button == BTN_LEFT) {
-            wlr_xdg_toplevel_send_close(view->toplevel);
+            wlr_xdg_toplevel_send_close(toplevel);
         }
         return true;
     }
 
     // handle maximize
-    if (node == &view->deco.maximize->node) {
+    if (node == &deco.maximize->node) {
         if (button == BTN_LEFT) {
-            view_toggle_maximize(view);
+            toggle_maximize();
         }
         return true;
     }
 
     // handle minimize
-    if (node == &view->deco.minimize->node) {
+    if (node == &deco.minimize->node) {
         if (button == BTN_LEFT) {
-            view_minimize(view, true);
-            view_focus_next(server, view);
+            minimize(true);
+            view::focus_next(s, this);
         }
         return true;
     }
     // handle resizing
-    if (node == &view->deco.titlebar->node) {
-        cursor_begin_interactive(view, STEPPEWM_CURSOR_MOVE, 0);
+    if (node == &deco.titlebar->node) {
+        cursor_begin_interactive(this, cursor_mode::MOVE, 0);
         return true;
     }
-    if (node == &view->deco.corner_tl->node) {
-        cursor_begin_interactive(view, STEPPEWM_CURSOR_RESIZE, WLR_EDGE_TOP | WLR_EDGE_LEFT);
+    if (node == &deco.corner_tl->node) {
+        cursor_begin_interactive(this, cursor_mode::RESIZE, WLR_EDGE_TOP | WLR_EDGE_LEFT);
         return true;
     }
-    if (node == &view->deco.corner_tr->node) {
-        cursor_begin_interactive(view, STEPPEWM_CURSOR_RESIZE, WLR_EDGE_TOP | WLR_EDGE_RIGHT);
+    if (node == &deco.corner_tr->node) {
+        cursor_begin_interactive(this, cursor_mode::RESIZE, WLR_EDGE_TOP | WLR_EDGE_RIGHT);
         return true;
     }
-    if (node == &view->deco.corner_bl->node) {
-        cursor_begin_interactive(view, STEPPEWM_CURSOR_RESIZE, WLR_EDGE_BOTTOM | WLR_EDGE_LEFT);
+    if (node == &deco.corner_bl->node) {
+        cursor_begin_interactive(this, cursor_mode::RESIZE, WLR_EDGE_BOTTOM | WLR_EDGE_LEFT);
         return true;
     }
-    if (node == &view->deco.corner_br->node) {
-        cursor_begin_interactive(view, STEPPEWM_CURSOR_RESIZE, WLR_EDGE_BOTTOM | WLR_EDGE_RIGHT);
+    if (node == &deco.corner_br->node) {
+        cursor_begin_interactive(this, cursor_mode::RESIZE, WLR_EDGE_BOTTOM | WLR_EDGE_RIGHT);
         return true;
     }
-    if (node == &view->deco.border_left->node) {
-        cursor_begin_interactive(view, STEPPEWM_CURSOR_RESIZE, WLR_EDGE_LEFT);
+    if (node == &deco.border_left->node) {
+        cursor_begin_interactive(this, cursor_mode::RESIZE, WLR_EDGE_LEFT);
         return true;
     }
-    if (node == &view->deco.border_right->node) {
-        cursor_begin_interactive(view, STEPPEWM_CURSOR_RESIZE, WLR_EDGE_RIGHT);
+    if (node == &deco.border_right->node) {
+        cursor_begin_interactive(this, cursor_mode::RESIZE, WLR_EDGE_RIGHT);
         return true;
     }
-    if (node == &view->deco.border_top->node) {
-        cursor_begin_interactive(view, STEPPEWM_CURSOR_RESIZE, WLR_EDGE_TOP);
+    if (node == &deco.border_top->node) {
+        cursor_begin_interactive(this, cursor_mode::RESIZE, WLR_EDGE_TOP);
         return true;
     }
-    if (node == &view->deco.border_bottom->node) {
-        cursor_begin_interactive(view, STEPPEWM_CURSOR_RESIZE, WLR_EDGE_BOTTOM);
+    if (node == &deco.border_bottom->node) {
+        cursor_begin_interactive(this, cursor_mode::RESIZE, WLR_EDGE_BOTTOM);
         return true;
     }
 
@@ -326,48 +323,42 @@ bool deco_handle_button(struct steppewm_view *view, struct steppewm_server *serv
 }
 
 // called when the client requests a decoration mode
-static void deco_request_mode(struct steppewm_view* view,
-                              struct wlr_xdg_toplevel_decoration_v1* decoration) {
+static void deco_request_mode(view* v, struct wlr_xdg_toplevel_decoration_v1* decoration) {
     // if the top leel surface hasnt been init yet
     if (!decoration->toplevel->base->initialized) {
-        view->pending_deco = decoration;
+        v->pending_deco = decoration;
         return;
     }
-
     // force server side decorations
     wlr_xdg_toplevel_decoration_v1_set_mode(decoration,
                                             WLR_XDG_TOPLEVEL_DECORATION_V1_MODE_SERVER_SIDE);
 }
 
 // destroy decoration handle
-static void deco_handle_destroy(struct steppewm_view* view) {
-    view->pending_deco = nullptr;
-    view->decoration = nullptr;
-
-    view->request_deco_mode.disconnect();
-    view->destroy_deco.disconnect();
+static void deco_handle_destroy(view* v) {
+    v->pending_deco = nullptr;
+    v->decoration = nullptr;
+    v->request_deco_mode.disconnect();
+    v->destroy_deco.disconnect();
 }
 
 // called when a new xdg toplevel is created
-void deco_new(struct wl_listener *listener, void *data) {
+void steppewm::deco_new(struct wl_listener* listener, void* data) {
     (void) listener;
-    struct wlr_xdg_toplevel_decoration_v1 *decoration =
-        static_cast<struct wlr_xdg_toplevel_decoration_v1 *>(data);
+    auto* decoration = static_cast<struct wlr_xdg_toplevel_decoration_v1*>(data);
 
     // get the steppewm_view from the decoration
-    struct steppewm_view *view =
-        static_cast<struct steppewm_view *>(decoration->toplevel->base->data);
-    if (!view) {
+    auto v = static_cast<view*>(decoration->toplevel->base->data);
+    if (!v) {
         return;
     }
 
     // defer set_mode until it can recieve configure events
-    view->decoration = decoration;
-    view->pending_deco = decoration;
+    v->decoration = decoration;
+    v->pending_deco = decoration;
 
-    view->request_deco_mode.connect(&decoration->events.request_mode, [view](void* data) {
-        deco_request_mode(view, static_cast<struct wlr_xdg_toplevel_decoration_v1*>(data));
+    v->request_deco_mode.connect(&decoration->events.request_mode, [v](void* data) {
+        deco_request_mode(v, static_cast<struct wlr_xdg_toplevel_decoration_v1*>(data));
     });
-    view->destroy_deco.connect(&decoration->events.destroy,
-                               [view](void*) { deco_handle_destroy(view); });
+    v->destroy_deco.connect(&decoration->events.destroy, [v](void*) { deco_handle_destroy(v); });
 }

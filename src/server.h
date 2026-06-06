@@ -35,17 +35,19 @@
 #include <wlr/types/wlr_xdg_shell.h>
 #include <wlr/util/box.h>
 
-struct steppewm_view;
-struct steppewm_layer_surface;
-class steppewm_switcher;
+namespace steppewm {
 
-enum steppewm_cursor_mode {
-    STEPPEWM_CURSOR_PASSTHROUGH,
-    STEPPEWM_CURSOR_MOVE,
-    STEPPEWM_CURSOR_RESIZE,
+class view;
+class layer_surface;
+class switcher;
+
+enum class cursor_mode {
+    PASSTHROUGH,
+    MOVE,
+    RESIZE,
 };
 
-struct steppewm_server {
+struct server {
     struct wl_display *display;
     struct wlr_backend *backend;
     struct wlr_session *session;
@@ -66,22 +68,21 @@ struct steppewm_server {
     struct wl_listener new_xdg_toplevel;
     struct wl_listener new_xdg_popup;
     struct wl_list views;
-    int cascade_n; // step index down the current cascade column
-    int cascade_x; // x offset of the current cascade column
+    int cascade_n;
+    int cascade_x;
     int current_workspace;
 
     // layer shell
     struct wlr_layer_shell_v1 *layer_shell;
     struct wl_listener new_layer_surface;
-    // layer surface currently holding keyboard focus
-    struct steppewm_layer_surface *focused_layer;
+    layer_surface* focused_layer;
 
     // decorations
     struct wlr_xdg_decoration_manager_v1 *deco_manager;
     struct wl_listener new_deco;
 
     // non-null only when visible
-    steppewm_switcher* switcher;
+    switcher* sw;
 
     // input
     struct wlr_seat *seat;
@@ -102,8 +103,8 @@ struct steppewm_server {
     struct wl_listener request_set_primary_selection;
 
     // move/resize grab state
-    enum steppewm_cursor_mode cursor_mode;
-    struct steppewm_view *grabbed_view;
+    cursor_mode grab_mode;
+    view* grabbed_view;
     double grab_x, grab_y;
     struct wlr_box grab_geobox;
     uint32_t resize_edges;
@@ -111,6 +112,8 @@ struct steppewm_server {
     bool grab_restore_pending;
     double grab_start_x, grab_start_y;
 
-    struct steppewm_config config;
+    config cfg;
     char config_path[512];
 };
+
+} // namespace steppewm

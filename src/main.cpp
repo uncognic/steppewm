@@ -27,8 +27,10 @@
 #include "server.h"
 #include "view.h"
 
+using namespace steppewm;
+
 // initialize server
-static bool server_init(struct steppewm_server *s) {
+static bool server_init(server* s) {
     // create display
     s->display = wl_display_create();
     if (!s->display) {
@@ -63,7 +65,7 @@ static bool server_init(struct steppewm_server *s) {
 
     // create output layout
     s->output_layout = wlr_output_layout_create(s->display);
-    output_layout_change_register(s);
+    output::register_layout_change(s);
 
     // slurp needs xdg-output to enumerate output geometry
     // grim needs screencopy to capture pixels
@@ -72,7 +74,7 @@ static bool server_init(struct steppewm_server *s) {
 
     // create listeners and signals
     wl_list_init(&s->outputs);
-    s->new_output.notify = output_new;
+    s->new_output.notify = output::on_new;
     wl_signal_add(&s->backend->events.new_output, &s->new_output);
 
     s->scene = wlr_scene_create();
@@ -80,13 +82,13 @@ static bool server_init(struct steppewm_server *s) {
 
     wl_list_init(&s->views);
     s->xdg_shell = wlr_xdg_shell_create(s->display, 6);
-    s->new_xdg_toplevel.notify = view_new;
+    s->new_xdg_toplevel.notify = view::on_new;
     wl_signal_add(&s->xdg_shell->events.new_toplevel, &s->new_xdg_toplevel);
-    s->new_xdg_popup.notify = popup_new;
+    s->new_xdg_popup.notify = popup::on_new;
     wl_signal_add(&s->xdg_shell->events.new_popup, &s->new_xdg_popup);
 
     s->layer_shell = wlr_layer_shell_v1_create(s->display, 4);
-    s->new_layer_surface.notify = layer_surface_new;
+    s->new_layer_surface.notify = layer_surface::on_new;
     wl_signal_add(&s->layer_shell->events.new_surface, &s->new_layer_surface);
 
     s->deco_manager = wlr_xdg_decoration_manager_v1_create(s->display);
@@ -126,7 +128,7 @@ static bool server_init(struct steppewm_server *s) {
     return true;
 }
 
-static void server_run(struct steppewm_server *s) {
+static void server_run(server* s) {
     // get a socket
     const char *socket = wl_display_add_socket_auto(s->display);
     if (!socket) {
@@ -144,13 +146,13 @@ static void server_run(struct steppewm_server *s) {
     wlr_log(WLR_INFO, "steppewm running on %s", socket);
 
     // run exec()s after setting up environment
-    config_run_execs(&s->config);
+    s->cfg.run_execs();
 
     wl_display_run(s->display);
 }
 
 // clean up
-static void server_fini(struct steppewm_server *s) {
+static void server_fini(server* s) {
     wl_display_destroy_clients(s->display);
     wlr_scene_node_destroy(&s->scene->tree.node);
     wlr_xcursor_manager_destroy(s->cursor_mgr);
@@ -180,8 +182,8 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    struct steppewm_server server = {};
-    config_defaults(&server.config);
+    server svr = {};
+    svr.cfg.set_defaults();
 
     char config_path[512];
 
@@ -199,15 +201,15 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    snprintf(server.config_path, sizeof(server.config_path), "%s", config_path);
-    config_load(&server.config, server.config_path);
+    snprintf(svr.config_path, sizeof(svr.config_path), "%s", config_path);
+    svr.cfg.load(svr.config_path);
 
-    if (!server_init(&server)) {
+    if (!server_init(&svr)) {
         return EXIT_FAILURE;
     }
 
-    server_run(&server);
-    server_fini(&server);
+    server_run(&svr);
+    server_fini(&svr);
 
     return EXIT_SUCCESS;
 }

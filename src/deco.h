@@ -18,25 +18,17 @@
 #include <stdint.h>
 #include <wayland-server-core.h>
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-struct steppewm_view;
-struct steppewm_server;
 struct wlr_scene_node;
 
+namespace steppewm {
 
+struct server;
+class view;
+
+// event callback for new xdg decoration
 void deco_new(struct wl_listener *listener, void *data);
-void deco_create(struct steppewm_view *view);
-void deco_update(struct steppewm_view *view);
-void deco_destroy(struct steppewm_view *view);
-void deco_set_focus(struct steppewm_view *view, bool focused);
-const char *deco_cursor_name(struct steppewm_view *view, struct wlr_scene_node *node);
-bool deco_handle_button(struct steppewm_view *view, struct steppewm_server *server, struct wlr_scene_node *node, uint32_t button);
-struct steppewm_view *deco_at(struct steppewm_server *server, double lx, double ly,
-                              struct wlr_scene_node **node);
 
-#ifdef __cplusplus
-}
-#endif
+// returns the view and sets *node to the hit rect
+view* deco_at(const server* s, double lx, double ly, struct wlr_scene_node** node);
+
+} // namespace steppewm

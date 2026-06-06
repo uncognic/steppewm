@@ -15,21 +15,19 @@
 
 #pragma once
 
-#include <wayland-server-core.h>
-
 #include "server.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+#include <wayland-server-core.h>
 
-struct steppewm_view;
 struct wlr_keyboard;
 struct wlr_input_device;
 
-// struct for keyboard state
-struct steppewm_keyboard {
-    struct steppewm_server *server;
+namespace steppewm {
+
+class view;
+
+struct keyboard {
+    server* srv;
     struct wlr_keyboard *wlr_keyboard;
 
     struct wl_list link;
@@ -39,9 +37,8 @@ struct steppewm_keyboard {
     struct wl_listener destroy;
 };
 
-// struct for pointer state
-struct steppewm_pointer {
-    struct steppewm_server* server;
+struct pointer {
+    server* srv;
     struct wlr_input_device* device;
 
     struct wl_list link;
@@ -49,9 +46,8 @@ struct steppewm_pointer {
     struct wl_listener destroy;
 };
 
-// see input.c for details on these functions
 void input_new(struct wl_listener *listener, void *data);
-void input_reconfigure(struct steppewm_server* server);
+void input_reconfigure(server* s);
 
 void cursor_motion(struct wl_listener *listener, void *data);
 void cursor_motion_absolute(struct wl_listener *listener, void *data);
@@ -63,9 +59,6 @@ void request_set_cursor(struct wl_listener *listener, void *data);
 void request_set_selection(struct wl_listener *listener, void *data);
 void request_set_primary_selection(struct wl_listener *listener, void *data);
 
-void cursor_begin_interactive(struct steppewm_view *view, enum steppewm_cursor_mode mode,
-                              uint32_t edges);
+void cursor_begin_interactive(view* v, cursor_mode mode, uint32_t edges);
 
-#ifdef __cplusplus
-}
-#endif
+} // namespace steppewm

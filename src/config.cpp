@@ -36,6 +36,8 @@ extern "C" {
 #include "taskbar.h"
 #include "view.h"
 
+using namespace steppewm;
+
 static uint32_t parse_modifiers(const char *str) {
     uint32_t mods = 0;
     char buf[64];
@@ -61,7 +63,7 @@ static uint32_t parse_modifiers(const char *str) {
 // queue command to be run
 static int lua_exec(lua_State *L) {
     lua_getfield(L, LUA_REGISTRYINDEX, "steppewm_cfg");
-    struct steppewm_config* cfg = static_cast<struct steppewm_config*>(lua_touserdata(L, -1));
+    auto* cfg = static_cast<config*>(lua_touserdata(L, -1));
     lua_pop(L, 1);
 
     if (cfg->nexecs >= CFG_MAX_EXECS) {
@@ -76,7 +78,7 @@ static int lua_exec(lua_State *L) {
 // bind()
 static int lua_bind(lua_State *L) {
     lua_getfield(L, LUA_REGISTRYINDEX, "steppewm_cfg");
-    struct steppewm_config* cfg = static_cast<struct steppewm_config*>(lua_touserdata(L, -1));
+    auto* cfg = static_cast<config*>(lua_touserdata(L, -1));
     lua_pop(L, 1);
 
     if (cfg->nbinds >= CFG_MAX_BINDS) {
@@ -92,7 +94,7 @@ static int lua_bind(lua_State *L) {
         return luaL_error(L, "unknown key name '%s'", key_str);
     }
 
-    struct steppewm_keybind *b = &cfg->binds[cfg->nbinds++];
+    keybind* b = &cfg->binds[cfg->nbinds++];
     b->modifiers = parse_modifiers(mods_str);
     b->sym = sym;
     strncpy(b->action, action, sizeof(b->action) - 1);
@@ -113,7 +115,7 @@ static void read_color(lua_State *L, const char *name, float out[4]) {
     for (int i = 0; i < 4; i++) {
         lua_rawgeti(L, -1, i + 1);
         if (lua_isnumber(L, -1)) {
-            out[i] = (float) lua_tonumber(L, -1);
+            out[i] = static_cast<float>(lua_tonumber(L, -1));
         }
         lua_pop(L, 1);
     }
@@ -131,9 +133,9 @@ static void read_bool(lua_State *L, const char *name, bool *out) {
 static void read_int(lua_State *L, const char *name, int *out) {
     lua_getglobal(L, name);
     if (lua_isinteger(L, -1)) {
-        *out = (int) lua_tointeger(L, -1);
+        *out = static_cast<int>(lua_tointeger(L, -1));
     } else if (lua_isnumber(L, -1)) {
-        *out = (int) lua_tonumber(L, -1);
+        *out = static_cast<int>(lua_tonumber(L, -1));
     }
     lua_pop(L, 1);
 }
@@ -141,12 +143,12 @@ static void read_int(lua_State *L, const char *name, int *out) {
 static void read_float(lua_State* L, const char* name, float* out) {
     lua_getglobal(L, name);
     if (lua_isnumber(L, -1)) {
-        *out = (float) lua_tonumber(L, -1);
+        *out = static_cast<float>(lua_tonumber(L, -1));
     }
     lua_pop(L, 1);
 }
 
-static void read_string(lua_State* L, const char* name, char* out, size_t len) {
+static void read_string(lua_State* L, const char* name, char* out, const size_t len) {
     lua_getglobal(L, name);
     if (lua_isstring(L, -1)) {
         strncpy(out, lua_tostring(L, -1), len - 1);
@@ -155,104 +157,104 @@ static void read_string(lua_State* L, const char* name, char* out, size_t len) {
     lua_pop(L, 1);
 }
 
-void config_defaults(struct steppewm_config *cfg) {
-    cfg->nbinds = 0;
+void config::set_defaults() {
+    nbinds = 0;
 
-    cfg->xkb_layout[0] = '\0';
-    cfg->xkb_variant[0] = '\0';
-    cfg->xkb_options[0] = '\0';
-    cfg->repeat_rate = 25;
-    cfg->repeat_delay = 600;
-    cfg->tap_to_click = false;
-    cfg->natural_scroll = false;
-    cfg->pointer_accel = 0.0f;
-    cfg->accel_profile[0] = '\0';
+    xkb_layout[0] = '\0';
+    xkb_variant[0] = '\0';
+    xkb_options[0] = '\0';
+    repeat_rate = 25;
+    repeat_delay = 600;
+    tap_to_click = false;
+    natural_scroll = false;
+    pointer_accel = 0.0f;
+    accel_profile[0] = '\0';
 
-    cfg->color_title_active[0] = 0.24f;
-    cfg->color_title_active[1] = 0.24f;
-    cfg->color_title_active[2] = 0.24f;
-    cfg->color_title_active[3] = 1.0f;
+    color_title_active[0] = 0.24f;
+    color_title_active[1] = 0.24f;
+    color_title_active[2] = 0.24f;
+    color_title_active[3] = 1.0f;
 
-    cfg->color_title_inactive[0] = 0.14f;
-    cfg->color_title_inactive[1] = 0.14f;
-    cfg->color_title_inactive[2] = 0.14f;
-    cfg->color_title_inactive[3] = 1.0f;
+    color_title_inactive[0] = 0.14f;
+    color_title_inactive[1] = 0.14f;
+    color_title_inactive[2] = 0.14f;
+    color_title_inactive[3] = 1.0f;
 
-    cfg->color_border[0] = 0.20f;
-    cfg->color_border[1] = 0.20f;
-    cfg->color_border[2] = 0.20f;
-    cfg->color_border[3] = 1.0f;
+    color_border[0] = 0.20f;
+    color_border[1] = 0.20f;
+    color_border[2] = 0.20f;
+    color_border[3] = 1.0f;
 
-    cfg->color_close_active[0] = 0.85f;
-    cfg->color_close_active[1] = 0.08f;
-    cfg->color_close_active[2] = 0.08f;
-    cfg->color_close_active[3] = 1.0f;
+    color_close_active[0] = 0.85f;
+    color_close_active[1] = 0.08f;
+    color_close_active[2] = 0.08f;
+    color_close_active[3] = 1.0f;
 
-    cfg->color_close_inactive[0] = 0.45f;
-    cfg->color_close_inactive[1] = 0.06f;
-    cfg->color_close_inactive[2] = 0.06f;
-    cfg->color_close_inactive[3] = 1.0f;
+    color_close_inactive[0] = 0.45f;
+    color_close_inactive[1] = 0.06f;
+    color_close_inactive[2] = 0.06f;
+    color_close_inactive[3] = 1.0f;
 
-    cfg->color_button[0] = 0.38f;
-    cfg->color_button[1] = 0.38f;
-    cfg->color_button[2] = 0.38f;
-    cfg->color_button[3] = 1.0f;
+    color_button[0] = 0.38f;
+    color_button[1] = 0.38f;
+    color_button[2] = 0.38f;
+    color_button[3] = 1.0f;
 
-    cfg->color_button_inactive[0] = 0.32f;
-    cfg->color_button_inactive[1] = 0.32f;
-    cfg->color_button_inactive[2] = 0.32f;
-    cfg->color_button_inactive[3] = 1.0f;
+    color_button_inactive[0] = 0.32f;
+    color_button_inactive[1] = 0.32f;
+    color_button_inactive[2] = 0.32f;
+    color_button_inactive[3] = 1.0f;
 
-    cfg->color_invisible[0] = 0.0f;
-    cfg->color_invisible[1] = 0.0f;
-    cfg->color_invisible[2] = 0.0f;
-    cfg->color_invisible[3] = 0.0f;
+    color_invisible[0] = 0.0f;
+    color_invisible[1] = 0.0f;
+    color_invisible[2] = 0.0f;
+    color_invisible[3] = 0.0f;
 
-    cfg->color_title_text[0] = 0.88f;
-    cfg->color_title_text[1] = 0.88f;
-    cfg->color_title_text[2] = 0.88f;
-    cfg->color_title_text[3] = 1.0f;
-    cfg->show_title_text = true;
+    color_title_text[0] = 0.88f;
+    color_title_text[1] = 0.88f;
+    color_title_text[2] = 0.88f;
+    color_title_text[3] = 1.0f;
+    show_title_text = true;
 
-    cfg->title_h = 20;
-    cfg->border_w = 3;
-    cfg->corner_size = 8;
-    cfg->close_button_w = 40;
-    cfg->maximize_button_w = 20;
-    cfg->minimize_button_w = 20;
+    title_h = 20;
+    border_w = 3;
+    corner_size = 8;
+    close_button_w = 40;
+    maximize_button_w = 20;
+    minimize_button_w = 20;
 
-    cfg->taskbar_h = 24;
-    cfg->taskbar_all_outputs = false;
-    cfg->taskbar_button_w = 200;
-    cfg->taskbar_button_pad = 2;
+    taskbar_h = 24;
+    taskbar_all_outputs = false;
+    taskbar_button_w = 200;
+    taskbar_button_pad = 2;
 
-    cfg->color_taskbar_bg[0] = 0.08f;
-    cfg->color_taskbar_bg[1] = 0.08f;
-    cfg->color_taskbar_bg[2] = 0.08f;
-    cfg->color_taskbar_bg[3] = 1.0f;
+    color_taskbar_bg[0] = 0.08f;
+    color_taskbar_bg[1] = 0.08f;
+    color_taskbar_bg[2] = 0.08f;
+    color_taskbar_bg[3] = 1.0f;
 
-    cfg->color_task_normal[0] = 0.18f;
-    cfg->color_task_normal[1] = 0.18f;
-    cfg->color_task_normal[2] = 0.18f;
-    cfg->color_task_normal[3] = 1.0f;
+    color_task_normal[0] = 0.18f;
+    color_task_normal[1] = 0.18f;
+    color_task_normal[2] = 0.18f;
+    color_task_normal[3] = 1.0f;
 
-    cfg->color_task_active[0] = 0.30f;
-    cfg->color_task_active[1] = 0.30f;
-    cfg->color_task_active[2] = 0.30f;
-    cfg->color_task_active[3] = 1.0f;
+    color_task_active[0] = 0.30f;
+    color_task_active[1] = 0.30f;
+    color_task_active[2] = 0.30f;
+    color_task_active[3] = 1.0f;
 
-    cfg->color_task_minimized[0] = 0.12f;
-    cfg->color_task_minimized[1] = 0.12f;
-    cfg->color_task_minimized[2] = 0.12f;
-    cfg->color_task_minimized[3] = 1.0f;
+    color_task_minimized[0] = 0.12f;
+    color_task_minimized[1] = 0.12f;
+    color_task_minimized[2] = 0.12f;
+    color_task_minimized[3] = 1.0f;
 
-    cfg->color_task_text[0] = 0.88f;
-    cfg->color_task_text[1] = 0.88f;
-    cfg->color_task_text[2] = 0.88f;
-    cfg->color_task_text[3] = 1.0f;
+    color_task_text[0] = 0.88f;
+    color_task_text[1] = 0.88f;
+    color_task_text[2] = 0.88f;
+    color_task_text[3] = 1.0f;
 }
 
-bool config_load(struct steppewm_config *cfg, const char *path) {
+bool config::load(const char* path) {
     if (access(path, R_OK) != 0) {
         return true;
     }
@@ -263,7 +265,7 @@ bool config_load(struct steppewm_config *cfg, const char *path) {
     }
     luaL_openlibs(L);
 
-    lua_pushlightuserdata(L, cfg);
+    lua_pushlightuserdata(L, this);
     lua_setfield(L, LUA_REGISTRYINDEX, "steppewm_cfg");
 
     lua_pushcfunction(L, lua_exec);
@@ -278,81 +280,80 @@ bool config_load(struct steppewm_config *cfg, const char *path) {
         return false;
     }
 
-    read_string(L, "keyboard_layout", cfg->xkb_layout, sizeof(cfg->xkb_layout));
-    read_string(L, "keyboard_variant", cfg->xkb_variant, sizeof(cfg->xkb_variant));
-    read_string(L, "keyboard_options", cfg->xkb_options, sizeof(cfg->xkb_options));
-    read_int(L, "repeat_rate", &cfg->repeat_rate);
-    read_int(L, "repeat_delay", &cfg->repeat_delay);
-    read_bool(L, "tap_to_click", &cfg->tap_to_click);
-    read_bool(L, "natural_scroll", &cfg->natural_scroll);
-    read_float(L, "pointer_accel", &cfg->pointer_accel);
-    read_string(L, "accel_profile", cfg->accel_profile, sizeof(cfg->accel_profile));
+    read_string(L, "keyboard_layout", xkb_layout, sizeof(xkb_layout));
+    read_string(L, "keyboard_variant", xkb_variant, sizeof(xkb_variant));
+    read_string(L, "keyboard_options", xkb_options, sizeof(xkb_options));
+    read_int(L, "repeat_rate", &repeat_rate);
+    read_int(L, "repeat_delay", &repeat_delay);
+    read_bool(L, "tap_to_click", &tap_to_click);
+    read_bool(L, "natural_scroll", &natural_scroll);
+    read_float(L, "pointer_accel", &pointer_accel);
+    read_string(L, "accel_profile", accel_profile, sizeof(accel_profile));
 
-    read_color(L, "title_active", cfg->color_title_active);
-    read_color(L, "title_inactive", cfg->color_title_inactive);
-    read_color(L, "border_color", cfg->color_border);
-    read_color(L, "close_active", cfg->color_close_active);
-    read_color(L, "close_inactive", cfg->color_close_inactive);
-    read_color(L, "button_color", cfg->color_button);
-    read_color(L, "button_inactive", cfg->color_button_inactive);
+    read_color(L, "title_active", color_title_active);
+    read_color(L, "title_inactive", color_title_inactive);
+    read_color(L, "border_color", color_border);
+    read_color(L, "close_active", color_close_active);
+    read_color(L, "close_inactive", color_close_inactive);
+    read_color(L, "button_color", color_button);
+    read_color(L, "button_inactive", color_button_inactive);
 
-    read_color(L, "title_text", cfg->color_title_text);
-    read_bool(L, "show_title_text", &cfg->show_title_text);
+    read_color(L, "title_text", color_title_text);
+    read_bool(L, "show_title_text", &show_title_text);
 
-    read_int(L, "title_height", &cfg->title_h);
-    read_int(L, "border_width", &cfg->border_w);
-    read_int(L, "corner_size", &cfg->corner_size);
-    read_int(L, "close_button_width", &cfg->close_button_w);
-    read_int(L, "maximize_button_width", &cfg->maximize_button_w);
-    read_int(L, "minimize_button_width", &cfg->minimize_button_w);
+    read_int(L, "title_height", &title_h);
+    read_int(L, "border_width", &border_w);
+    read_int(L, "corner_size", &corner_size);
+    read_int(L, "close_button_width", &close_button_w);
+    read_int(L, "maximize_button_width", &maximize_button_w);
+    read_int(L, "minimize_button_width", &minimize_button_w);
 
-    read_int(L, "taskbar_height", &cfg->taskbar_h);
-    read_int(L, "taskbar_button_width", &cfg->taskbar_button_w);
-    read_int(L, "taskbar_button_pad", &cfg->taskbar_button_pad);
-    read_bool(L, "taskbar_all_outputs", &cfg->taskbar_all_outputs);
-    read_color(L, "taskbar_bg", cfg->color_taskbar_bg);
-    read_color(L, "task_normal", cfg->color_task_normal);
-    read_color(L, "task_active", cfg->color_task_active);
-    read_color(L, "task_minimized", cfg->color_task_minimized);
-    read_color(L, "task_text", cfg->color_task_text);
+    read_int(L, "taskbar_height", &taskbar_h);
+    read_int(L, "taskbar_button_width", &taskbar_button_w);
+    read_int(L, "taskbar_button_pad", &taskbar_button_pad);
+    read_bool(L, "taskbar_all_outputs", &taskbar_all_outputs);
+    read_color(L, "taskbar_bg", color_taskbar_bg);
+    read_color(L, "task_normal", color_task_normal);
+    read_color(L, "task_active", color_task_active);
+    read_color(L, "task_minimized", color_task_minimized);
+    read_color(L, "task_text", color_task_text);
 
     lua_close(L);
     return true;
 }
 
-void config_run_execs(struct steppewm_config *cfg) {
-    for (int i = 0; i < cfg->nexecs; i++) {
-        pid_t pid = fork();
-        if (pid == 0) {
+void config::run_execs() {
+    for (int i = 0; i < nexecs; i++) {
+        if (pid_t pid = fork(); pid == 0) {
             setsid();
-            execl("/bin/sh", "sh", "-c", cfg->execs[i], static_cast<char*>(nullptr));
+            execl("/bin/sh", "sh", "-c", execs[i], static_cast<char*>(nullptr));
             _exit(1);
         }
     }
 }
 
-void config_reload(struct steppewm_server *server) {
-    struct steppewm_config *cfg = &server->config;
+void steppewm::config_reload(server* s) {
+    config* cfg = &s->cfg;
 
-    config_defaults(cfg);
+    cfg->set_defaults();
 
     // do not rerun exec()s
     cfg->nexecs = 0;
 
     // reload config and bindings
-    config_load(cfg, server->config_path);
+    cfg->load(s->config_path);
 
     // re-apply keymap, repeat info, and libinput settings to all input devices
-    input_reconfigure(server);
+    input_reconfigure(s);
 
     // re-apply decoration colors/sizes and content layout to open windows
-    view_reconfigure_all(server);
+    view::reconfigure_all(s);
 
     // re-apply taskbar height/position and redraw with the new config
-    struct steppewm_output *output;
-    wl_list_for_each(output, &server->outputs, link) {
-        if (output->taskbar) {
-            taskbar_update_geometry(output->taskbar);
+    output* out;
+    wl_list_for_each(out, &s->outputs, link) {
+        if (out->taskbar) {
+            out->taskbar->update_geometry();
         }
     }
 }

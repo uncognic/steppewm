@@ -15,29 +15,28 @@
 
 #pragma once
 
-#include <stdint.h>
+#include <cstdint>
 #include <xkbcommon/xkbcommon.h>
-
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 #define CFG_MAX_BINDS 128
 #define CFG_MAX_ARG 512
 #define CFG_MAX_EXECS 64
 #define CFG_MAX_CMD 512
 
-#define STEPPEWM_NUM_WORKSPACES 9
+namespace steppewm {
 
-struct steppewm_keybind {
+inline constexpr int num_workspaces = 9;
+
+struct keybind {
     uint32_t modifiers;
     xkb_keysym_t sym;
     char action[32];
     char arg[CFG_MAX_ARG];
 };
 
-struct steppewm_config {
-    struct steppewm_keybind binds[CFG_MAX_BINDS];
+class config {
+  public:
+    keybind binds[CFG_MAX_BINDS];
     int nbinds;
 
     char execs[CFG_MAX_EXECS][CFG_MAX_CMD];
@@ -84,15 +83,13 @@ struct steppewm_config {
     float color_task_text[4];
     int taskbar_button_w;
     int taskbar_button_pad;
+
+    void set_defaults();
+    bool load(const char* path);
+    void run_execs();
 };
 
-struct steppewm_server;
+struct server;
+void config_reload(server* s);
 
-void config_defaults(struct steppewm_config *cfg);
-bool config_load(struct steppewm_config *cfg, const char *path);
-void config_run_execs(struct steppewm_config *cfg);
-void config_reload(struct steppewm_server *server);
-
-#ifdef __cplusplus
-}
-#endif
+} // namespace steppewm

@@ -15,42 +15,21 @@
 
 #pragma once
 
+#include "listener.h"
+
 #include <wayland-server-core.h>
 #include <wlr/util/box.h>
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+namespace steppewm {
 
-struct steppewm_server;
-struct steppewm_view;
-struct steppewm_popup;
-struct wlr_surface;
+struct server;
 
-// once again see view.cpp
-void view_new(struct wl_listener* listener, void* data);
-void popup_new(struct wl_listener* listener, void* data);
-void view_minimize(struct steppewm_view* view, bool minimized);
-void view_toggle_maximize(struct steppewm_view* view);
-void view_unmaximize_to_cursor(struct steppewm_view* view, double cursor_x, double cursor_y);
-void view_focus(struct steppewm_view* view, struct wlr_surface* surface);
-void view_focus_next(struct steppewm_server* server, struct steppewm_view* skip);
-void view_reconfigure_all(struct steppewm_server* server);
-void view_update_visibility(struct steppewm_view* view);
-void workspace_switch(struct steppewm_server* server, int workspace);
-void view_move_to_workspace(struct steppewm_view* view, int workspace);
-struct steppewm_view* view_at(struct steppewm_server* server, double lx, double ly,
-                              struct wlr_surface** surface, double* sx, double* sy);
+enum class deco_mode {
+    SERVER,
+    CLIENT,
+};
 
-#ifdef __cplusplus
-}
-#endif
-
-#ifdef __cplusplus
-
-#include "listener.h"
-
-struct steppewm_deco {
+struct deco {
     struct wlr_scene_rect *titlebar;
     struct wlr_scene_buffer *title_label;
     struct wlr_scene_rect *close_button;
@@ -66,31 +45,30 @@ struct steppewm_deco {
     struct wlr_scene_rect *corner_br;
 };
 
-enum steppewm_deco_mode {
-    STEPPEWM_DECO_SERVER,
-    STEPPEWM_DECO_CLIENT,
-};
-
-struct steppewm_popup {
-    struct wlr_xdg_popup *popup;
+class popup {
+  public:
+    struct wlr_xdg_popup* xdg_popup;
     bool unconstrained;
     Listener commit;
     Listener reposition;
     Listener destroy;
+
+    static void on_new(struct wl_listener* listener, void* data);
 };
 
 // a window
-struct steppewm_view {
-    struct steppewm_server *server;
+class view {
+  public:
+    server* srv;
     struct wlr_xdg_toplevel *toplevel;
     struct wlr_scene_tree *scene_tree; // container: whole decorated window
     struct wlr_scene_tree *xdg_tree;   // content: the actual content w/o titlebar and borders
-    enum steppewm_deco_mode deco_mode;
+    deco_mode decoration_mode;
 
-    struct steppewm_deco deco; // the decoration
+    deco deco; // the decoration
     struct wlr_xdg_toplevel_decoration_v1 *decoration;
-    struct wlr_xdg_toplevel_decoration_v1 *pending_deco; // applied once configure events are legal
-    Listener request_deco_mode;                          // for xdg-decoration request_mode
+    struct wlr_xdg_toplevel_decoration_v1* pending_deco;
+    Listener request_deco_mode;
     Listener destroy_deco;
     struct wl_event_source *initial_configure_idle;
 
@@ -98,8 +76,8 @@ struct steppewm_view {
     bool fullscreen;
     bool minimized;
     bool mapped;
-    int workspace;            // which workspace this window lives on
-    struct wlr_box saved_geo; // saved geo to restore when exiting maximized state
+    int workspace;
+    struct wlr_box saved_geo;
 
     struct wl_list link;
 
@@ -113,6 +91,31 @@ struct steppewm_view {
     Listener request_fullscreen;
     Listener request_minimize;
     Listener title_changed;
+
+    // window operations
+    void focus(struct wlr_surface* surface);
+    void minimize(bool minimized);
+    void toggle_maximize();
+    void unmaximize_to_cursor(double cursor_x, double cursor_y);
+    void update_visibility();
+    void move_to_workspace(int workspace);
+
+    // decoration operations (implemented in deco.cpp)
+    void deco_create();
+    void deco_update() const;
+    void deco_destroy();
+    void deco_set_focus(bool focused) const;
+    const char* deco_cursor_name(const struct wlr_scene_node* node) const;
+    bool deco_handle_button(server* s, const struct wlr_scene_node* node, uint32_t button);
+
+    // server-wide operations
+    static void on_new(struct wl_listener* listener, void* data);
+    static void focus_next(server* s, view* skip);
+    static void reconfigure_all(server* s);
+    static view* at(server* s, double lx, double ly, struct wlr_surface** surface, double* sx,
+                    double* sy);
 };
 
-#endif // __cplusplus
+void workspace_switch(server* s, int workspace);
+
+} // namespace steppewm

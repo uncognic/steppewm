@@ -15,29 +15,62 @@
 
 #pragma once
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+#include <cstddef>
+#include <memory>
+#include <vector>
 
-struct steppewm_taskbar;
-struct steppewm_server;
-struct steppewm_view;
+#include "config.h"
+
 struct wlr_output;
+struct wlr_scene_buffer;
+struct wlr_scene_rect;
+struct wlr_scene_tree;
+struct wl_event_source;
 
-// see taskbar.cpp for more info on these methods
-struct steppewm_taskbar *taskbar_create(struct steppewm_server *server,
-                                        struct wlr_output *wlr_output);
-void taskbar_destroy(struct steppewm_taskbar *bar);
-void taskbar_view_added(struct steppewm_taskbar *bar, struct steppewm_view *view);
-void taskbar_view_removed(struct steppewm_taskbar *bar, struct steppewm_view *view);
-void taskbar_refresh(struct steppewm_taskbar *bar);
-void taskbar_update_geometry(struct steppewm_taskbar *bar);
-// raise the taskbar's scene tree above the windows below it
-void taskbar_raise(struct steppewm_taskbar* bar);
-struct steppewm_view *taskbar_view_at(struct steppewm_taskbar *bar, double x, double y);
-// return the workspace index under (x, y), or -1 if no indicator button is there
-int taskbar_workspace_at(struct steppewm_taskbar *bar, double x, double y);
+namespace steppewm {
 
-#ifdef __cplusplus
-}
-#endif
+struct server;
+class view;
+struct task_button;
+
+class taskbar {
+  public:
+    taskbar(server* s, struct wlr_output* wlr_output);
+    ~taskbar();
+
+    taskbar(const taskbar&) = delete;
+    taskbar& operator=(const taskbar&) = delete;
+
+    void view_added(view* v);
+    void view_removed(view* v);
+    void refresh();
+    void update_geometry();
+    void raise();
+    view* view_at(double x, double y);
+    int workspace_at(double x, double y);
+
+  private:
+    void layout();
+    void render_clock();
+    void render_layout_indicator();
+    void layout_code(char* out, size_t len);
+    view* focused_view();
+    static int clock_tick(void* data);
+
+    server* srv_;
+    struct wlr_output* wlr_output_;
+    struct wlr_scene_tree* tree_;
+    struct wlr_scene_rect* background_;
+    struct wlr_scene_buffer* clock_;
+    struct wl_event_source* clock_timer_;
+    struct wlr_scene_buffer* layout_ind_;
+    int layout_ind_w_ = 0;
+    struct wlr_scene_buffer* ws_labels_[num_workspaces]{};
+    int ws_button_w_ = 0;
+    std::vector<std::unique_ptr<task_button>> buttons_;
+    int clock_w_ = 0;
+    int button_w_ = 0;
+    int x_ = 0, y_ = 0, width_ = 0, height_ = 0;
+};
+
+} // namespace steppewm

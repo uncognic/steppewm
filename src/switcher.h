@@ -19,45 +19,41 @@
 #include <cstdint>
 #include <vector>
 
-struct steppewm_server;
-struct steppewm_view;
 struct wlr_output;
 struct wlr_scene_buffer;
 struct wlr_scene_tree;
 
-class steppewm_switcher {
+namespace steppewm {
+
+struct server;
+class view;
+
+class switcher {
   public:
-    // open the overlay  and move the highlight one step
-    static void cycle(struct steppewm_server* server, uint32_t mods, bool backwards);
-
-    // focus the highlighted window once the cycle's modifiers are all released
-    static void handle_modifiers(struct steppewm_server* server, uint32_t mods);
-
-    // close the overlay without changing focus
-    static void cancel(const struct steppewm_server* server);
-
-    // drop a window that went away while the overlay is open
-    static void view_removed(const struct steppewm_server* server,
-                             const struct steppewm_view* view);
+    static void cycle(server* s, uint32_t mods, bool backwards);
+    static void handle_modifiers(server* s, uint32_t mods);
+    static void cancel(const server* s);
+    static void view_removed(const server* s, const view* v);
 
   private:
-    steppewm_switcher(struct steppewm_server* server, std::vector<struct steppewm_view*> views,
-                      uint32_t mods);
-    ~steppewm_switcher();
+    switcher(server* s, std::vector<view*> views, uint32_t mods);
+    ~switcher();
 
-    steppewm_switcher(const steppewm_switcher&) = delete;
-    steppewm_switcher& operator=(const steppewm_switcher&) = delete;
+    switcher(const switcher&) = delete;
+    switcher& operator=(const switcher&) = delete;
 
     void advance(bool backwards);
     void render() const;
     struct wlr_output* pick_output() const;
 
-    struct steppewm_server* server_;
+    server* server_;
     struct wlr_scene_tree* tree_;
     struct wlr_scene_buffer* panel_;
 
-    std::vector<struct steppewm_view*> views_;
+    std::vector<view*> views_;
     size_t selected_ = 0;
 
     uint32_t mods_;
 };
+
+} // namespace steppewm

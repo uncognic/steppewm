@@ -25,47 +25,48 @@
 #include "switcher.h"
 #include "view.h"
 
+using namespace steppewm;
+
 #define SWITCHER_W 400
 #define SWITCHER_ROW_H 30
 #define SWITCHER_PAD 3
 
-steppewm_switcher::steppewm_switcher(struct steppewm_server* server,
-                                     std::vector<struct steppewm_view*> views, const uint32_t mods)
-    : server_(server), views_(std::move(views)), mods_(mods) {
-    tree_ = wlr_scene_tree_create(&server->scene->tree);
+switcher::switcher(server* s, std::vector<view*> views, uint32_t mods)
+    : server_(s), views_(std::move(views)), mods_(mods) {
+    tree_ = wlr_scene_tree_create(&s->scene->tree);
     panel_ = wlr_scene_buffer_create(tree_, nullptr);
     wlr_scene_node_raise_to_top(&tree_->node);
-    server->switcher = this;
+    s->sw = this;
 }
 
-steppewm_switcher::~steppewm_switcher() {
+switcher::~switcher() {
     wlr_scene_node_destroy(&tree_->node);
-    server_->switcher = nullptr;
+    server_->sw = nullptr;
 }
 
 // pick the output under the cursor, falling back to the first output
-struct wlr_output* steppewm_switcher::pick_output() const {
-    struct wlr_output* output =
+struct wlr_output* switcher::pick_output() const {
+    struct wlr_output* wlr_out =
         wlr_output_layout_output_at(server_->output_layout, server_->cursor->x, server_->cursor->y);
-    if (!output) {
-        struct steppewm_output* o;
+    if (!wlr_out) {
+        output* o;
         wl_list_for_each(o, &server_->outputs, link) {
-            output = o->wlr_output;
+            wlr_out = o->wlr_output;
             break;
         }
     }
-    return output;
+    return wlr_out;
 }
 
 // render the switcher and center it on the output
-void steppewm_switcher::render() const {
-    struct wlr_output* output = pick_output();
-    if (!output) {
+void switcher::render() const {
+    struct wlr_output* wlr_out = pick_output();
+    if (!wlr_out) {
         return;
     }
 
     struct wlr_box ob;
-    wlr_output_layout_get_box(server_->output_layout, output, &ob);
+    wlr_output_layout_get_box(server_->output_layout, wlr_out, &ob);
 
     const int n = static_cast<int>(views_.size());
 
@@ -87,7 +88,7 @@ void steppewm_switcher::render() const {
     }
     cairo_t* cr = canvas.cr();
 
-    struct steppewm_config* cfg = &server_->config;
+    config* cfg = &server_->cfg;
     float* bg = cfg->color_taskbar_bg;
     cairo_set_source_rgba(cr, bg[0], bg[1], bg[2], bg[3]);
     cairo_paint(cr);
@@ -145,30 +146,30 @@ void steppewm_switcher::render() const {
 }
 
 // move the highlight one step through the snapshot
-void steppewm_switcher::advance(bool backwards) {
+void switcher::advance(bool backwards) {
     size_t count = views_.size();
     selected_ = backwards ? (selected_ + count - 1) % count : (selected_ + 1) % count;
     render();
 }
 
 // open the overlay on the first press, then step the highlight on each repeat
-void steppewm_switcher::cycle(struct steppewm_server* server, uint32_t mods, bool backwards) {
-    steppewm_switcher* sw = server->switcher;
+void switcher::cycle(server* s, uint32_t mods, bool backwards) {
+    switcher* sw = s->sw;
 
     // if this is the first press
     if (!sw) {
         // get the windows on this workspace, minimized ones included
-        std::vector<struct steppewm_view*> views;
-        struct steppewm_view* view;
-        wl_list_for_each(view, &server->views, link) {
-            if (view->mapped && view->workspace == server->current_workspace) {
-                views.push_back(view);
+        std::vector<view*> views;
+        view* v;
+        wl_list_for_each(v, &s->views, link) {
+            if (v->mapped && v->workspace == s->current_workspace) {
+                views.push_back(v);
             }
         }
         if (views.empty()) {
             return;
         }
-        sw = new steppewm_switcher(server, std::move(views), mods);
+        sw = new switcher(s, std::move(views), mods);
     }
 
     // otherwise advance
@@ -176,34 +177,33 @@ void steppewm_switcher::cycle(struct steppewm_server* server, uint32_t mods, boo
 }
 
 // commits once the cycle's modifiers are released
-void steppewm_switcher::handle_modifiers(struct steppewm_server* server, uint32_t mods) {
-    steppewm_switcher* sw = server->switcher;
+void switcher::handle_modifiers(server* s, uint32_t mods) {
+    switcher* sw = s->sw;
     if (!sw || (mods & sw->mods_) != 0) {
         return;
     }
 
-    struct steppewm_view* view = sw->views_[sw->selected_];
+    view* v = sw->views_[sw->selected_];
 
     delete sw;
 
-    view_focus(view, view->toplevel->base->surface);
+    v->focus(v->toplevel->base->surface);
 }
 
-void steppewm_switcher::cancel(const struct steppewm_server* server) {
-    delete server->switcher;
+void switcher::cancel(const server* s) {
+    delete s->sw;
 }
 
 // called when a view is removed mid-cycle
-void steppewm_switcher::view_removed(const struct steppewm_server* server,
-                                     const struct steppewm_view* view) {
-    steppewm_switcher* sw = server->switcher;
+void switcher::view_removed(const server* s, const view* v) {
+    switcher* sw = s->sw;
     if (!sw) {
         return;
     }
 
     for (size_t i = 0; i < sw->views_.size(); i++) {
         // if it's not the one we want to remove
-        if (sw->views_[i] != view) {
+        if (sw->views_[i] != v) {
             continue;
         }
 

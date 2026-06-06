@@ -23,12 +23,14 @@
 #include "taskbar.h"
 #include "view.h"
 
+using namespace steppewm;
+
 // called on output frame events
 static void output_frame(struct wl_listener *listener, void *data) {
     (void) data;
-    struct steppewm_output *output = wl_container_of(listener, output, frame);
+    output* out = wl_container_of(listener, out, frame);
     struct wlr_scene_output *scene_output =
-        wlr_scene_get_scene_output(output->server->scene, output->wlr_output);
+        wlr_scene_get_scene_output(out->srv->scene, out->wlr_output);
 
     wlr_scene_output_commit(scene_output, nullptr);
 
@@ -38,88 +40,88 @@ static void output_frame(struct wl_listener *listener, void *data) {
 }
 
 static void output_request_state(struct wl_listener *listener, void *data) {
-    struct steppewm_output *output = wl_container_of(listener, output, request_state);
+    output* out = wl_container_of(listener, out, request_state);
     const struct wlr_output_event_request_state* event =
         static_cast<const struct wlr_output_event_request_state*>(data);
-    wlr_output_commit_state(output->wlr_output, event->state);
+    wlr_output_commit_state(out->wlr_output, event->state);
 }
 
 // clean up output
 static void output_destroy(struct wl_listener *listener, void *data) {
     (void) data;
-    struct steppewm_output *output = wl_container_of(listener, output, destroy);
+    output* out = wl_container_of(listener, out, destroy);
 
     // remove taskbar for listener (output)
-    if (output->taskbar) {
-        taskbar_destroy(output->taskbar);
-        output->taskbar = nullptr;
+    if (out->taskbar) {
+        delete out->taskbar;
+        out->taskbar = nullptr;
     }
 
     // destroy layer surfaces (sends closed to clients)
-    struct steppewm_layer_surface *ls, *tmp;
-    wl_list_for_each_safe(ls, tmp, &output->layer_surfaces, link) {
+    layer_surface *ls, *tmp;
+    wl_list_for_each_safe(ls, tmp, &out->layer_surfaces, link) {
         wlr_layer_surface_v1_destroy(ls->wlr_layer_surface);
     }
 
     // destroy layer trees
     for (int i = 0; i < 4; i++) {
-        if (output->layer_trees[i]) {
-            wlr_scene_node_destroy(&output->layer_trees[i]->node);
-            output->layer_trees[i] = nullptr;
+        if (out->layer_trees[i]) {
+            wlr_scene_node_destroy(&out->layer_trees[i]->node);
+            out->layer_trees[i] = nullptr;
         }
     }
 
-    wl_list_remove(&output->frame.link);
-    wl_list_remove(&output->request_state.link);
-    wl_list_remove(&output->destroy.link);
-    wl_list_remove(&output->link);
-    delete output;
+    wl_list_remove(&out->frame.link);
+    wl_list_remove(&out->request_state.link);
+    wl_list_remove(&out->destroy.link);
+    wl_list_remove(&out->link);
+    delete out;
 }
 
 // update geometry of taskbar and layer surfaces for each output
 static void output_layout_change(struct wl_listener *listener, void *data) {
     (void) data;
-    struct steppewm_server *server = wl_container_of(listener, server, output_layout_change);
-    struct steppewm_output *output;
-    wl_list_for_each(output, &server->outputs, link) {
+    server* s = wl_container_of(listener, s, output_layout_change);
+    output* out;
+    wl_list_for_each(out, &s->outputs, link) {
         struct wlr_box box;
-        wlr_output_layout_get_box(server->output_layout, output->wlr_output, &box);
+        wlr_output_layout_get_box(s->output_layout, out->wlr_output, &box);
         if (box.width <= 0) {
             continue;
         }
 
         // reposition layer trees to the output's new global origin
         for (int i = 0; i < 4; i++) {
-            if (output->layer_trees[i]) {
-                wlr_scene_node_set_position(&output->layer_trees[i]->node, box.x, box.y);
+            if (out->layer_trees[i]) {
+                wlr_scene_node_set_position(&out->layer_trees[i]->node, box.x, box.y);
             }
         }
 
         // reconfigure layer surfaces with new dimensions
-        struct steppewm_layer_surface *ls;
-        wl_list_for_each(ls, &output->layer_surfaces, link) {
-            layer_surface_configure(ls);
+        layer_surface* ls;
+        wl_list_for_each(ls, &out->layer_surfaces, link) {
+            ls->configure();
         }
 
-        if (output->taskbar) {
-            taskbar_update_geometry(output->taskbar);
-            taskbar_raise(output->taskbar);
+        if (out->taskbar) {
+            out->taskbar->update_geometry();
+            out->taskbar->raise();
         }
     }
 }
 
 // register a layout change
-void output_layout_change_register(struct steppewm_server *server) {
-    server->output_layout_change.notify = output_layout_change;
-    wl_signal_add(&server->output_layout->events.change, &server->output_layout_change);
+void output::register_layout_change(server* s) {
+    s->output_layout_change.notify = output_layout_change;
+    wl_signal_add(&s->output_layout->events.change, &s->output_layout_change);
 }
 
 // add new output and set it up
-void output_new(struct wl_listener *listener, void *data) {
-    struct steppewm_server *server = wl_container_of(listener, server, new_output);
+void output::on_new(struct wl_listener* listener, void* data) {
+    server* s = wl_container_of(listener, s, new_output);
     struct wlr_output* wlr_output = static_cast<struct wlr_output*>(data);
 
-    wlr_output_init_render(wlr_output, server->allocator, server->renderer);
+    wlr_output_init_render(wlr_output, s->allocator, s->renderer);
 
     struct wlr_output_state state;
     wlr_output_state_init(&state);
@@ -132,37 +134,37 @@ void output_new(struct wl_listener *listener, void *data) {
     wlr_output_commit_state(wlr_output, &state);
     wlr_output_state_finish(&state);
 
-    struct steppewm_output* output = new steppewm_output();
-    output->server = server;
-    output->wlr_output = wlr_output;
-    wl_list_init(&output->layer_surfaces);
+    auto* out = new output();
+    out->srv = s;
+    out->wlr_output = wlr_output;
+    wl_list_init(&out->layer_surfaces);
 
-    output->frame.notify = output_frame;
-    wl_signal_add(&wlr_output->events.frame, &output->frame);
+    out->frame.notify = output_frame;
+    wl_signal_add(&wlr_output->events.frame, &out->frame);
 
-    output->request_state.notify = output_request_state;
-    wl_signal_add(&wlr_output->events.request_state, &output->request_state);
+    out->request_state.notify = output_request_state;
+    wl_signal_add(&wlr_output->events.request_state, &out->request_state);
 
-    output->destroy.notify = output_destroy;
-    wl_signal_add(&wlr_output->events.destroy, &output->destroy);
+    out->destroy.notify = output_destroy;
+    wl_signal_add(&wlr_output->events.destroy, &out->destroy);
 
-    wl_list_insert(&server->outputs, &output->link);
+    wl_list_insert(&s->outputs, &out->link);
 
     // create taskbar before add_auto
     // taskbar must exist before then to be psoitioned correctly
-    bool is_primary = wl_list_length(&server->outputs) == 1;
-    if (is_primary || server->config.taskbar_all_outputs) {
-        output->taskbar = taskbar_create(server, wlr_output);
-        struct steppewm_view *view;
-        wl_list_for_each(view, &server->views, link) {
-            taskbar_view_added(output->taskbar, view);
+    bool is_primary = wl_list_length(&s->outputs) == 1;
+    if (is_primary || s->cfg.taskbar_all_outputs) {
+        out->taskbar = new steppewm::taskbar(s, wlr_output);
+        view* v;
+        wl_list_for_each(v, &s->views, link) {
+            out->taskbar->view_added(v);
         }
     }
 
     struct wlr_output_layout_output *layout_output =
-        wlr_output_layout_add_auto(server->output_layout, wlr_output);
-    output->scene_output = wlr_scene_output_create(server->scene, wlr_output);
-    wlr_scene_output_layout_add_output(server->scene_layout, layout_output, output->scene_output);
+        wlr_output_layout_add_auto(s->output_layout, wlr_output);
+    out->scene_output = wlr_scene_output_create(s->scene, wlr_output);
+    wlr_scene_output_layout_add_output(s->scene_layout, layout_output, out->scene_output);
 
     wlr_log(WLR_INFO, "new output: %s", wlr_output->name);
 }
