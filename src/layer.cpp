@@ -13,13 +13,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <stdlib.h>
-
-#include <wlr/types/wlr_layer_shell_v1.h>
-#include <wlr/types/wlr_output_layout.h>
-#include <wlr/types/wlr_scene.h>
-#include <wlr/types/wlr_seat.h>
-#include <wlr/util/log.h>
+#include "wlr.h" // must be first
 
 #include "layer.h"
 #include "output.h"
@@ -98,13 +92,13 @@ static void layer_destroy(struct wl_listener *listener, void *data) {
     wl_list_remove(&ls->commit.link);
     wl_list_remove(&ls->destroy.link);
     wl_list_remove(&ls->link);
-    free(ls);
+    delete ls;
 }
 
 // create new steppewm_layer_surface
 void layer_surface_new(struct wl_listener *listener, void *data) {
     struct steppewm_server *server = wl_container_of(listener, server, new_layer_surface);
-    struct wlr_layer_surface_v1 *wlr_ls = data;
+    struct wlr_layer_surface_v1* wlr_ls = static_cast<struct wlr_layer_surface_v1*>(data);
 
     // assign an output if the client didn't request a specific one
     if (!wlr_ls->output) {
@@ -172,7 +166,7 @@ void layer_surface_new(struct wl_listener *listener, void *data) {
     }
 
     // allocate memory for this layer surface
-    struct steppewm_layer_surface *ls = calloc(1, sizeof(*ls));
+    auto* ls = new steppewm_layer_surface();
     ls->output = output;
     ls->wlr_layer_surface = wlr_ls;
     wlr_ls->data = ls;

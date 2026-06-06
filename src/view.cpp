@@ -19,6 +19,7 @@
 #include "input.h"
 #include "output.h"
 #include "server.h"
+#include "switcher.h"
 #include "taskbar.h"
 #include "view.h"
 
@@ -79,6 +80,8 @@ void workspace_switch(struct steppewm_server *server, int workspace) {
     }
     server->current_workspace = workspace;
 
+    steppewm_switcher::cancel(server);
+
     // toggle visibility of every window for the new workspace
     struct steppewm_view *view;
     wl_list_for_each(view, &server->views, link) {
@@ -110,6 +113,9 @@ void view_move_to_workspace(struct steppewm_view *view, int workspace) {
     }
     view->workspace = workspace;
     view_update_visibility(view);
+
+    // the window left the current workspace
+    steppewm_switcher::view_removed(view->server, view);
 
     // the window left the current workspace, hand focus to a remaining one
     view_focus_next(view->server, view);
@@ -284,6 +290,8 @@ static void view_unmap(struct steppewm_view* view) {
     wl_list_init(&view->link);
     wlr_scene_node_set_enabled(&view->scene_tree->node, false);
 
+    steppewm_switcher::view_removed(view->server, view);
+
     // remove view from all taskbars
     struct steppewm_output *out2;
     // update for each output's taskbar
@@ -342,8 +350,6 @@ static void view_destroy(struct steppewm_view* view) {
     // set properties
     view->toplevel->base->data = nullptr;
 
-    // the steppe::Listener members (incl. the deco ones) disconnect themselves
-    // when ~steppewm_view runs, so there is no hand-rolled teardown here
     deco_destroy(view);
     wlr_scene_node_destroy(&view->scene_tree->node);
     delete view;

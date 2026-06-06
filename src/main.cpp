@@ -13,27 +13,11 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
+#include "wlr.h" // must be first
 
-#include <wayland-server-core.h>
-#include <wlr/backend.h>
-#include <wlr/render/allocator.h>
-#include <wlr/render/wlr_renderer.h>
-#include <wlr/types/wlr_compositor.h>
-#include <wlr/types/wlr_cursor.h>
-#include <wlr/types/wlr_data_device.h>
-#include <wlr/types/wlr_output_layout.h>
-#include <wlr/types/wlr_primary_selection_v1.h>
-#include <wlr/types/wlr_scene.h>
-#include <wlr/types/wlr_screencopy_v1.h>
-#include <wlr/types/wlr_seat.h>
-#include <wlr/types/wlr_subcompositor.h>
-#include <wlr/types/wlr_xcursor_manager.h>
-#include <wlr/types/wlr_xdg_output_v1.h>
-#include <wlr/types/wlr_xdg_shell.h>
-#include <wlr/util/log.h>
+#include <cstdio>
+#include <cstdlib>
+#include <unistd.h>
 
 #include "config.h"
 #include "deco.h"
@@ -196,7 +180,7 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    struct steppewm_server server = {0};
+    struct steppewm_server server = {};
     config_defaults(&server.config);
 
     char config_path[512];

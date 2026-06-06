@@ -37,6 +37,7 @@
 
 struct steppewm_view;
 struct steppewm_layer_surface;
+class steppewm_switcher;
 
 enum steppewm_cursor_mode {
     STEPPEWM_CURSOR_PASSTHROUGH,
@@ -78,6 +79,9 @@ struct steppewm_server {
     // decorations
     struct wlr_xdg_decoration_manager_v1 *deco_manager;
     struct wl_listener new_deco;
+
+    // non-null only when visible
+    steppewm_switcher* switcher;
 
     // input
     struct wlr_seat *seat;

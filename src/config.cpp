@@ -13,17 +13,20 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <stdio.h>
-#include <string.h>
+#include "wlr.h" // must be first
+
+#include <cstdio>
+#include <cstring>
 #include <strings.h>
 #include <sys/types.h>
 #include <unistd.h>
 
+extern "C" {
 #include <lauxlib.h>
 #include <lua.h>
 #include <lualib.h>
+}
 
-#include <wlr/types/wlr_keyboard.h>
 #include <xkbcommon/xkbcommon.h>
 
 #include "config.h"
@@ -58,7 +61,7 @@ static uint32_t parse_modifiers(const char *str) {
 // queue command to be run
 static int lua_exec(lua_State *L) {
     lua_getfield(L, LUA_REGISTRYINDEX, "steppewm_cfg");
-    struct steppewm_config *cfg = lua_touserdata(L, -1);
+    struct steppewm_config* cfg = static_cast<struct steppewm_config*>(lua_touserdata(L, -1));
     lua_pop(L, 1);
 
     if (cfg->nexecs >= CFG_MAX_EXECS) {
@@ -73,7 +76,7 @@ static int lua_exec(lua_State *L) {
 // bind()
 static int lua_bind(lua_State *L) {
     lua_getfield(L, LUA_REGISTRYINDEX, "steppewm_cfg");
-    struct steppewm_config *cfg = lua_touserdata(L, -1);
+    struct steppewm_config* cfg = static_cast<struct steppewm_config*>(lua_touserdata(L, -1));
     lua_pop(L, 1);
 
     if (cfg->nbinds >= CFG_MAX_BINDS) {
@@ -322,7 +325,7 @@ void config_run_execs(struct steppewm_config *cfg) {
         pid_t pid = fork();
         if (pid == 0) {
             setsid();
-            execl("/bin/sh", "sh", "-c", cfg->execs[i], NULL);
+            execl("/bin/sh", "sh", "-c", cfg->execs[i], static_cast<char*>(nullptr));
             _exit(1);
         }
     }

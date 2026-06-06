@@ -22,8 +22,6 @@ extern "C" {
 #include <wayland-server-core.h>
 }
 
-namespace steppe {
-
 // raii wrapper around wl listeners
 class Listener {
   public:
@@ -76,4 +74,3 @@ class Listener {
     std::function<void(void*)>* handler_;
 };
 
-} // namespace steppe

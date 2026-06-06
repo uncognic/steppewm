@@ -44,7 +44,7 @@ struct steppewm_task_button {
     struct steppewm_taskbar* bar;
     struct steppewm_view* view;
     struct wlr_scene_buffer* label;
-    steppe::Listener title_changed;
+    Listener title_changed;
 };
 
 struct steppewm_taskbar {

@@ -1,0 +1,227 @@
+/*
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
+#include "wlr.h"
+
+#include <vector>
+
+#include <cairo/cairo.h>
+
+#include "output.h"
+#include "paint.h"
+#include "server.h"
+#include "switcher.h"
+#include "view.h"
+
+#define SWITCHER_W 400
+#define SWITCHER_ROW_H 30
+#define SWITCHER_PAD 3
+
+steppewm_switcher::steppewm_switcher(struct steppewm_server* server,
+                                     std::vector<struct steppewm_view*> views, const uint32_t mods)
+    : server_(server), views_(std::move(views)), mods_(mods) {
+    tree_ = wlr_scene_tree_create(&server->scene->tree);
+    panel_ = wlr_scene_buffer_create(tree_, nullptr);
+    wlr_scene_node_raise_to_top(&tree_->node);
+    server->switcher = this;
+}
+
+steppewm_switcher::~steppewm_switcher() {
+    wlr_scene_node_destroy(&tree_->node);
+    server_->switcher = nullptr;
+}
+
+// pick the output under the cursor, falling back to the first output
+struct wlr_output* steppewm_switcher::pick_output() const {
+    struct wlr_output* output =
+        wlr_output_layout_output_at(server_->output_layout, server_->cursor->x, server_->cursor->y);
+    if (!output) {
+        struct steppewm_output* o;
+        wl_list_for_each(o, &server_->outputs, link) {
+            output = o->wlr_output;
+            break;
+        }
+    }
+    return output;
+}
+
+// render the switcher and center it on the output
+void steppewm_switcher::render() const {
+    struct wlr_output* output = pick_output();
+    if (!output) {
+        return;
+    }
+
+    struct wlr_box ob;
+    wlr_output_layout_get_box(server_->output_layout, output, &ob);
+
+    const int n = static_cast<int>(views_.size());
+
+    // make sure it's not wider than the screen
+    int w = SWITCHER_W;
+    if (w > ob.width - 2 * SWITCHER_PAD) {
+        w = ob.width - 2 * SWITCHER_PAD;
+    }
+
+    // make sure height is not zero
+    const int h = n * SWITCHER_ROW_H + (n + 1) * SWITCHER_PAD;
+    if (w <= 0 || h <= 0) {
+        return;
+    }
+
+    paint::Canvas canvas(w, h);
+    if (!canvas.valid()) {
+        return;
+    }
+    cairo_t* cr = canvas.cr();
+
+    struct steppewm_config* cfg = &server_->config;
+    float* bg = cfg->color_taskbar_bg;
+    cairo_set_source_rgba(cr, bg[0], bg[1], bg[2], bg[3]);
+    cairo_paint(cr);
+
+    double font_size = SWITCHER_ROW_H * 0.55;
+
+    // draw each window's row
+    for (int i = 0; i < n; i++) {
+        // row y height
+        int row_y = SWITCHER_PAD + i * (SWITCHER_ROW_H + SWITCHER_PAD);
+
+        // highlight the selected row like an active taskbar button
+        float* row_bg = (size_t) i == selected_ ? cfg->color_task_active : cfg->color_task_normal;
+        cairo_set_source_rgba(cr, row_bg[0], row_bg[1], row_bg[2], row_bg[3]);
+        cairo_rectangle(cr, SWITCHER_PAD, row_y, w - 2 * SWITCHER_PAD, SWITCHER_ROW_H);
+        cairo_fill(cr);
+
+        const char* title = views_[i]->toplevel->title ? views_[i]->toplevel->title : "";
+        if (!title[0]) {
+            continue;
+        }
+
+        // clip so long titles stay inside their row
+        cairo_save(cr);
+        cairo_rectangle(cr, SWITCHER_PAD, row_y, w - 2 * SWITCHER_PAD, SWITCHER_ROW_H);
+        cairo_clip(cr);
+
+        cairo_select_font_face(cr, "sans-serif", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
+        cairo_set_font_size(cr, font_size);
+        float* fg = cfg->color_task_text;
+        cairo_set_source_rgba(cr, fg[0], fg[1], fg[2], fg[3]);
+
+        cairo_text_extents_t ext;
+        cairo_text_extents(cr, title, &ext);
+
+        // center title horizontally in the switcher
+        double tx = (w - ext.width) / 2.0 - ext.x_bearing;
+
+        // prevent it from touching the edge
+        if (tx < SWITCHER_PAD + 4.0) {
+            tx = SWITCHER_PAD + 4.0;
+        }
+
+        // center title vertically
+        double ty = row_y + SWITCHER_ROW_H / 2.0 - ext.y_bearing - ext.height / 2.0;
+        cairo_move_to(cr, tx, ty);
+        cairo_show_text(cr, title);
+        cairo_restore(cr);
+    }
+
+    canvas.commit(panel_);
+
+    wlr_scene_node_set_position(&tree_->node, ob.x + (ob.width - w) / 2,
+                                ob.y + (ob.height - h) / 2);
+}
+
+// move the highlight one step through the snapshot
+void steppewm_switcher::advance(bool backwards) {
+    size_t count = views_.size();
+    selected_ = backwards ? (selected_ + count - 1) % count : (selected_ + 1) % count;
+    render();
+}
+
+// open the overlay on the first press, then step the highlight on each repeat
+void steppewm_switcher::cycle(struct steppewm_server* server, uint32_t mods, bool backwards) {
+    steppewm_switcher* sw = server->switcher;
+
+    // if this is the first press
+    if (!sw) {
+        // get the windows on this workspace, minimized ones included
+        std::vector<struct steppewm_view*> views;
+        struct steppewm_view* view;
+        wl_list_for_each(view, &server->views, link) {
+            if (view->mapped && view->workspace == server->current_workspace) {
+                views.push_back(view);
+            }
+        }
+        if (views.empty()) {
+            return;
+        }
+        sw = new steppewm_switcher(server, std::move(views), mods);
+    }
+
+    // otherwise advance
+    sw->advance(backwards);
+}
+
+// commits once the cycle's modifiers are released
+void steppewm_switcher::handle_modifiers(struct steppewm_server* server, uint32_t mods) {
+    steppewm_switcher* sw = server->switcher;
+    if (!sw || (mods & sw->mods_) != 0) {
+        return;
+    }
+
+    struct steppewm_view* view = sw->views_[sw->selected_];
+
+    delete sw;
+
+    view_focus(view, view->toplevel->base->surface);
+}
+
+void steppewm_switcher::cancel(const struct steppewm_server* server) {
+    delete server->switcher;
+}
+
+// called when a view is removed mid-cycle
+void steppewm_switcher::view_removed(const struct steppewm_server* server,
+                                     const struct steppewm_view* view) {
+    steppewm_switcher* sw = server->switcher;
+    if (!sw) {
+        return;
+    }
+
+    for (size_t i = 0; i < sw->views_.size(); i++) {
+        // if it's not the one we want to remove
+        if (sw->views_[i] != view) {
+            continue;
+        }
+
+        sw->views_.erase(sw->views_.begin() + static_cast<long>(i));
+
+        // if that was the last window
+        if (sw->views_.empty()) {
+            delete sw;
+            return;
+        }
+
+        // keep the highlight on the same window where possible
+        if (sw->selected_ > i) {
+            sw->selected_--;
+        } else if (sw->selected_ >= sw->views_.size()) {
+            sw->selected_ = sw->views_.size() - 1;
+        }
+        sw->render();
+        return;
+    }
+}

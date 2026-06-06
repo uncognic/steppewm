@@ -29,6 +29,7 @@
 #include "input.h"
 #include "output.h"
 #include "server.h"
+#include "switcher.h"
 #include "taskbar.h"
 #include "view.h"
 
@@ -70,20 +71,14 @@ static struct steppewm_view *focused_view(struct steppewm_server *server) {
     return static_cast<struct steppewm_view*>(xdg->toplevel->base->data);
 }
 
-static void dispatch_action(struct steppewm_server *server, const char *action, const char *arg) {
+static void dispatch_action(struct steppewm_server* server, const char* action, const char* arg,
+                            uint32_t mods) {
     if (strcmp(action, "quit") == 0) {
         wl_display_terminate(server->display);
     } else if (strcmp(action, "focus_next") == 0) {
-        struct steppewm_view *v, *next = nullptr;
-        wl_list_for_each_reverse(v, &server->views, link) {
-            if (v->mapped && v->workspace == server->current_workspace) {
-                next = v;
-                break;
-            }
-        }
-        if (next) {
-            view_focus(next, next->toplevel->base->surface);
-        }
+        steppewm_switcher::cycle(server, mods, false);
+    } else if (strcmp(action, "focus_prev") == 0) {
+        steppewm_switcher::cycle(server, mods, true);
     } else if (strcmp(action, "spawn") == 0) {
         if (arg && arg[0]) {
             spawn(arg);
@@ -121,7 +116,7 @@ static bool handle_keybinding(struct steppewm_server *server, uint32_t mods, xkb
     for (int i = 0; i < server->config.nbinds; i++) {
         struct steppewm_keybind *b = &server->config.binds[i];
         if (b->modifiers == mods && b->sym == lower) {
-            dispatch_action(server, b->action, b->arg);
+            dispatch_action(server, b->action, b->arg, b->modifiers);
             return true;
         }
     }
@@ -139,6 +134,9 @@ static void keyboard_modifiers(struct wl_listener *listener, void *data) {
 
     // send modifier
     wlr_seat_keyboard_notify_modifiers(keyboard->server->seat, &keyboard->wlr_keyboard->modifiers);
+
+    steppewm_switcher::handle_modifiers(keyboard->server,
+                                        wlr_keyboard_get_modifiers(keyboard->wlr_keyboard));
 
     uint32_t group = keyboard->wlr_keyboard->modifiers.group;
     if (group != keyboard->server->layout_group) {
@@ -177,6 +175,15 @@ static void keyboard_key(struct wl_listener *listener, void *data) {
                 if (server->session) {
                     wlr_session_change_vt(server->session, syms[i] - XKB_KEY_XF86Switch_VT_1 + 1);
                 }
+                handled = true;
+            }
+        }
+    }
+    // escape cancels an alt tab without changing focus
+    if (!handled && event->state == WL_KEYBOARD_KEY_STATE_PRESSED && server->switcher) {
+        for (int i = 0; i < nsyms; i++) {
+            if (syms[i] == XKB_KEY_Escape) {
+                steppewm_switcher::cancel(server);
                 handled = true;
             }
         }

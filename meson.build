@@ -39,15 +39,16 @@ foreach xml : protocols
 endforeach
 
 sources = files(
-  'src/main.c',
-  'src/config.c',
+  'src/main.cpp',
+  'src/config.cpp',
   'src/output.cpp',
   'src/view.cpp',
   'src/input.cpp',
   'src/deco.cpp',
   'src/taskbar.cpp',
+  'src/switcher.cpp',
   'src/paint.cpp',
-  'src/layer.c',
+  'src/layer.cpp',
 )
 
 executable('steppewm',

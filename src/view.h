@@ -74,9 +74,9 @@ enum steppewm_deco_mode {
 struct steppewm_popup {
     struct wlr_xdg_popup *popup;
     bool unconstrained;
-    steppe::Listener commit;
-    steppe::Listener reposition;
-    steppe::Listener destroy;
+    Listener commit;
+    Listener reposition;
+    Listener destroy;
 };
 
 // a window
@@ -90,8 +90,8 @@ struct steppewm_view {
     struct steppewm_deco deco; // the decoration
     struct wlr_xdg_toplevel_decoration_v1 *decoration;
     struct wlr_xdg_toplevel_decoration_v1 *pending_deco; // applied once configure events are legal
-    steppe::Listener request_deco_mode;                  // for xdg-decoration request_mode
-    steppe::Listener destroy_deco;
+    Listener request_deco_mode;                          // for xdg-decoration request_mode
+    Listener destroy_deco;
     struct wl_event_source *initial_configure_idle;
 
     bool maximized;
@@ -103,16 +103,16 @@ struct steppewm_view {
 
     struct wl_list link;
 
-    steppe::Listener map;
-    steppe::Listener unmap;
-    steppe::Listener commit;
-    steppe::Listener destroy;
-    steppe::Listener request_move;
-    steppe::Listener request_resize;
-    steppe::Listener request_maximize;
-    steppe::Listener request_fullscreen;
-    steppe::Listener request_minimize;
-    steppe::Listener title_changed;
+    Listener map;
+    Listener unmap;
+    Listener commit;
+    Listener destroy;
+    Listener request_move;
+    Listener request_resize;
+    Listener request_maximize;
+    Listener request_fullscreen;
+    Listener request_minimize;
+    Listener title_changed;
 };
 
 #endif // __cplusplus
