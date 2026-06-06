@@ -22,6 +22,7 @@
 #define CFG_MAX_ARG 512
 #define CFG_MAX_EXECS 64
 #define CFG_MAX_CMD 512
+#define CFG_MAX_OUTPUT_CFGS 16
 
 namespace steppewm {
 
@@ -34,6 +35,17 @@ struct keybind {
     char arg[CFG_MAX_ARG];
 };
 
+struct output_config {
+    char name[64];
+    int width, height; // 0 = use preferred mode
+    int refresh_mhz;   // 0 = highest refresh at WxH
+    bool has_position;
+    int x, y;
+    float scale;   // 0 = unset
+    int transform; // -1 = unset
+    bool enabled;
+};
+
 class config {
   public:
     keybind binds[CFG_MAX_BINDS];
@@ -41,6 +53,9 @@ class config {
 
     char execs[CFG_MAX_EXECS][CFG_MAX_CMD];
     int nexecs;
+
+    output_config output_cfgs[CFG_MAX_OUTPUT_CFGS];
+    int noutput_cfgs;
 
     // keyboard
     char xkb_layout[64];
@@ -87,6 +102,7 @@ class config {
     void set_defaults();
     bool load(const char* path);
     void run_execs();
+    const output_config* find_output(const char* name) const;
 };
 
 struct server;

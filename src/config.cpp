@@ -27,6 +27,7 @@ extern "C" {
 #include <lualib.h>
 }
 
+#include <wayland-server-protocol.h>
 #include <xkbcommon/xkbcommon.h>
 
 #include "config.h"
@@ -38,13 +39,13 @@ extern "C" {
 
 using namespace steppewm;
 
-static uint32_t parse_modifiers(const char *str) {
+static uint32_t parse_modifiers(const char* str) {
     uint32_t mods = 0;
     char buf[64];
     strncpy(buf, str, sizeof(buf) - 1);
     buf[sizeof(buf) - 1] = '\0';
-    char *saveptr;
-    char *tok = strtok_r(buf, "+", &saveptr);
+    char* saveptr;
+    char* tok = strtok_r(buf, "+", &saveptr);
     while (tok) {
         if (strcasecmp(tok, "alt") == 0) {
             mods |= WLR_MODIFIER_ALT;
@@ -61,7 +62,7 @@ static uint32_t parse_modifiers(const char *str) {
 }
 
 // queue command to be run
-static int lua_exec(lua_State *L) {
+static int lua_exec(lua_State* L) {
     lua_getfield(L, LUA_REGISTRYINDEX, "steppewm_cfg");
     auto* cfg = static_cast<config*>(lua_touserdata(L, -1));
     lua_pop(L, 1);
@@ -70,13 +71,13 @@ static int lua_exec(lua_State *L) {
         return luaL_error(L, "too many exec() calls (max %d)", CFG_MAX_EXECS);
     }
 
-    const char *cmd = luaL_checkstring(L, 1);
+    const char* cmd = luaL_checkstring(L, 1);
     strncpy(cfg->execs[cfg->nexecs++], cmd, CFG_MAX_CMD - 1);
     return 0;
 }
 
 // bind()
-static int lua_bind(lua_State *L) {
+static int lua_bind(lua_State* L) {
     lua_getfield(L, LUA_REGISTRYINDEX, "steppewm_cfg");
     auto* cfg = static_cast<config*>(lua_touserdata(L, -1));
     lua_pop(L, 1);
@@ -85,9 +86,9 @@ static int lua_bind(lua_State *L) {
         return luaL_error(L, "too many keybindings (max %d)", CFG_MAX_BINDS);
     }
 
-    const char *mods_str = luaL_checkstring(L, 1);
-    const char *key_str = luaL_checkstring(L, 2);
-    const char *action = luaL_checkstring(L, 3);
+    const char* mods_str = luaL_checkstring(L, 1);
+    const char* key_str = luaL_checkstring(L, 2);
+    const char* action = luaL_checkstring(L, 3);
 
     xkb_keysym_t sym = xkb_keysym_from_name(key_str, XKB_KEYSYM_CASE_INSENSITIVE);
     if (sym == XKB_KEY_NoSymbol) {
@@ -106,7 +107,116 @@ static int lua_bind(lua_State *L) {
     return 0;
 }
 
-static void read_color(lua_State *L, const char *name, float out[4]) {
+static int parse_transform(const char* str) {
+    if (strcasecmp(str, "normal") == 0 || strcmp(str, "0") == 0) {
+        return WL_OUTPUT_TRANSFORM_NORMAL;
+    }
+    if (strcmp(str, "90") == 0) {
+        return WL_OUTPUT_TRANSFORM_90;
+    }
+    if (strcmp(str, "180") == 0) {
+        return WL_OUTPUT_TRANSFORM_180;
+    }
+    if (strcmp(str, "270") == 0) {
+        return WL_OUTPUT_TRANSFORM_270;
+    }
+    if (strcasecmp(str, "flipped") == 0) {
+        return WL_OUTPUT_TRANSFORM_FLIPPED;
+    }
+    if (strcasecmp(str, "flipped-90") == 0) {
+        return WL_OUTPUT_TRANSFORM_FLIPPED_90;
+    }
+    if (strcasecmp(str, "flipped-180") == 0) {
+        return WL_OUTPUT_TRANSFORM_FLIPPED_180;
+    }
+    if (strcasecmp(str, "flipped-270") == 0) {
+        return WL_OUTPUT_TRANSFORM_FLIPPED_270;
+    }
+    return -1;
+}
+
+static int lua_output(lua_State* L) {
+    lua_getfield(L, LUA_REGISTRYINDEX, "steppewm_cfg");
+    auto* cfg = static_cast<config*>(lua_touserdata(L, -1));
+    lua_pop(L, 1);
+
+    const char* name = luaL_checkstring(L, 1);
+    luaL_checktype(L, 2, LUA_TTABLE);
+
+    // reuse the slot if this output was already configured
+    output_config* oc = nullptr;
+    for (int i = 0; i < cfg->noutput_cfgs; i++) {
+        if (strcmp(cfg->output_cfgs[i].name, name) == 0) {
+            oc = &cfg->output_cfgs[i];
+            break;
+        }
+    }
+    if (!oc) {
+        if (cfg->noutput_cfgs >= CFG_MAX_OUTPUT_CFGS) {
+            return luaL_error(L, "too many output() calls (max %d)", CFG_MAX_OUTPUT_CFGS);
+        }
+        oc = &cfg->output_cfgs[cfg->noutput_cfgs++];
+        *oc = {};
+        oc->transform = -1;
+        oc->enabled = true;
+        strncpy(oc->name, name, sizeof(oc->name) - 1);
+    }
+
+    lua_getfield(L, 2, "mode");
+    if (lua_isstring(L, -1)) {
+        const char* mode = lua_tostring(L, -1);
+        float hz = 0.0f;
+        int n = sscanf(mode, "%dx%d@%f", &oc->width, &oc->height, &hz);
+        if (n < 2 || oc->width <= 0 || oc->height <= 0) {
+            return luaL_error(L, "output '%s': bad mode '%s' (want \"WxH\" or \"WxH@Hz\")", name,
+                              mode);
+        }
+        oc->refresh_mhz = static_cast<int>(hz * 1000.0f + 0.5f);
+    }
+    lua_pop(L, 1);
+
+    lua_getfield(L, 2, "position");
+    if (lua_istable(L, -1)) {
+        lua_rawgeti(L, -1, 1);
+        lua_rawgeti(L, -2, 2);
+        if (!lua_isnumber(L, -2) || !lua_isnumber(L, -1)) {
+            return luaL_error(L, "output '%s': position must be {x, y}", name);
+        }
+        oc->x = static_cast<int>(lua_tointeger(L, -2));
+        oc->y = static_cast<int>(lua_tointeger(L, -1));
+        oc->has_position = true;
+        lua_pop(L, 2);
+    }
+    lua_pop(L, 1);
+
+    lua_getfield(L, 2, "scale");
+    if (lua_isnumber(L, -1)) {
+        oc->scale = static_cast<float>(lua_tonumber(L, -1));
+        if (oc->scale <= 0.0f) {
+            return luaL_error(L, "output '%s': scale must be > 0", name);
+        }
+    }
+    lua_pop(L, 1);
+
+    lua_getfield(L, 2, "transform");
+    if (lua_isstring(L, -1)) {
+        oc->transform = parse_transform(lua_tostring(L, -1));
+        if (oc->transform < 0) {
+            return luaL_error(L, "output '%s': unknown transform '%s'", name, lua_tostring(L, -1));
+        }
+    }
+    lua_pop(L, 1);
+
+    lua_getfield(L, 2, "enabled");
+    if (lua_isboolean(L, -1)) {
+        oc->enabled = lua_toboolean(L, -1);
+    }
+    lua_pop(L, 1);
+
+    return 0;
+}
+
+static void read_color(lua_State* L, const char* name, float out[4]) {
     lua_getglobal(L, name);
     if (!lua_istable(L, -1)) {
         lua_pop(L, 1);
@@ -122,7 +232,7 @@ static void read_color(lua_State *L, const char *name, float out[4]) {
     lua_pop(L, 1);
 }
 
-static void read_bool(lua_State *L, const char *name, bool *out) {
+static void read_bool(lua_State* L, const char* name, bool* out) {
     lua_getglobal(L, name);
     if (lua_isboolean(L, -1)) {
         *out = lua_toboolean(L, -1);
@@ -130,7 +240,7 @@ static void read_bool(lua_State *L, const char *name, bool *out) {
     lua_pop(L, 1);
 }
 
-static void read_int(lua_State *L, const char *name, int *out) {
+static void read_int(lua_State* L, const char* name, int* out) {
     lua_getglobal(L, name);
     if (lua_isinteger(L, -1)) {
         *out = static_cast<int>(lua_tointeger(L, -1));
@@ -159,6 +269,7 @@ static void read_string(lua_State* L, const char* name, char* out, const size_t 
 
 void config::set_defaults() {
     nbinds = 0;
+    noutput_cfgs = 0;
 
     xkb_layout[0] = '\0';
     xkb_variant[0] = '\0';
@@ -259,7 +370,7 @@ bool config::load(const char* path) {
         return true;
     }
 
-    lua_State *L = luaL_newstate();
+    lua_State* L = luaL_newstate();
     if (!L) {
         return false;
     }
@@ -273,6 +384,9 @@ bool config::load(const char* path) {
 
     lua_pushcfunction(L, lua_bind);
     lua_setglobal(L, "bind");
+
+    lua_pushcfunction(L, lua_output);
+    lua_setglobal(L, "output");
 
     if (luaL_dofile(L, path) != LUA_OK) {
         fprintf(stderr, "steppewm: config error: %s\n", lua_tostring(L, -1));
@@ -322,6 +436,15 @@ bool config::load(const char* path) {
     return true;
 }
 
+const output_config* config::find_output(const char* name) const {
+    for (int i = 0; i < noutput_cfgs; i++) {
+        if (strcmp(output_cfgs[i].name, name) == 0) {
+            return &output_cfgs[i];
+        }
+    }
+    return nullptr;
+}
+
 void config::run_execs() {
     for (int i = 0; i < nexecs; i++) {
         if (pid_t pid = fork(); pid == 0) {
@@ -349,11 +472,6 @@ void steppewm::config_reload(server* s) {
     // re-apply decoration colors/sizes and content layout to open windows
     view::reconfigure_all(s);
 
-    // re-apply taskbar height/position and redraw with the new config
-    output* out;
-    wl_list_for_each(out, &s->outputs, link) {
-        if (out->taskbar) {
-            out->taskbar->update_geometry();
-        }
-    }
+    // re-apply output modes/positions and taskbar geometry
+    output::reconfigure_all(s);
 }

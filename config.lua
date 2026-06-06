@@ -25,9 +25,24 @@ end
 exec("swaybg -i ~/Pictures/Vallpapers/bolatbek-gabiden-dsL_tvf1Z-E-unsplash.jpg -m fill")
 -- exec("firefox")
 
+-- outputs, names match wlr output names (DP-1, HDMI-A-1, eDP-1)
+-- all fields are optional
+-- omit position for auto-placement
+-- output("eDP-1", {
+--     mode = "1920x1200@144Hz",-- "WxH" or "WxH@Hz"
+--     position = { 0, 0 },     -- layout coordinates
+--     scale = 1.0,             -- scaling
+--     transform = "normal",    -- "normal", "90", "180", "270", "flipped", "flipped-90", "flipped-180", "flipped-270"
+-- })
+-- output("HDMI-A-1", {
+--     mode = "1920x1080",
+--     position = { 1920, 0 },
+--     transform = "normal"
+-- })
+
 -- keyboard (xkb)
 -- keyboard_layout = "us,ru,ru,ca"        -- one entry per group
--- keyboard_variant = ",,phonetic,multix" -- positional: us=-, ru=-, ru=phonetic, ca=multix
+-- keyboard_variant = ",,phonetic,multix" -- positional: us=, ru=, ru=phonetic, ca=multix
 -- keyboard_options = "grp:alt_shift_toggle"
 -- repeat_rate = 25
 -- repeat_delay = 600
@@ -36,7 +51,7 @@ exec("swaybg -i ~/Pictures/Vallpapers/bolatbek-gabiden-dsL_tvf1Z-E-unsplash.jpg 
 -- tap_to_click = true
 -- natural_scroll = false
 -- pointer_accel = 0.0                    -- -1.0 (slow) .. 1.0 (fast)
--- accel_profile = "flat"                     -- "flat" or "adaptive"
+-- accel_profile = "flat"                 -- "flat" or "adaptive"
 
 -- colors {r, g, b, a}
 -- title_active = {0.24, 0.24, 0.24, 1.0}

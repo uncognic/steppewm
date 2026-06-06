@@ -44,8 +44,12 @@ class output {
     struct wl_listener request_state;
     struct wl_listener destroy;
 
+    void apply_config();
+    void create_taskbar();
+
     static void on_new(struct wl_listener* listener, void* data);
     static void register_layout_change(server* s);
+    static void reconfigure_all(server* s);
 };
 
 } // namespace steppewm

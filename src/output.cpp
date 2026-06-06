@@ -15,7 +15,8 @@
 
 #include "wlr.h" // must be first
 
-#include <time.h>
+#include <cstdlib>
+#include <ctime>
 
 #include "layer.h"
 #include "output.h"
@@ -26,11 +27,15 @@
 using namespace steppewm;
 
 // called on output frame events
-static void output_frame(struct wl_listener *listener, void *data) {
+static void output_frame(struct wl_listener* listener, void* data) {
     (void) data;
     output* out = wl_container_of(listener, out, frame);
-    struct wlr_scene_output *scene_output =
+    struct wlr_scene_output* scene_output =
         wlr_scene_get_scene_output(out->srv->scene, out->wlr_output);
+    if (!scene_output) {
+        // output is disabled by config and has no scene output
+        return;
+    }
 
     wlr_scene_output_commit(scene_output, nullptr);
 
@@ -39,15 +44,14 @@ static void output_frame(struct wl_listener *listener, void *data) {
     wlr_scene_output_send_frame_done(scene_output, &now);
 }
 
-static void output_request_state(struct wl_listener *listener, void *data) {
+static void output_request_state(struct wl_listener* listener, void* data) {
     output* out = wl_container_of(listener, out, request_state);
-    const struct wlr_output_event_request_state* event =
-        static_cast<const struct wlr_output_event_request_state*>(data);
+    const auto* event = static_cast<const struct wlr_output_event_request_state*>(data);
     wlr_output_commit_state(out->wlr_output, event->state);
 }
 
 // clean up output
-static void output_destroy(struct wl_listener *listener, void *data) {
+static void output_destroy(struct wl_listener* listener, void* data) {
     (void) data;
     output* out = wl_container_of(listener, out, destroy);
 
@@ -79,7 +83,7 @@ static void output_destroy(struct wl_listener *listener, void *data) {
 }
 
 // update geometry of taskbar and layer surfaces for each output
-static void output_layout_change(struct wl_listener *listener, void *data) {
+static void output_layout_change(struct wl_listener* listener, void* data) {
     (void) data;
     server* s = wl_container_of(listener, s, output_layout_change);
     output* out;
@@ -116,23 +120,179 @@ void output::register_layout_change(server* s) {
     wl_signal_add(&s->output_layout->events.change, &s->output_layout_change);
 }
 
+// pick the output mode best matching the configured width/height/refresh
+static struct wlr_output_mode* pick_mode(struct wlr_output* wlr_output, const output_config* oc) {
+    struct wlr_output_mode *mode, *best = nullptr;
+    wl_list_for_each(mode, &wlr_output->modes, link) {
+        if (mode->width != oc->width || mode->height != oc->height) {
+            continue;
+        }
+        if (!best) {
+            best = mode;
+        } else if (oc->refresh_mhz > 0) {
+            if (abs(mode->refresh - oc->refresh_mhz) < abs(best->refresh - oc->refresh_mhz)) {
+                best = mode;
+            }
+        } else if (mode->refresh > best->refresh) {
+            best = mode;
+        }
+    }
+    return best;
+}
+
+static bool any_taskbar(server* s) {
+    output* out;
+    wl_list_for_each(out, &s->outputs, link) {
+        if (out->taskbar) {
+            return true;
+        }
+    }
+    return false;
+}
+
+// create a taskbar on this output and populate it with the open views
+void output::create_taskbar() {
+    taskbar = new steppewm::taskbar(srv, wlr_output);
+    view* v;
+    wl_list_for_each(v, &srv->views, link) {
+        taskbar->view_added(v);
+    }
+}
+
+// apply the user's output() config
+void output::apply_config() {
+    server* s = srv;
+    const output_config* oc = s->cfg.find_output(wlr_output->name);
+
+    // enabled by default
+    const bool enable = !oc || oc->enabled;
+
+    wlr_output_state state{};
+    wlr_output_state_init(&state);
+    wlr_output_state_set_enabled(&state, enable);
+
+    if (enable) {
+        struct wlr_output_mode* mode = nullptr;
+
+        // find mode if a resolution was supplied
+        if (oc && oc->width > 0) {
+            mode = pick_mode(wlr_output, oc);
+            if (!mode) {
+                wlr_output_state_set_custom_mode(&state, oc->width, oc->height, oc->refresh_mhz);
+            }
+        } else {
+            mode = wlr_output_preferred_mode(wlr_output);
+        }
+        if (mode) {
+            wlr_output_state_set_mode(&state, mode);
+        }
+
+        // if a scale was set
+        if (oc && oc->scale > 0.0f) {
+            wlr_output_state_set_scale(&state, oc->scale);
+        }
+
+        // if a transform was set
+        if (oc && oc->transform >= 0) {
+            wlr_output_state_set_transform(&state, static_cast<wl_output_transform>(oc->transform));
+        }
+    }
+
+    // if output state commit fai;ls
+    if (!wlr_output_commit_state(wlr_output, &state) && enable) {
+        wlr_log(WLR_ERROR, "output %s: failed to commit configured state, using preferred mode",
+                wlr_output->name);
+
+        // fall back to the preferred mode
+        wlr_output_state_finish(&state);
+        wlr_output_state_init(&state);
+        wlr_output_state_set_enabled(&state, true);
+        if (wlr_output_mode* mode = wlr_output_preferred_mode(wlr_output)) {
+            wlr_output_state_set_mode(&state, mode);
+        }
+        wlr_output_commit_state(wlr_output, &state);
+    }
+    wlr_output_state_finish(&state);
+
+    if (!enable) {
+        if (taskbar) {
+            delete taskbar;
+            taskbar = nullptr;
+        }
+        for (const auto& layer_tree : layer_trees) {
+            if (layer_tree) {
+                wlr_scene_node_set_enabled(&layer_tree->node, false);
+            }
+        }
+
+        wlr_output_layout_remove(s->output_layout, wlr_output);
+        scene_output = nullptr;
+        return;
+    }
+
+    for (const auto& layer_tree : layer_trees) {
+        if (layer_tree) {
+            wlr_scene_node_set_enabled(&layer_tree->node, true);
+        }
+    }
+
+    wlr_output_layout_output* layout_output;
+
+    if (oc && oc->has_position) {
+        layout_output = wlr_output_layout_add(s->output_layout, wlr_output, oc->x, oc->y);
+    } else {
+        layout_output = wlr_output_layout_add_auto(s->output_layout, wlr_output);
+    }
+
+    if (!scene_output) {
+        scene_output = wlr_scene_output_create(s->scene, wlr_output);
+        wlr_scene_output_layout_add_output(s->scene_layout, layout_output, scene_output);
+    }
+}
+
+// re-apply output configuration to all outputs
+void output::reconfigure_all(server* s) {
+    output* out;
+    wl_list_for_each(out, &s->outputs, link) {
+        out->apply_config();
+    }
+
+    output* primary = nullptr;
+    wl_list_for_each_reverse(out, &s->outputs, link) {
+        if (!out->scene_output) {
+            continue;
+        }
+        if (!primary) {
+            primary = out;
+        }
+        if (out->taskbar) {
+            primary = out;
+            break;
+        }
+    }
+
+    wl_list_for_each(out, &s->outputs, link) {
+        bool needs_taskbar = out->scene_output && (s->cfg.taskbar_all_outputs || out == primary);
+        if (needs_taskbar && !out->taskbar) {
+            out->create_taskbar();
+        } else if (!needs_taskbar && out->taskbar) {
+            delete out->taskbar;
+            out->taskbar = nullptr;
+        }
+
+        if (out->taskbar) {
+            out->taskbar->update_geometry();
+            out->taskbar->raise();
+        }
+    }
+}
+
 // add new output and set it up
 void output::on_new(struct wl_listener* listener, void* data) {
     server* s = wl_container_of(listener, s, new_output);
     struct wlr_output* wlr_output = static_cast<struct wlr_output*>(data);
 
     wlr_output_init_render(wlr_output, s->allocator, s->renderer);
-
-    struct wlr_output_state state;
-    wlr_output_state_init(&state);
-    wlr_output_state_set_enabled(&state, true);
-
-    struct wlr_output_mode *mode = wlr_output_preferred_mode(wlr_output);
-    if (mode) {
-        wlr_output_state_set_mode(&state, mode);
-    }
-    wlr_output_commit_state(wlr_output, &state);
-    wlr_output_state_finish(&state);
 
     auto* out = new output();
     out->srv = s;
@@ -150,21 +310,21 @@ void output::on_new(struct wl_listener* listener, void* data) {
 
     wl_list_insert(&s->outputs, &out->link);
 
-    // create taskbar before add_auto
-    // taskbar must exist before then to be psoitioned correctly
-    bool is_primary = wl_list_length(&s->outputs) == 1;
-    if (is_primary || s->cfg.taskbar_all_outputs) {
-        out->taskbar = new steppewm::taskbar(s, wlr_output);
-        view* v;
-        wl_list_for_each(v, &s->views, link) {
-            out->taskbar->view_added(v);
-        }
+    // create taskbar before the output enters the layout
+    const output_config* oc = s->cfg.find_output(wlr_output->name);
+
+    bool enabled;
+    if (oc == nullptr) {
+        enabled = true;
+    } else {
+        enabled = oc->enabled;
     }
 
-    struct wlr_output_layout_output *layout_output =
-        wlr_output_layout_add_auto(s->output_layout, wlr_output);
-    out->scene_output = wlr_scene_output_create(s->scene, wlr_output);
-    wlr_scene_output_layout_add_output(s->scene_layout, layout_output, out->scene_output);
+    if (enabled && (s->cfg.taskbar_all_outputs || !any_taskbar(s))) {
+        out->create_taskbar();
+    }
+
+    out->apply_config();
 
     wlr_log(WLR_INFO, "new output: %s", wlr_output->name);
 }
