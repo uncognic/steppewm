@@ -66,6 +66,9 @@ static bool server_init(server* s) {
     // wp_viewporter protocol
     wlr_viewporter_create(s->display);
 
+    // wp_presentation protocol
+    wlr_presentation_create(s->display, s->backend, 2);
+
     // create output layout
     s->output_layout = wlr_output_layout_create(s->display);
     output::register_layout_change(s);
