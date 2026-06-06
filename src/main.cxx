@@ -72,6 +72,9 @@ static bool server_init(server* s) {
     // wp_fractional_scale protocol
     wlr_fractional_scale_manager_v1_create(s->display, 1);
 
+    // wp_single_pixel_buffer protocol
+    wlr_single_pixel_buffer_manager_v1_create(s->display);
+
     // create output layout
     s->output_layout = wlr_output_layout_create(s->display);
     output::register_layout_change(s);
@@ -133,6 +136,12 @@ static bool server_init(server* s) {
     wl_signal_add(&s->seat->events.request_set_selection, &s->request_set_selection);
     wl_signal_add(&s->seat->events.request_set_primary_selection,
                   &s->request_set_primary_selection);
+
+    // wp_cursor_shape protocol
+    struct wlr_cursor_shape_manager_v1* cursor_shape_mgr =
+        wlr_cursor_shape_manager_v1_create(s->display, 1);
+    s->request_set_shape.notify = request_set_shape;
+    wl_signal_add(&cursor_shape_mgr->events.request_set_shape, &s->request_set_shape);
 
     return true;
 }

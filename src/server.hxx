@@ -99,6 +99,7 @@ struct server {
     struct wl_listener cursor_axis;
     struct wl_listener cursor_frame;
     struct wl_listener request_set_cursor;
+    struct wl_listener request_set_shape;
     struct wl_listener request_set_selection;
     struct wl_listener request_set_primary_selection;
 

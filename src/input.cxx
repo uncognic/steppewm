@@ -652,8 +652,7 @@ void steppewm::cursor_frame(struct wl_listener* listener, void* data) {
 void steppewm::request_set_cursor(struct wl_listener* listener, void* data) {
     // get objects
     server* s = wl_container_of(listener, s, request_set_cursor);
-    struct wlr_seat_pointer_request_set_cursor_event* event =
-        static_cast<struct wlr_seat_pointer_request_set_cursor_event*>(data);
+    const auto* event = static_cast<struct wlr_seat_pointer_request_set_cursor_event*>(data);
 
     // only allow focused client to change cursor
     struct wlr_seat_client* focused_client = s->seat->pointer_state.focused_client;
@@ -663,12 +662,25 @@ void steppewm::request_set_cursor(struct wl_listener* listener, void* data) {
     }
 }
 
+// handle cursor shape requests from clients
+void steppewm::request_set_shape(struct wl_listener* listener, void* data) {
+    // get objects
+    server* s = wl_container_of(listener, s, request_set_shape);
+    auto* event = static_cast<struct wlr_cursor_shape_manager_v1_request_set_shape_event*>(data);
+
+    // only allow focused client to change cursor
+    struct wlr_seat_client* focused_client = s->seat->pointer_state.focused_client;
+    if (focused_client == event->seat_client) {
+        // load the named shape from the xcursor theme
+        wlr_cursor_set_xcursor(s->cursor, s->cursor_mgr, wlr_cursor_shape_v1_name(event->shape));
+    }
+}
+
 // handle clipboard / selection change requests from clients
 void steppewm::request_set_selection(struct wl_listener* listener, void* data) {
     // get objects
     server* s = wl_container_of(listener, s, request_set_selection);
-    struct wlr_seat_request_set_selection_event* event =
-        static_cast<struct wlr_seat_request_set_selection_event*>(data);
+    auto* event = static_cast<struct wlr_seat_request_set_selection_event*>(data);
 
     // update seat selection (clipboard)
     wlr_seat_set_selection(s->seat, event->source, event->serial);
@@ -677,7 +689,6 @@ void steppewm::request_set_selection(struct wl_listener* listener, void* data) {
 // handle primary selection requests from clients
 void steppewm::request_set_primary_selection(struct wl_listener* listener, void* data) {
     server* s = wl_container_of(listener, s, request_set_primary_selection);
-    struct wlr_seat_request_set_primary_selection_event* event =
-        static_cast<struct wlr_seat_request_set_primary_selection_event*>(data);
+    auto* event = static_cast<struct wlr_seat_request_set_primary_selection_event*>(data);
     wlr_seat_set_primary_selection(s->seat, event->source, event->serial);
 }
