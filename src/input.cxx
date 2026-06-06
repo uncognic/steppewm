@@ -374,6 +374,70 @@ void steppewm::input_reconfigure(server* s) {
     }
 }
 
+// pointer constraints
+
+static void constraint_update(server* s) {
+    struct wlr_surface* surface = s->seat->pointer_state.focused_surface;
+    struct wlr_pointer_constraint_v1* constraint =
+        surface ? wlr_pointer_constraints_v1_constraint_for_surface(s->pointer_constraints, surface,
+                                                                    s->seat)
+                : nullptr;
+
+    struct wlr_pointer_constraint_v1* prev = s->active_constraint;
+    if (prev == constraint) {
+        return;
+    }
+
+    s->active_constraint = constraint;
+    if (prev) {
+        wlr_pointer_constraint_v1_send_deactivated(prev);
+    }
+    if (constraint) {
+        wlr_pointer_constraint_v1_send_activated(constraint);
+    }
+}
+
+// destroy constraint
+static void constraint_destroy(struct wl_listener* listener, void* data) {
+    (void) data;
+    pointer_constraint* pc = wl_container_of(listener, pc, destroy);
+    server* s = pc->srv;
+    wlr_pointer_constraint_v1* constraint = pc->constraint;
+
+    if (s->active_constraint == constraint) {
+        if (constraint->current.cursor_hint.enabled &&
+            constraint->surface == s->seat->pointer_state.focused_surface) {
+            const double sx = constraint->current.cursor_hint.x;
+            const double sy = constraint->current.cursor_hint.y;
+
+            const double lx = s->cursor->x - s->seat->pointer_state.sx + sx;
+            const double ly = s->cursor->y - s->seat->pointer_state.sy + sy;
+            wlr_cursor_warp(s->cursor, nullptr, lx, ly);
+            wlr_seat_pointer_warp(s->seat, sx, sy);
+        }
+        s->active_constraint = nullptr;
+    }
+
+    wl_list_remove(&pc->destroy.link);
+    delete pc;
+}
+
+// handle new pointer constraints from clients
+void steppewm::new_pointer_constraint(struct wl_listener* listener, void* data) {
+    server* s = wl_container_of(listener, s, new_constraint);
+    auto* constraint = static_cast<struct wlr_pointer_constraint_v1*>(data);
+
+    auto* pc = new pointer_constraint();
+    pc->srv = s;
+    pc->constraint = constraint;
+    pc->destroy.notify = constraint_destroy;
+    wl_signal_add(&constraint->events.destroy, &pc->destroy);
+
+    if (constraint->surface == s->seat->pointer_state.focused_surface) {
+        constraint_update(s);
+    }
+}
+
 //// cursor
 // initiate move or resize operation for window
 void steppewm::cursor_begin_interactive(view* v, cursor_mode mode, uint32_t edges) {
@@ -517,6 +581,34 @@ static void process_cursor_motion(server* s, uint32_t time_msec) {
         wlr_cursor_set_xcursor(s->cursor, s->cursor_mgr, cursor_name);
         wlr_seat_pointer_clear_focus(seat);
     }
+
+    constraint_update(s);
+}
+
+// move the cursor, honoring any active constraint
+static void cursor_move_relative(server* s, struct wlr_input_device* device, double dx, double dy,
+                                 double unaccel_dx, double unaccel_dy, uint32_t time_msec) {
+    wlr_relative_pointer_manager_v1_send_relative_motion(s->relative_pointer_mgr, s->seat,
+                                                         (uint64_t) time_msec * 1000, dx, dy,
+                                                         unaccel_dx, unaccel_dy);
+
+    if (s->active_constraint && s->grab_mode == cursor_mode::PASSTHROUGH &&
+        s->active_constraint->surface == s->seat->pointer_state.focused_surface) {
+        if (s->active_constraint->type == WLR_POINTER_CONSTRAINT_V1_LOCKED) {
+            return;
+        }
+
+        double sx = s->seat->pointer_state.sx;
+        double sy = s->seat->pointer_state.sy;
+        double cx, cy;
+        if (wlr_region_confine(&s->active_constraint->region, sx, sy, sx + dx, sy + dy, &cx, &cy)) {
+            dx = cx - sx;
+            dy = cy - sy;
+        }
+    }
+
+    wlr_cursor_move(s->cursor, device, dx, dy);
+    process_cursor_motion(s, time_msec);
 }
 
 // handle cursor motion events
@@ -526,20 +618,22 @@ void steppewm::cursor_motion(struct wl_listener* listener, void* data) {
     struct wlr_pointer_motion_event* event = static_cast<struct wlr_pointer_motion_event*>(data);
 
     // move the cursor
-    wlr_cursor_move(s->cursor, &event->pointer->base, event->delta_x, event->delta_y);
-    process_cursor_motion(s, event->time_msec);
+    cursor_move_relative(s, &event->pointer->base, event->delta_x, event->delta_y,
+                         event->unaccel_dx, event->unaccel_dy, event->time_msec);
 }
 
 // handle absolute cursor motion events
 void steppewm::cursor_motion_absolute(struct wl_listener* listener, void* data) {
     // get objects
     server* s = wl_container_of(listener, s, cursor_motion_absolute);
-    struct wlr_pointer_motion_absolute_event* event =
-        static_cast<struct wlr_pointer_motion_absolute_event*>(data);
+    const auto* event = static_cast<struct wlr_pointer_motion_absolute_event*>(data);
 
-    // do the absolute move
-    wlr_cursor_warp_absolute(s->cursor, &event->pointer->base, event->x, event->y);
-    process_cursor_motion(s, event->time_msec);
+    double lx, ly;
+    wlr_cursor_absolute_to_layout_coords(s->cursor, &event->pointer->base, event->x, event->y, &lx,
+                                         &ly);
+    const double dx = lx - s->cursor->x;
+    const double dy = ly - s->cursor->y;
+    cursor_move_relative(s, &event->pointer->base, dx, dy, dx, dy, event->time_msec);
 }
 
 // handle cursor button events

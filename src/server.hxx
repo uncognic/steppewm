@@ -103,6 +103,12 @@ struct server {
     struct wl_listener request_set_selection;
     struct wl_listener request_set_primary_selection;
 
+    // pointer constraints
+    struct wlr_relative_pointer_manager_v1* relative_pointer_mgr;
+    struct wlr_pointer_constraints_v1* pointer_constraints;
+    struct wlr_pointer_constraint_v1* active_constraint;
+    struct wl_listener new_constraint;
+
     // move/resize grab state
     cursor_mode grab_mode;
     view* grabbed_view;

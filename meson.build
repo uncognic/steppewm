@@ -27,6 +27,7 @@ wl_scanner = find_program('wayland-scanner')
 protocols = [
   wl_protocol_dir / 'stable/xdg-shell/xdg-shell.xml',
   wl_protocol_dir / 'staging/cursor-shape/cursor-shape-v1.xml',
+  wl_protocol_dir / 'unstable/pointer-constraints/pointer-constraints-unstable-v1.xml',
   'protocol/wlr-layer-shell-unstable-v1.xml',
 ]
 

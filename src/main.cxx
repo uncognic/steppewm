@@ -151,6 +151,12 @@ static bool server_init(server* s) {
     s->request_set_shape.notify = request_set_shape;
     wl_signal_add(&cursor_shape_mgr->events.request_set_shape, &s->request_set_shape);
 
+    s->relative_pointer_mgr = wlr_relative_pointer_manager_v1_create(s->display);
+
+    s->pointer_constraints = wlr_pointer_constraints_v1_create(s->display);
+    s->new_constraint.notify = new_pointer_constraint;
+    wl_signal_add(&s->pointer_constraints->events.new_constraint, &s->new_constraint);
+
     return true;
 }
 

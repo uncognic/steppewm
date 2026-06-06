@@ -21,6 +21,7 @@
 
 struct wlr_keyboard;
 struct wlr_input_device;
+struct wlr_pointer_constraint_v1;
 
 namespace steppewm {
 
@@ -28,7 +29,7 @@ class view;
 
 struct keyboard {
     server* srv;
-    struct wlr_keyboard *wlr_keyboard;
+    struct wlr_keyboard* wlr_keyboard;
 
     struct wl_list link;
 
@@ -46,19 +47,28 @@ struct pointer {
     struct wl_listener destroy;
 };
 
-void input_new(struct wl_listener *listener, void *data);
+struct pointer_constraint {
+    server* srv;
+    struct wlr_pointer_constraint_v1* constraint;
+
+    struct wl_listener destroy;
+};
+
+void input_new(struct wl_listener* listener, void* data);
 void input_reconfigure(server* s);
 
-void cursor_motion(struct wl_listener *listener, void *data);
-void cursor_motion_absolute(struct wl_listener *listener, void *data);
-void cursor_button(struct wl_listener *listener, void *data);
-void cursor_axis(struct wl_listener *listener, void *data);
-void cursor_frame(struct wl_listener *listener, void *data);
+void cursor_motion(struct wl_listener* listener, void* data);
+void cursor_motion_absolute(struct wl_listener* listener, void* data);
+void cursor_button(struct wl_listener* listener, void* data);
+void cursor_axis(struct wl_listener* listener, void* data);
+void cursor_frame(struct wl_listener* listener, void* data);
 
-void request_set_cursor(struct wl_listener *listener, void *data);
+void request_set_cursor(struct wl_listener* listener, void* data);
 void request_set_shape(struct wl_listener* listener, void* data);
-void request_set_selection(struct wl_listener *listener, void *data);
-void request_set_primary_selection(struct wl_listener *listener, void *data);
+void request_set_selection(struct wl_listener* listener, void* data);
+void request_set_primary_selection(struct wl_listener* listener, void* data);
+
+void new_pointer_constraint(struct wl_listener* listener, void* data);
 
 void cursor_begin_interactive(view* v, cursor_mode mode, uint32_t edges);
 
