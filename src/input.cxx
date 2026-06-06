@@ -136,6 +136,8 @@ static void keyboard_modifiers(struct wl_listener* listener, void* data) {
     // send modifier
     wlr_seat_keyboard_notify_modifiers(kbd->srv->seat, &kbd->wlr_keyboard->modifiers);
 
+    wlr_idle_notifier_v1_notify_activity(kbd->srv->idle_notifier, kbd->srv->seat);
+
     switcher::handle_modifiers(kbd->srv, wlr_keyboard_get_modifiers(kbd->wlr_keyboard));
 
     uint32_t group = kbd->wlr_keyboard->modifiers.group;
@@ -158,6 +160,8 @@ static void keyboard_key(struct wl_listener* listener, void* data) {
 
     // get the seat from the server
     struct wlr_seat* seat = s->seat;
+
+    wlr_idle_notifier_v1_notify_activity(s->idle_notifier, seat);
 
     // convert libinput keycode to xkbcommmon keycode
     uint32_t keycode = event->keycode + 8;
@@ -588,6 +592,8 @@ static void process_cursor_motion(server* s, uint32_t time_msec) {
 // move the cursor, honoring any active constraint
 static void cursor_move_relative(server* s, struct wlr_input_device* device, double dx, double dy,
                                  double unaccel_dx, double unaccel_dy, uint32_t time_msec) {
+    wlr_idle_notifier_v1_notify_activity(s->idle_notifier, s->seat);
+
     wlr_relative_pointer_manager_v1_send_relative_motion(s->relative_pointer_mgr, s->seat,
                                                          (uint64_t) time_msec * 1000, dx, dy,
                                                          unaccel_dx, unaccel_dy);
@@ -641,6 +647,8 @@ void steppewm::cursor_button(struct wl_listener* listener, void* data) {
     // get objects
     server* s = wl_container_of(listener, s, cursor_button);
     struct wlr_pointer_button_event* event = static_cast<struct wlr_pointer_button_event*>(data);
+
+    wlr_idle_notifier_v1_notify_activity(s->idle_notifier, s->seat);
 
     // notify the seat of the event
     wlr_seat_pointer_notify_button(s->seat, event->time_msec, event->button, event->state);
@@ -724,6 +732,8 @@ void steppewm::cursor_axis(struct wl_listener* listener, void* data) {
     // get objects
     server* s = wl_container_of(listener, s, cursor_axis);
     struct wlr_pointer_axis_event* event = static_cast<struct wlr_pointer_axis_event*>(data);
+
+    wlr_idle_notifier_v1_notify_activity(s->idle_notifier, s->seat);
 
     // forward scroll event to the seat
     wlr_seat_pointer_notify_axis(s->seat, event->time_msec, event->orientation, event->delta,

@@ -109,6 +109,9 @@ struct server {
     struct wlr_pointer_constraint_v1* active_constraint;
     struct wl_listener new_constraint;
 
+    // idle
+    struct wlr_idle_notifier_v1* idle_notifier;
+
     // move/resize grab state
     cursor_mode grab_mode;
     view* grabbed_view;

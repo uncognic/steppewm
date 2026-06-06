@@ -157,6 +157,8 @@ static bool server_init(server* s) {
     s->new_constraint.notify = new_pointer_constraint;
     wl_signal_add(&s->pointer_constraints->events.new_constraint, &s->new_constraint);
 
+    s->idle_notifier = wlr_idle_notifier_v1_create(s->display);
+
     return true;
 }
 
