@@ -69,6 +69,9 @@ static bool server_init(server* s) {
     // wp_presentation protocol
     wlr_presentation_create(s->display, s->backend, 2);
 
+    // wp_fractional_scale protocol
+    wlr_fractional_scale_manager_v1_create(s->display, 1);
+
     // create output layout
     s->output_layout = wlr_output_layout_create(s->display);
     output::register_layout_change(s);
