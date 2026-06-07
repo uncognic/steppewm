@@ -111,6 +111,8 @@ struct server {
 
     // idle
     struct wlr_idle_notifier_v1* idle_notifier;
+    struct wlr_idle_inhibit_manager_v1* idle_inhibit_mgr;
+    struct wl_listener new_idle_inhibitor;
 
     // move/resize grab state
     cursor_mode grab_mode;

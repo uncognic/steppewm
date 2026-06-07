@@ -442,6 +442,63 @@ void steppewm::new_pointer_constraint(struct wl_listener* listener, void* data) 
     }
 }
 
+// idle inhibit
+
+// true if the inhibitor's surface should currently block idle
+static bool inhibitor_visible(server* s, struct wlr_surface* surface) {
+    if (!surface->mapped) {
+        return false;
+    }
+
+    // a toplevel only inhibits while it is actually shown
+    struct wlr_xdg_surface* xdg = wlr_xdg_surface_try_from_wlr_surface(surface);
+    if (xdg && xdg->role == WLR_XDG_SURFACE_ROLE_TOPLEVEL && xdg->toplevel->base->data) {
+        const auto v = static_cast<view*>(xdg->toplevel->base->data);
+        return v->mapped && !v->minimized && v->workspace == s->current_workspace;
+    }
+
+    return true;
+}
+
+void steppewm::idle_inhibit_update(server* s, const wlr_idle_inhibitor_v1* exclude) {
+    bool inhibited = false;
+    wlr_idle_inhibitor_v1* inhibitor;
+    wl_list_for_each(inhibitor, &s->idle_inhibit_mgr->inhibitors, link) {
+        if (inhibitor != exclude && inhibitor_visible(s, inhibitor->surface)) {
+            inhibited = true;
+            break;
+        }
+    }
+    wlr_idle_notifier_v1_set_inhibited(s->idle_notifier, inhibited);
+}
+
+// destroy idle inhibitor
+static void idle_inhibitor_destroy(struct wl_listener* listener, void* data) {
+    (void) data;
+    idle_inhibitor* inh = wl_container_of(listener, inh, destroy);
+    server* s = inh->srv;
+    const wlr_idle_inhibitor_v1* inhibitor = inh->inhibitor;
+
+    wl_list_remove(&inh->destroy.link);
+    delete inh;
+
+    idle_inhibit_update(s, inhibitor);
+}
+
+// handle new idle inhibitors from clients
+void steppewm::new_idle_inhibitor(struct wl_listener* listener, void* data) {
+    server* s = wl_container_of(listener, s, new_idle_inhibitor);
+    auto* inhibitor = static_cast<struct wlr_idle_inhibitor_v1*>(data);
+
+    auto* inh = new idle_inhibitor();
+    inh->srv = s;
+    inh->inhibitor = inhibitor;
+    inh->destroy.notify = idle_inhibitor_destroy;
+    wl_signal_add(&inhibitor->events.destroy, &inh->destroy);
+
+    idle_inhibit_update(s);
+}
+
 //// cursor
 // initiate move or resize operation for window
 void steppewm::cursor_begin_interactive(view* v, cursor_mode mode, uint32_t edges) {

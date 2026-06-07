@@ -159,6 +159,10 @@ static bool server_init(server* s) {
 
     s->idle_notifier = wlr_idle_notifier_v1_create(s->display);
 
+    s->idle_inhibit_mgr = wlr_idle_inhibit_v1_create(s->display);
+    s->new_idle_inhibitor.notify = new_idle_inhibitor;
+    wl_signal_add(&s->idle_inhibit_mgr->events.new_inhibitor, &s->new_idle_inhibitor);
+
     return true;
 }
 

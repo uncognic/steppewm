@@ -22,6 +22,7 @@
 struct wlr_keyboard;
 struct wlr_input_device;
 struct wlr_pointer_constraint_v1;
+struct wlr_idle_inhibitor_v1;
 
 namespace steppewm {
 
@@ -54,6 +55,13 @@ struct pointer_constraint {
     struct wl_listener destroy;
 };
 
+struct idle_inhibitor {
+    server* srv;
+    struct wlr_idle_inhibitor_v1* inhibitor;
+
+    struct wl_listener destroy;
+};
+
 void input_new(struct wl_listener* listener, void* data);
 void input_reconfigure(server* s);
 
@@ -69,6 +77,9 @@ void request_set_selection(struct wl_listener* listener, void* data);
 void request_set_primary_selection(struct wl_listener* listener, void* data);
 
 void new_pointer_constraint(struct wl_listener* listener, void* data);
+
+void new_idle_inhibitor(struct wl_listener* listener, void* data);
+void idle_inhibit_update(server* s, const struct wlr_idle_inhibitor_v1* exclude = nullptr);
 
 void cursor_begin_interactive(view* v, cursor_mode mode, uint32_t edges);
 

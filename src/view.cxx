@@ -43,6 +43,9 @@ static void refresh_taskbars(server* s) {
 void view::update_visibility() {
     bool visible = !minimized && workspace == srv->current_workspace;
     wlr_scene_node_set_enabled(&scene_tree->node, visible);
+
+    // hidden windows shouldn't keep blocking idle (and vice versa)
+    idle_inhibit_update(srv);
 }
 
 void view::focus_next(server* s, view* skip) {
@@ -288,6 +291,8 @@ static void view_unmap(view* v) {
     wl_list_remove(&v->link);
     wl_list_init(&v->link);
     wlr_scene_node_set_enabled(&v->scene_tree->node, false);
+
+    idle_inhibit_update(v->srv);
 
     switcher::view_removed(v->srv, v);
 
