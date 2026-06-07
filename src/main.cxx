@@ -92,6 +92,11 @@ static bool server_init(server* s) {
     wlr_xdg_output_manager_v1_create(s->display, s->output_layout);
     wlr_screencopy_manager_v1_create(s->display);
 
+    // wlr_output_power protocol
+    s->output_power_mgr = wlr_output_power_manager_v1_create(s->display);
+    s->output_power_set_mode.notify = output::on_power_set_mode;
+    wl_signal_add(&s->output_power_mgr->events.set_mode, &s->output_power_set_mode);
+
     // create listeners and signals
     wl_list_init(&s->outputs);
     s->new_output.notify = output::on_new;

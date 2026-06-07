@@ -48,6 +48,7 @@ class output {
     void create_taskbar();
 
     static void on_new(struct wl_listener* listener, void* data);
+    static void on_power_set_mode(struct wl_listener* listener, void* data);
     static void register_layout_change(server* s);
     static void reconfigure_all(server* s);
 };

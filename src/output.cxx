@@ -39,7 +39,7 @@ static void output_frame(struct wl_listener* listener, void* data) {
 
     wlr_scene_output_commit(scene_output, nullptr);
 
-    struct timespec now;
+    struct timespec now{};
     clock_gettime(CLOCK_MONOTONIC, &now);
     wlr_scene_output_send_frame_done(scene_output, &now);
 }
@@ -68,10 +68,10 @@ static void output_destroy(struct wl_listener* listener, void* data) {
     }
 
     // destroy layer trees
-    for (int i = 0; i < 4; i++) {
-        if (out->layer_trees[i]) {
-            wlr_scene_node_destroy(&out->layer_trees[i]->node);
-            out->layer_trees[i] = nullptr;
+    for (auto& layer_tree : out->layer_trees) {
+        if (layer_tree) {
+            wlr_scene_node_destroy(&layer_tree->node);
+            layer_tree = nullptr;
         }
     }
 
@@ -95,9 +95,9 @@ static void output_layout_change(struct wl_listener* listener, void* data) {
         }
 
         // reposition layer trees to the output's new global origin
-        for (int i = 0; i < 4; i++) {
-            if (out->layer_trees[i]) {
-                wlr_scene_node_set_position(&out->layer_trees[i]->node, box.x, box.y);
+        for (const auto& layer_tree : out->layer_trees) {
+            if (layer_tree) {
+                wlr_scene_node_set_position(&layer_tree->node, box.x, box.y);
             }
         }
 
@@ -287,10 +287,22 @@ void output::reconfigure_all(server* s) {
     }
 }
 
+// handle screen on/off requests from clients
+void output::on_power_set_mode(struct wl_listener* listener, void* data) {
+    (void) listener;
+    const auto* event = static_cast<struct wlr_output_power_v1_set_mode_event*>(data);
+
+    wlr_output_state state{};
+    wlr_output_state_init(&state);
+    wlr_output_state_set_enabled(&state, event->mode == ZWLR_OUTPUT_POWER_V1_MODE_ON);
+    wlr_output_commit_state(event->output, &state);
+    wlr_output_state_finish(&state);
+}
+
 // add new output and set it up
 void output::on_new(struct wl_listener* listener, void* data) {
     server* s = wl_container_of(listener, s, new_output);
-    struct wlr_output* wlr_output = static_cast<struct wlr_output*>(data);
+    auto* wlr_output = static_cast<struct wlr_output*>(data);
 
     wlr_output_init_render(wlr_output, s->allocator, s->renderer);
 

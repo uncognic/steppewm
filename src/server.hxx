@@ -62,6 +62,8 @@ struct server {
     struct wl_list outputs;
     struct wl_listener new_output;
     struct wl_listener output_layout_change;
+    struct wlr_output_power_manager_v1* output_power_mgr;
+    struct wl_listener output_power_set_mode;
 
     // xdg shell
     struct wlr_xdg_shell *xdg_shell;
