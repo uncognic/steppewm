@@ -98,6 +98,11 @@ static bool server_init(server* s) {
     s->output_power_set_mode.notify = output::on_power_set_mode;
     wl_signal_add(&s->output_power_mgr->events.set_mode, &s->output_power_set_mode);
 
+    // wlr_gamma_control protocol
+    s->gamma_control_mgr = wlr_gamma_control_manager_v1_create(s->display);
+    s->set_gamma.notify = output::on_set_gamma;
+    wl_signal_add(&s->gamma_control_mgr->events.set_gamma, &s->set_gamma);
+
     // create listeners and signals
     wl_list_init(&s->outputs);
     s->new_output.notify = output::on_new;

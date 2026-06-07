@@ -64,6 +64,8 @@ struct server {
     struct wl_listener output_layout_change;
     struct wlr_output_power_manager_v1* output_power_mgr;
     struct wl_listener output_power_set_mode;
+    struct wlr_gamma_control_manager_v1* gamma_control_mgr;
+    struct wl_listener set_gamma;
 
     // xdg shell
     struct wlr_xdg_shell *xdg_shell;

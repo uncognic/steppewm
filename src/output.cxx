@@ -290,7 +290,24 @@ void output::reconfigure_all(server* s) {
     }
 }
 
-// handle screen on/off requests from clients
+void output::on_set_gamma(struct wl_listener* listener, void* data) {
+    (void) listener;
+    const auto* event = static_cast<struct wlr_gamma_control_manager_v1_set_gamma_event*>(data);
+
+    wlr_output_state state{};
+    wlr_output_state_init(&state);
+
+    if (!wlr_gamma_control_v1_apply(event->control, &state)) {
+        wlr_output_state_finish(&state);
+        return;
+    }
+
+    if (!wlr_output_commit_state(event->output, &state) && event->control) {
+        wlr_gamma_control_v1_send_failed_and_destroy(event->control);
+    }
+    wlr_output_state_finish(&state);
+}
+
 void output::on_power_set_mode(struct wl_listener* listener, void* data) {
     (void) listener;
     const auto* event = static_cast<struct wlr_output_power_v1_set_mode_event*>(data);
