@@ -23,6 +23,7 @@
 #include "deco.hxx"
 #include "input.hxx"
 #include "layer.hxx"
+#include "lock.hxx"
 #include "output.hxx"
 #include "server.hxx"
 #include "view.hxx"
@@ -167,6 +168,8 @@ static bool server_init(server* s) {
     s->idle_inhibit_mgr = wlr_idle_inhibit_v1_create(s->display);
     s->new_idle_inhibitor.notify = idle_inhibitor::on_new;
     wl_signal_add(&s->idle_inhibit_mgr->events.new_inhibitor, &s->new_idle_inhibitor);
+
+    session_lock::init(s);
 
     return true;
 }

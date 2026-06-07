@@ -116,6 +116,14 @@ struct server {
     struct wlr_idle_inhibit_manager_v1* idle_inhibit_mgr;
     struct wl_listener new_idle_inhibitor;
 
+    struct wlr_session_lock_manager_v1* session_lock_mgr;
+    struct wlr_session_lock_v1* cur_lock;
+    struct wlr_scene_tree* lock_tree;
+    struct wlr_scene_rect* lock_bg;
+    struct wlr_scene_tree* lock_msg_tree;
+    bool locked;
+    struct wl_listener new_lock;
+
     // move/resize grab state
     cursor_mode grab_mode;
     view* grabbed_view;

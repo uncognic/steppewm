@@ -49,6 +49,10 @@ void view::update_visibility() {
 }
 
 void view::focus_next(server* s, view* skip) {
+    if (s->locked) {
+        return;
+    }
+
     view* next = nullptr;
     view* v;
 
@@ -509,6 +513,10 @@ void view::on_new(struct wl_listener* listener, void* data) {
     v->scene_tree = wlr_scene_tree_create(&s->scene->tree);
     v->scene_tree->node.data = v;
 
+    if (s->locked) {
+        wlr_scene_node_raise_to_top(&s->lock_tree->node);
+    }
+
     // initially at 0,0
     v->xdg_tree = wlr_scene_xdg_surface_create(v->scene_tree, toplevel->base);
     v->xdg_tree->node.data = v;
@@ -650,6 +658,10 @@ view* view::at(server* s, double lx, double ly, struct wlr_surface** surface, do
 // focus a view
 void view::focus(struct wlr_surface* surface) {
     if (!mapped) {
+        return;
+    }
+
+    if (srv->locked) {
         return;
     }
 

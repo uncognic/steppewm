@@ -53,6 +53,7 @@ sources = files(
   'src/paint.cxx',
   'src/layer.cxx',
   'src/listener.cxx',
+  'src/lock.cxx',
 )
 
 executable('steppewm',

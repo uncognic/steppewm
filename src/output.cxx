@@ -19,6 +19,7 @@
 #include <ctime>
 
 #include "layer.hxx"
+#include "lock.hxx"
 #include "output.hxx"
 #include "server.hxx"
 #include "taskbar.hxx"
@@ -112,6 +113,8 @@ static void output_layout_change(struct wl_listener* listener, void* data) {
             out->taskbar->raise();
         }
     }
+
+    session_lock::update_geometry(s);
 }
 
 // register a layout change

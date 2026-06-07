@@ -25,6 +25,11 @@ using namespace steppewm;
 // give keyboard focus to a layer surface like slurp
 static void layer_surface_focus(layer_surface* ls) {
     server* s = ls->out->srv;
+
+    if (s->locked) {
+        return;
+    }
+
     struct wlr_seat* seat = s->seat;
     struct wlr_surface *surface = ls->wlr_layer_surface->surface;
 

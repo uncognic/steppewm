@@ -27,6 +27,7 @@
 
 #include "deco.hxx"
 #include "input.hxx"
+#include "lock.hxx"
 #include "output.hxx"
 #include "server.hxx"
 #include "switcher.hxx"
@@ -163,6 +164,10 @@ static void keyboard_key(struct wl_listener* listener, void* data) {
 
     wlr_idle_notifier_v1_notify_activity(s->idle_notifier, seat);
 
+    if (s->locked) {
+        session_lock::ensure_focus(s);
+    }
+
     // convert libinput keycode to xkbcommmon keycode
     uint32_t keycode = event->keycode + 8;
 
@@ -192,7 +197,8 @@ static void keyboard_key(struct wl_listener* listener, void* data) {
             }
         }
     }
-    if (!handled && modifiers && event->state == WL_KEYBOARD_KEY_STATE_PRESSED) {
+    // no keybinds while the session is locked
+    if (!handled && modifiers && !s->locked && event->state == WL_KEYBOARD_KEY_STATE_PRESSED) {
         for (int i = 0; i < nsyms; i++) {
             handled = handle_keybinding(s, modifiers, syms[i]) || handled;
         }
@@ -609,6 +615,20 @@ static void process_cursor_motion(server* s, uint32_t time_msec) {
         return;
     }
 
+    if (s->locked) {
+        double sx, sy;
+        struct wlr_surface* surface = nullptr;
+        view::at(s, s->cursor->x, s->cursor->y, &surface, &sx, &sy);
+        if (surface) {
+            wlr_seat_pointer_notify_enter(s->seat, surface, sx, sy);
+            wlr_seat_pointer_notify_motion(s->seat, time_msec, sx, sy);
+        } else {
+            wlr_cursor_set_xcursor(s->cursor, s->cursor_mgr, "default");
+            wlr_seat_pointer_clear_focus(s->seat);
+        }
+        return;
+    }
+
     double sx, sy;
     struct wlr_surface* surface = nullptr;
     // view::at populates surfaces from hit test, so swaybg doesn't show up since it doesn't have an
@@ -705,6 +725,10 @@ void steppewm::cursor_button(struct wl_listener* listener, void* data) {
         s->grab_mode = cursor_mode::PASSTHROUGH;
         s->grabbed_view = nullptr;
         s->grab_restore_pending = false;
+        return;
+    }
+
+    if (s->locked) {
         return;
     }
 
