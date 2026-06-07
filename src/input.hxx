@@ -15,6 +15,7 @@
 
 #pragma once
 
+#include "listener.hxx"
 #include "server.hxx"
 
 #include <wayland-server-core.h>
@@ -30,36 +31,50 @@ class view;
 
 struct keyboard {
     server* srv;
-    struct wlr_keyboard* wlr_keyboard;
+    wlr_keyboard* wlr_keyboard;
 
-    struct wl_list link;
+    wl_list link;
 
-    struct wl_listener modifiers;
-    struct wl_listener key;
-    struct wl_listener destroy;
+    wl_listener modifiers;
+    wl_listener key;
+    wl_listener destroy;
 };
 
 struct pointer {
     server* srv;
-    struct wlr_input_device* device;
+    wlr_input_device* device;
 
-    struct wl_list link;
+    wl_list link;
 
-    struct wl_listener destroy;
+    wl_listener destroy;
 };
 
-struct pointer_constraint {
-    server* srv;
-    struct wlr_pointer_constraint_v1* constraint;
+class pointer_constraint {
+  public:
+    pointer_constraint(server* s, wlr_pointer_constraint_v1* constraint);
 
-    struct wl_listener destroy;
+    static void on_new(wl_listener* listener, void* data);
+    static void update(server* s);
+
+  private:
+    void handle_destroy() const;
+
+    server* srv;
+    wlr_pointer_constraint_v1* constraint;
+    Listener destroy;
 };
 
-struct idle_inhibitor {
-    server* srv;
-    struct wlr_idle_inhibitor_v1* inhibitor;
+class idle_inhibitor {
+  public:
+    idle_inhibitor(server* s, wlr_idle_inhibitor_v1* inhibitor);
 
-    struct wl_listener destroy;
+    static void on_new(wl_listener* listener, void* data);
+    static void update(server* s, const wlr_idle_inhibitor_v1* exclude = nullptr);
+
+  private:
+    server* srv;
+    wlr_idle_inhibitor_v1* inhibitor;
+    Listener destroy;
 };
 
 void input_new(struct wl_listener* listener, void* data);
@@ -75,11 +90,6 @@ void request_set_cursor(struct wl_listener* listener, void* data);
 void request_set_shape(struct wl_listener* listener, void* data);
 void request_set_selection(struct wl_listener* listener, void* data);
 void request_set_primary_selection(struct wl_listener* listener, void* data);
-
-void new_pointer_constraint(struct wl_listener* listener, void* data);
-
-void new_idle_inhibitor(struct wl_listener* listener, void* data);
-void idle_inhibit_update(server* s, const struct wlr_idle_inhibitor_v1* exclude = nullptr);
 
 void cursor_begin_interactive(view* v, cursor_mode mode, uint32_t edges);
 

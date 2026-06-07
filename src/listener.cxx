@@ -30,7 +30,7 @@ Listener::~Listener() {
 
 void Listener::connect(struct wl_signal* signal, std::function<void(void*)> handler) {
     disconnect();
-    handler_ = new std::function<void(void*)>(std::move(handler));
+    handler_ = new std::function(std::move(handler));
     node_.listener.notify = on_notify;
     wl_signal_add(signal, &node_.listener);
 }
@@ -52,6 +52,7 @@ bool Listener::connected() const {
 void Listener::on_notify(struct wl_listener* listener, void* data) {
     Node* node = wl_container_of(listener, node, listener);
     if (node->self->handler_) {
-        (*node->self->handler_)(data);
+        const std::function<void(void*)> handler = *node->self->handler_;
+        handler(data);
     }
 }

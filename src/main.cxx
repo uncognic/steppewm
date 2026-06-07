@@ -154,13 +154,13 @@ static bool server_init(server* s) {
     s->relative_pointer_mgr = wlr_relative_pointer_manager_v1_create(s->display);
 
     s->pointer_constraints = wlr_pointer_constraints_v1_create(s->display);
-    s->new_constraint.notify = new_pointer_constraint;
+    s->new_constraint.notify = pointer_constraint::on_new;
     wl_signal_add(&s->pointer_constraints->events.new_constraint, &s->new_constraint);
 
     s->idle_notifier = wlr_idle_notifier_v1_create(s->display);
 
     s->idle_inhibit_mgr = wlr_idle_inhibit_v1_create(s->display);
-    s->new_idle_inhibitor.notify = new_idle_inhibitor;
+    s->new_idle_inhibitor.notify = idle_inhibitor::on_new;
     wl_signal_add(&s->idle_inhibit_mgr->events.new_inhibitor, &s->new_idle_inhibitor);
 
     return true;

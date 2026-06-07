@@ -380,7 +380,7 @@ void steppewm::input_reconfigure(server* s) {
 
 // pointer constraints
 
-static void constraint_update(server* s) {
+void pointer_constraint::update(server* s) {
     struct wlr_surface* surface = s->seat->pointer_state.focused_surface;
     struct wlr_pointer_constraint_v1* constraint =
         surface ? wlr_pointer_constraints_v1_constraint_for_surface(s->pointer_constraints, surface,
@@ -401,12 +401,13 @@ static void constraint_update(server* s) {
     }
 }
 
-// destroy constraint
-static void constraint_destroy(struct wl_listener* listener, void* data) {
-    (void) data;
-    pointer_constraint* pc = wl_container_of(listener, pc, destroy);
-    server* s = pc->srv;
-    wlr_pointer_constraint_v1* constraint = pc->constraint;
+pointer_constraint::pointer_constraint(server* s, struct wlr_pointer_constraint_v1* constraint)
+    : srv(s), constraint(constraint) {
+    destroy.connect(&constraint->events.destroy, [this](void*) { handle_destroy(); });
+}
+
+void pointer_constraint::handle_destroy() const {
+    server* s = srv;
 
     if (s->active_constraint == constraint) {
         if (constraint->current.cursor_hint.enabled &&
@@ -422,23 +423,18 @@ static void constraint_destroy(struct wl_listener* listener, void* data) {
         s->active_constraint = nullptr;
     }
 
-    wl_list_remove(&pc->destroy.link);
-    delete pc;
+    delete this;
 }
 
 // handle new pointer constraints from clients
-void steppewm::new_pointer_constraint(struct wl_listener* listener, void* data) {
+void pointer_constraint::on_new(struct wl_listener* listener, void* data) {
     server* s = wl_container_of(listener, s, new_constraint);
     auto* constraint = static_cast<struct wlr_pointer_constraint_v1*>(data);
 
-    auto* pc = new pointer_constraint();
-    pc->srv = s;
-    pc->constraint = constraint;
-    pc->destroy.notify = constraint_destroy;
-    wl_signal_add(&constraint->events.destroy, &pc->destroy);
+    new pointer_constraint(s, constraint);
 
     if (constraint->surface == s->seat->pointer_state.focused_surface) {
-        constraint_update(s);
+        update(s);
     }
 }
 
@@ -460,7 +456,8 @@ static bool inhibitor_visible(server* s, struct wlr_surface* surface) {
     return true;
 }
 
-void steppewm::idle_inhibit_update(server* s, const wlr_idle_inhibitor_v1* exclude) {
+// check if we should be inhibiting idle right now
+void idle_inhibitor::update(server* s, const wlr_idle_inhibitor_v1* exclude) {
     bool inhibited = false;
     wlr_idle_inhibitor_v1* inhibitor;
     wl_list_for_each(inhibitor, &s->idle_inhibit_mgr->inhibitors, link) {
@@ -472,31 +469,24 @@ void steppewm::idle_inhibit_update(server* s, const wlr_idle_inhibitor_v1* exclu
     wlr_idle_notifier_v1_set_inhibited(s->idle_notifier, inhibited);
 }
 
-// destroy idle inhibitor
-static void idle_inhibitor_destroy(struct wl_listener* listener, void* data) {
-    (void) data;
-    idle_inhibitor* inh = wl_container_of(listener, inh, destroy);
-    server* s = inh->srv;
-    const wlr_idle_inhibitor_v1* inhibitor = inh->inhibitor;
+idle_inhibitor::idle_inhibitor(server* s, struct wlr_idle_inhibitor_v1* inhibitor)
+    : srv(s), inhibitor(inhibitor) {
+    // recompute without the dying inhibitor, then self-destruct
+    destroy.connect(&inhibitor->events.destroy, [this](void*) {
+        update(srv, this->inhibitor);
+        delete this;
+    });
 
-    wl_list_remove(&inh->destroy.link);
-    delete inh;
-
-    idle_inhibit_update(s, inhibitor);
+    update(s);
 }
 
 // handle new idle inhibitors from clients
-void steppewm::new_idle_inhibitor(struct wl_listener* listener, void* data) {
+void idle_inhibitor::on_new(struct wl_listener* listener, void* data) {
     server* s = wl_container_of(listener, s, new_idle_inhibitor);
     auto* inhibitor = static_cast<struct wlr_idle_inhibitor_v1*>(data);
 
-    auto* inh = new idle_inhibitor();
-    inh->srv = s;
-    inh->inhibitor = inhibitor;
-    inh->destroy.notify = idle_inhibitor_destroy;
-    wl_signal_add(&inhibitor->events.destroy, &inh->destroy);
-
-    idle_inhibit_update(s);
+    // owns itself, freed when the inhibitor is destroyed
+    new idle_inhibitor(s, inhibitor);
 }
 
 //// cursor
@@ -643,7 +633,7 @@ static void process_cursor_motion(server* s, uint32_t time_msec) {
         wlr_seat_pointer_clear_focus(seat);
     }
 
-    constraint_update(s);
+    pointer_constraint::update(s);
 }
 
 // move the cursor, honoring any active constraint
