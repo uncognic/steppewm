@@ -606,6 +606,9 @@ static void process_cursor_resize(server* s) {
 
 // called on cursor motion events
 static void process_cursor_motion(server* s, uint32_t time_msec) {
+    wlr_scene_node_set_position(&s->drag_icon_tree->node, static_cast<int>(s->cursor->x),
+                                static_cast<int>(s->cursor->y));
+
     if (s->grab_mode == cursor_mode::MOVE) {
         process_cursor_move(s);
         return;
@@ -848,6 +851,43 @@ void steppewm::request_set_shape(struct wl_listener* listener, void* data) {
     if (focused_client == event->seat_client) {
         // load the named shape from the xcursor theme
         wlr_cursor_set_xcursor(s->cursor, s->cursor_mgr, wlr_cursor_shape_v1_name(event->shape));
+    }
+}
+
+// handle drag requests from clients
+void steppewm::request_start_drag(struct wl_listener* listener, void* data) {
+    server* s = wl_container_of(listener, s, request_start_drag);
+    const auto* event = static_cast<struct wlr_seat_request_start_drag_event*>(data);
+
+    if (!s->locked &&
+        wlr_seat_validate_pointer_grab_serial(s->seat, event->origin, event->serial)) {
+        wlr_seat_start_pointer_drag(s->seat, event->drag, event->serial);
+        return;
+    }
+
+    wlr_data_source_destroy(event->drag->source);
+}
+
+// the drag ended
+static void drag_destroy(struct wl_listener* listener, void* data) {
+    (void) data;
+    server* s = wl_container_of(listener, s, drag_destroy);
+    wl_list_remove(&s->drag_destroy.link);
+    process_cursor_motion(s, 0);
+}
+
+void steppewm::start_drag(struct wl_listener* listener, void* data) {
+    server* s = wl_container_of(listener, s, start_drag);
+    auto* drag = static_cast<struct wlr_drag*>(data);
+
+    s->drag_destroy.notify = drag_destroy;
+    wl_signal_add(&drag->events.destroy, &s->drag_destroy);
+
+    if (drag->icon) {
+        wlr_scene_drag_icon_create(s->drag_icon_tree, drag->icon);
+        wlr_scene_node_raise_to_top(&s->drag_icon_tree->node);
+        wlr_scene_node_set_position(&s->drag_icon_tree->node, static_cast<int>(s->cursor->x),
+                                    static_cast<int>(s->cursor->y));
     }
 }
 

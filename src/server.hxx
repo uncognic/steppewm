@@ -107,6 +107,12 @@ struct server {
     struct wl_listener request_set_selection;
     struct wl_listener request_set_primary_selection;
 
+    // drag and drop
+    struct wl_listener request_start_drag;
+    struct wl_listener start_drag;
+    struct wl_listener drag_destroy;
+    struct wlr_scene_tree* drag_icon_tree;
+
     // pointer constraints
     struct wlr_relative_pointer_manager_v1* relative_pointer_mgr;
     struct wlr_pointer_constraints_v1* pointer_constraints;

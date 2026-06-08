@@ -111,6 +111,8 @@ static bool server_init(server* s) {
     s->scene = wlr_scene_create();
     s->scene_layout = wlr_scene_attach_output_layout(s->scene, s->output_layout);
 
+    s->drag_icon_tree = wlr_scene_tree_create(&s->scene->tree);
+
     wl_list_init(&s->views);
     s->xdg_shell = wlr_xdg_shell_create(s->display, 6);
     s->new_xdg_toplevel.notify = view::on_new;
@@ -155,6 +157,12 @@ static bool server_init(server* s) {
     wl_signal_add(&s->seat->events.request_set_selection, &s->request_set_selection);
     wl_signal_add(&s->seat->events.request_set_primary_selection,
                   &s->request_set_primary_selection);
+
+    // drag and drop
+    s->request_start_drag.notify = request_start_drag;
+    s->start_drag.notify = start_drag;
+    wl_signal_add(&s->seat->events.request_start_drag, &s->request_start_drag);
+    wl_signal_add(&s->seat->events.start_drag, &s->start_drag);
 
     // wp_cursor_shape protocol
     struct wlr_cursor_shape_manager_v1* cursor_shape_mgr =
