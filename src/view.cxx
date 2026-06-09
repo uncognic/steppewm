@@ -29,6 +29,8 @@ static bool view_can_configure(view* v) {
     return v->toplevel->base->initialized;
 }
 
+static void view_apply_state(view* v, bool maximized, bool fullscreen);
+
 // refresh every output's taskbar
 static void refresh_taskbars(server* s) {
     output* out;
@@ -161,7 +163,11 @@ static void view_initial_configure(void* data) {
     }
 
     view_apply_pending_deco(v);
-    wlr_xdg_toplevel_set_size(v->toplevel, 0, 0);
+    if (v->toplevel->requested.maximized || v->toplevel->requested.fullscreen) {
+        view_apply_state(v, v->toplevel->requested.maximized, v->toplevel->requested.fullscreen);
+    } else {
+        wlr_xdg_toplevel_set_size(v->toplevel, 0, 0);
+    }
 }
 
 // full decorated bounding box of a view at its current scene position
@@ -384,6 +390,11 @@ static void view_request_resize(view* v, void* data) {
 
 // maximize/full screen and save the old geometry
 static void view_apply_state(view* v, bool maximized, bool fullscreen) {
+    // a client may request something before initial commit, so don't accept it
+    if (!view_can_configure(v)) {
+        return;
+    }
+
     // stuff
     server* s = v->srv;
     struct wlr_scene_node* node = &v->scene_tree->node;
@@ -595,9 +606,6 @@ void view::handle_activation_request(struct wl_listener* listener, void* data) {
     auto* event = static_cast<struct wlr_xdg_activation_v1_request_activate_event*>(data);
     view* target = view_from_surface(event->surface);
     if (!target || !target->mapped) {
-        if (event->token) {
-            wlr_xdg_activation_token_v1_destroy(event->token);
-        }
         return;
     }
 
@@ -608,10 +616,6 @@ void view::handle_activation_request(struct wl_listener* listener, void* data) {
         target->focus(target->toplevel->base->surface);
     } else if (!surface_is_view_focused(s, target)) {
         target->set_urgent(true);
-    }
-
-    if (event->token) {
-        wlr_xdg_activation_token_v1_destroy(event->token);
     }
 }
 static bool popup_unconstrain(popup* p) {
