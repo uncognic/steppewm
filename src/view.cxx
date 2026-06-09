@@ -80,6 +80,14 @@ void view::minimize(bool min) {
     refresh_taskbars(srv);
 }
 
+void view::set_urgent(bool is_urgent) {
+    if (urgent == is_urgent) {
+        return;
+    }
+    urgent = is_urgent;
+    refresh_taskbars(srv);
+}
+
 // switch the visible workspace, hiding the old set and showing the new one
 void steppewm::workspace_switch(server* s, int workspace) {
     if (workspace < 0 || workspace >= num_workspaces || workspace == s->current_workspace) {
@@ -508,6 +516,7 @@ void view::on_new(struct wl_listener* listener, void* data) {
     v->toplevel = toplevel;
     v->decoration_mode = deco_mode::CLIENT; // switched to SERVER by the client when it detects
                                             // ssd support (which we do)
+    v->urgent = false;
 
     // whole scene for the window (title bar, border, surface)
     v->scene_tree = wlr_scene_tree_create(&s->scene->tree);
@@ -539,8 +548,72 @@ void view::on_new(struct wl_listener* listener, void* data) {
     v->title_changed.connect(&toplevel->events.set_title, [v](void*) { v->deco_update(); });
 }
 
-// place the popup so it fits on the output holding its root toplevel
-// returns true once it has actually been placed (only possible after the initial commit)
+static view* view_from_surface(struct wlr_surface* surface) {
+    if (!surface) {
+        return nullptr;
+    }
+    struct wlr_surface* root = wlr_surface_get_root_surface(surface);
+    struct wlr_xdg_surface* xdg = wlr_xdg_surface_try_from_wlr_surface(root);
+    while (xdg && xdg->role == WLR_XDG_SURFACE_ROLE_POPUP && xdg->popup->parent) {
+        root = wlr_surface_get_root_surface(xdg->popup->parent);
+        xdg = wlr_xdg_surface_try_from_wlr_surface(root);
+    }
+    if (!xdg || xdg->role != WLR_XDG_SURFACE_ROLE_TOPLEVEL) {
+        return nullptr;
+    }
+    return static_cast<view*>(xdg->toplevel->base->data);
+}
+
+static bool activation_token_valid(server* s, struct wlr_xdg_activation_token_v1* token) {
+    if (!token || token->seat != s->seat || !token->surface) {
+        return false;
+    }
+
+    struct wlr_surface* focused = s->seat->keyboard_state.focused_surface;
+    if (!focused) {
+        return false;
+    }
+    if (view_from_surface(focused) != view_from_surface(token->surface)) {
+        return false;
+    }
+
+    struct wl_client* client = wl_resource_get_client(token->surface->resource);
+    struct wlr_seat_client* seat_client = wlr_seat_client_for_wl_client(token->seat, client);
+    return seat_client && wlr_seat_client_validate_event_serial(seat_client, token->serial);
+}
+
+static bool surface_is_view_focused(server* s, view* v) {
+    struct wlr_surface* focused = s->seat->keyboard_state.focused_surface;
+    if (!focused) {
+        return false;
+    }
+    return view_from_surface(focused) == v;
+}
+
+void view::handle_activation_request(struct wl_listener* listener, void* data) {
+    server* s = wl_container_of(listener, s, request_activate);
+    auto* event = static_cast<struct wlr_xdg_activation_v1_request_activate_event*>(data);
+    view* target = view_from_surface(event->surface);
+    if (!target || !target->mapped) {
+        if (event->token) {
+            wlr_xdg_activation_token_v1_destroy(event->token);
+        }
+        return;
+    }
+
+    if (activation_token_valid(s, event->token)) {
+        if (target->workspace != s->current_workspace) {
+            workspace_switch(s, target->workspace);
+        }
+        target->focus(target->toplevel->base->surface);
+    } else if (!surface_is_view_focused(s, target)) {
+        target->set_urgent(true);
+    }
+
+    if (event->token) {
+        wlr_xdg_activation_token_v1_destroy(event->token);
+    }
+}
 static bool popup_unconstrain(popup* p) {
     struct wlr_xdg_popup* xdg_popup = p->xdg_popup;
     if (!xdg_popup->base->initialized) {
@@ -669,6 +742,7 @@ void view::focus(struct wlr_surface* surface) {
     if (minimized) {
         minimize(false);
     }
+    set_urgent(false);
 
     // get objs
     server* s = srv;

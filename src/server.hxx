@@ -69,8 +69,10 @@ struct server {
 
     // xdg shell
     struct wlr_xdg_shell *xdg_shell;
+    struct wlr_xdg_activation_v1* xdg_activation;
     struct wl_listener new_xdg_toplevel;
     struct wl_listener new_xdg_popup;
+    struct wl_listener request_activate;
     struct wl_list views;
     int cascade_n;
     int cascade_x;

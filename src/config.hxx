@@ -95,6 +95,7 @@ class config {
     float color_task_normal[4];
     float color_task_active[4];
     float color_task_minimized[4];
+    float color_task_urgent[4];
     float color_task_text[4];
     int taskbar_button_w;
     int taskbar_button_pad;

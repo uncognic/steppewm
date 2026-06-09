@@ -231,8 +231,15 @@ int taskbar::clock_tick(void* data) {
     return 0;
 }
 
+int taskbar::urgent_tick(void* data) {
+    auto* bar = static_cast<taskbar*>(data);
+    bar->urgent_flash_on_ = !bar->urgent_flash_on_;
+    bar->layout();
+    return 0;
+}
+
 // find current keyboard-focused steppewm_view and return it
-view *taskbar::focused_view() {
+view* taskbar::focused_view() const {
     struct wlr_surface* surf = srv_->seat->keyboard_state.focused_surface;
     if (!surf) {
         return nullptr;
@@ -323,6 +330,7 @@ void taskbar::layout() {
 
     // draw each window button
     int slot = 0;
+    bool has_visible_urgent = false;
     for (auto &btn : buttons_) {
         // skip and hide windows on other workspaces
         if (btn->v->workspace != current) {
@@ -338,6 +346,11 @@ void taskbar::layout() {
         float *bg;
         if (btn->v == fv) {
             bg = cfg->color_task_active;
+        } else if (btn->v->urgent) {
+            has_visible_urgent = true;
+            bg = urgent_flash_on_
+                     ? cfg->color_task_urgent
+                     : (btn->v->minimized ? cfg->color_task_minimized : cfg->color_task_normal);
         } else if (btn->v->minimized) {
             bg = cfg->color_task_minimized;
         } else {
@@ -347,6 +360,12 @@ void taskbar::layout() {
         const char *title = btn->v->toplevel->title ? btn->v->toplevel->title : "";
         render_button(btn->label, title, button_w, button_h, bg, cfg->color_task_text);
         slot++;
+    }
+
+    if (has_visible_urgent) {
+        wl_event_source_timer_update(urgent_timer_, 500);
+    } else {
+        urgent_flash_on_ = true;
     }
 }
 
@@ -370,12 +389,16 @@ taskbar::taskbar(server *s, struct wlr_output* wlr_output) {
     struct wl_event_loop* loop = wl_display_get_event_loop(s->display);
     clock_timer_ = wl_event_loop_add_timer(loop, clock_tick, this);
     wl_event_source_timer_update(clock_timer_, 1);
+    urgent_timer_ = wl_event_loop_add_timer(loop, urgent_tick, this);
 }
 
 // destroy bar
 taskbar::~taskbar() {
     if (clock_timer_) {
         wl_event_source_remove(clock_timer_);
+    }
+    if (urgent_timer_) {
+        wl_event_source_remove(urgent_timer_);
     }
 }
 

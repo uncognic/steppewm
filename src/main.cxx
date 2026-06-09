@@ -115,6 +115,12 @@ static bool server_init(server* s) {
 
     wl_list_init(&s->views);
     s->xdg_shell = wlr_xdg_shell_create(s->display, 6);
+
+    s->xdg_activation = wlr_xdg_activation_v1_create(s->display);
+    s->xdg_activation->token_timeout_msec = 30000;
+    s->request_activate.notify = view::handle_activation_request;
+    wl_signal_add(&s->xdg_activation->events.request_activate, &s->request_activate);
+
     s->new_xdg_toplevel.notify = view::on_new;
     wl_signal_add(&s->xdg_shell->events.new_toplevel, &s->new_xdg_toplevel);
     s->new_xdg_popup.notify = popup::on_new;

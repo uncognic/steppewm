@@ -54,8 +54,9 @@ class taskbar {
     void render_clock();
     void render_layout_indicator();
     void layout_code(char* out, size_t len);
-    view* focused_view();
+    [[nodiscard]] view* focused_view() const;
     static int clock_tick(void* data);
+    static int urgent_tick(void* data);
 
     server* srv_;
     struct wlr_output* wlr_output_;
@@ -63,6 +64,7 @@ class taskbar {
     struct wlr_scene_rect* background_;
     struct wlr_scene_buffer* clock_;
     struct wl_event_source* clock_timer_;
+    struct wl_event_source* urgent_timer_;
     struct wlr_scene_buffer* layout_ind_;
     int layout_ind_w_ = 0;
     struct wlr_scene_buffer* ws_labels_[num_workspaces]{};
@@ -71,6 +73,7 @@ class taskbar {
     int clock_w_ = 0;
     int button_w_ = 0;
     int x_ = 0, y_ = 0, width_ = 0, height_ = 0;
+    bool urgent_flash_on_ = true;
 };
 
 } // namespace steppewm

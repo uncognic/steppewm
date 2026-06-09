@@ -75,6 +75,7 @@ class view {
     bool maximized;
     bool fullscreen;
     bool minimized;
+    bool urgent;
     bool mapped;
     int workspace;
     struct wlr_box saved_geo;
@@ -95,12 +96,12 @@ class view {
     // window operations
     void focus(struct wlr_surface* surface);
     void minimize(bool minimized);
+    void set_urgent(bool urgent);
     void toggle_maximize();
     void unmaximize_to_cursor(double cursor_x, double cursor_y);
     void update_visibility();
     void move_to_workspace(int workspace);
 
-    // decoration operations (implemented in deco.cpp)
     void deco_create();
     void deco_update() const;
     void deco_destroy();
@@ -108,12 +109,12 @@ class view {
     const char* deco_cursor_name(const struct wlr_scene_node* node) const;
     bool deco_handle_button(server* s, const struct wlr_scene_node* node, uint32_t button);
 
-    // server-wide operations
     static void on_new(struct wl_listener* listener, void* data);
     static void focus_next(server* s, view* skip);
     static void reconfigure_all(server* s);
     static view* at(server* s, double lx, double ly, struct wlr_surface** surface, double* sx,
                     double* sy);
+    static void handle_activation_request(struct wl_listener* listener, void* data);
 };
 
 void workspace_switch(server* s, int workspace);

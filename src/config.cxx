@@ -359,6 +359,11 @@ void config::set_defaults() {
     color_task_minimized[2] = 0.12f;
     color_task_minimized[3] = 1.0f;
 
+    color_task_urgent[0] = 0.65f;
+    color_task_urgent[1] = 0.08f;
+    color_task_urgent[2] = 0.08f;
+    color_task_urgent[3] = 1.0f;
+
     color_task_text[0] = 0.88f;
     color_task_text[1] = 0.88f;
     color_task_text[2] = 0.88f;
@@ -430,6 +435,7 @@ bool config::load(const char* path) {
     read_color(L, "task_normal", color_task_normal);
     read_color(L, "task_active", color_task_active);
     read_color(L, "task_minimized", color_task_minimized);
+    read_color(L, "task_urgent", color_task_urgent);
     read_color(L, "task_text", color_task_text);
 
     lua_close(L);

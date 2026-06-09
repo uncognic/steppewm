@@ -80,4 +80,5 @@ exec("swaybg -i ~/Pictures/Vallpapers/bolatbek-gabiden-dsL_tvf1Z-E-unsplash.jpg 
 -- task_normal = {0.18, 0.18, 0.18, 1.0}
 -- task_active = {0.30, 0.30, 0.30, 1.0}
 -- task_minimized = {0.12, 0.12, 0.12, 1.0}
+-- task_urgent = {0.65, 0.08, 0.08, 1.0}
 -- task_text = {0.88, 0.88, 0.88, 1.0}
