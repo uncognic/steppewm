@@ -24,7 +24,7 @@ struct wlr_scene_tree;
 
 namespace steppewm {
 
-struct server;
+class server;
 struct output_config;
 class taskbar;
 class layer_surface;

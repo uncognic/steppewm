@@ -22,7 +22,7 @@
 
 namespace steppewm {
 
-struct server;
+class server;
 
 enum class deco_mode {
     SERVER,

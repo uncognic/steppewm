@@ -29,7 +29,7 @@ struct lua_State;
 
 namespace steppewm {
 
-struct server;
+class server;
 
 inline constexpr int num_workspaces = 9;
 
@@ -74,6 +74,9 @@ class config {
     bool natural_scroll;
     float pointer_accel;    // [-1.0, 1.0]
     char accel_profile[16]; // "flat" or "adaptive"
+
+    // xwayland
+    bool xwayland;
 
     float color_title_active[4];
     float color_title_inactive[4];

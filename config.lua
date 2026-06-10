@@ -5,6 +5,8 @@ local launcher = "wofi --show drun"
 local file_manager = "thunar"
 local screenshot = "grim -g \"$(slurp)\" - | tee ~/Screenshots/$(date +'%Y-%m-%d_%H-%M-%S').png | wl-copy"
 
+xwayland = true -- xwayland-satellite required
+
 bind("Super", "Return", "spawn", terminal)
 bind("Super", "d", "spawn", launcher)
 bind("Super", "e", "spawn", file_manager)

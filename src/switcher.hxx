@@ -25,7 +25,7 @@ struct wlr_scene_tree;
 
 namespace steppewm {
 
-struct server;
+class server;
 class view;
 
 class switcher {

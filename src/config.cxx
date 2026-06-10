@@ -281,6 +281,8 @@ void config::set_defaults() {
     pointer_accel = 0.0f;
     accel_profile[0] = '\0';
 
+    xwayland = false;
+
     color_title_active[0] = 0.24f;
     color_title_active[1] = 0.24f;
     color_title_active[2] = 0.24f;
@@ -408,6 +410,8 @@ bool config::load(const char* path) {
     read_bool(L, "natural_scroll", &natural_scroll);
     read_float(L, "pointer_accel", &pointer_accel);
     read_string(L, "accel_profile", accel_profile, sizeof(accel_profile));
+
+    read_bool(L, "xwayland", &xwayland);
 
     read_color(L, "title_active", color_title_active);
     read_color(L, "title_inactive", color_title_inactive);

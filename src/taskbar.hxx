@@ -29,7 +29,7 @@ struct wl_event_source;
 
 namespace steppewm {
 
-struct server;
+class server;
 class view;
 struct task_button;
 

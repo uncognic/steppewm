@@ -160,6 +160,8 @@ class server {
 
   private:
     static void spawn(const char* cmd);
+    static void start_xwayland();
+    static int find_free_x_display();
     static view* focused_view(server* s);
     static void dispatch_action(server* s, const char* action, const char* arg, uint32_t mods);
     static void on_new_input(struct wl_listener* listener, void* data);

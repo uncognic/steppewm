@@ -146,6 +146,38 @@ bool server::init(server* s) {
     return true;
 }
 
+int server::find_free_x_display() {
+    for (int n = 0; n < 32; n++) {
+        char sock[64], lock[64];
+        snprintf(sock, sizeof(sock), "/tmp/.X11-unix/X%d", n);
+        snprintf(lock, sizeof(lock), "/tmp/.X%d-lock", n);
+        if (access(sock, F_OK) != 0 && access(lock, F_OK) != 0) {
+            return n;
+        }
+    }
+    return -1;
+}
+
+void server::start_xwayland() {
+    const int n = find_free_x_display();
+    if (n < 0) {
+        wlr_log(WLR_ERROR, "xwayland-satellite: no free X display");
+        return;
+    }
+
+    char display[16];
+    snprintf(display, sizeof(display), ":%d", n);
+
+    if (pid_t pid = fork(); pid == 0) {
+        setsid();
+        execlp("xwayland-satellite", "xwayland-satellite", display, static_cast<char*>(nullptr));
+        _exit(1);
+    }
+
+    setenv("DISPLAY", display, true);
+    wlr_log(WLR_INFO, "xwayland-satellite on %s", display);
+}
+
 void server::run(server* s) {
     // get a socket
     const char *socket = wl_display_add_socket_auto(s->display);
@@ -161,7 +193,13 @@ void server::run(server* s) {
     }
 
     setenv("WAYLAND_DISPLAY", socket, true);
+    setenv("XDG_SESSION_TYPE", "wayland", true);
+    setenv("XDG_CURRENT_DESKTOP", "steppewm", true);
     wlr_log(WLR_INFO, "steppewm running on %s", socket);
+
+    if (s->cfg.xwayland) {
+        start_xwayland();
+    }
 
     // run exec()s after setting up environment
     s->cfg.run_execs();

@@ -22,7 +22,7 @@ struct wlr_scene_layer_surface_v1;
 
 namespace steppewm {
 
-struct server;
+class server;
 class output;
 
 class layer_surface {
