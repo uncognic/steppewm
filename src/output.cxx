@@ -80,7 +80,10 @@ void output::on_destroy(struct wl_listener* listener, void* data) {
     wl_list_remove(&out->request_state.link);
     wl_list_remove(&out->destroy.link);
     wl_list_remove(&out->link);
+
+    server* s = out->srv;
     delete out;
+    broadcast_output_config(s);
 }
 
 // update geometry of taskbar and layer surfaces for each output
@@ -115,6 +118,7 @@ void output::on_layout_change(struct wl_listener* listener, void* data) {
     }
 
     session_lock::update_geometry(s);
+    broadcast_output_config(s);
 }
 
 // register a layout change
@@ -132,6 +136,13 @@ void output::init(server* s) {
     // grim needs screencopy to capture pixels
     wlr_xdg_output_manager_v1_create(s->display, s->output_layout);
     wlr_screencopy_manager_v1_create(s->display);
+
+    // wlr-output-management protocol
+    s->output_mgr = wlr_output_manager_v1_create(s->display);
+    s->output_mgr_apply.notify = on_output_mgr_apply;
+    s->output_mgr_test.notify = on_output_mgr_test;
+    wl_signal_add(&s->output_mgr->events.apply, &s->output_mgr_apply);
+    wl_signal_add(&s->output_mgr->events.test, &s->output_mgr_test);
 
     // wlr_output_power protocol
     s->output_power_mgr = wlr_output_power_manager_v1_create(s->display);
@@ -285,35 +296,7 @@ void output::reconfigure_all(server* s) {
     wl_list_for_each(out, &s->outputs, link) {
         out->apply_config();
     }
-
-    output* primary = nullptr;
-    wl_list_for_each_reverse(out, &s->outputs, link) {
-        if (!out->scene_output) {
-            continue;
-        }
-        if (!primary) {
-            primary = out;
-        }
-        if (out->taskbar) {
-            primary = out;
-            break;
-        }
-    }
-
-    wl_list_for_each(out, &s->outputs, link) {
-        bool needs_taskbar = out->scene_output && (s->cfg.taskbar_all_outputs || out == primary);
-        if (needs_taskbar && !out->taskbar) {
-            out->create_taskbar();
-        } else if (!needs_taskbar && out->taskbar) {
-            delete out->taskbar;
-            out->taskbar = nullptr;
-        }
-
-        if (out->taskbar) {
-            out->taskbar->update_geometry();
-            out->taskbar->raise();
-        }
-    }
+    ensure_taskbars(s);
 }
 
 void output::on_set_gamma(struct wl_listener* listener, void* data) {
@@ -385,4 +368,151 @@ void output::on_new(struct wl_listener* listener, void* data) {
     out->apply_config();
 
     wlr_log(WLR_INFO, "new output: %s", wlr_output->name);
+}
+
+output* output::find_for_wlr_output(const server* s, const struct wlr_output* wlr_out) {
+    output* out;
+    wl_list_for_each(out, &s->outputs, link) {
+        if (out->wlr_output == wlr_out) {
+            return out;
+        }
+    }
+    return nullptr;
+}
+
+void output::ensure_taskbars(const server* s) {
+    output* primary = nullptr;
+    output* out;
+    wl_list_for_each_reverse(out, &s->outputs, link) {
+        if (!out->scene_output) {
+            continue;
+        }
+        if (!primary) {
+            primary = out;
+        }
+        if (out->taskbar) {
+            primary = out;
+            break;
+        }
+    }
+
+    wl_list_for_each(out, &s->outputs, link) {
+        const bool needs = out->scene_output && (s->cfg.taskbar_all_outputs || out == primary);
+        if (needs && !out->taskbar) {
+            out->create_taskbar();
+        } else if (!needs && out->taskbar) {
+            delete out->taskbar;
+            out->taskbar = nullptr;
+        }
+        if (out->taskbar) {
+            out->taskbar->update_geometry();
+            out->taskbar->raise();
+        }
+    }
+}
+
+void output::broadcast_output_config(server* s) {
+    wlr_output_configuration_v1* config = wlr_output_configuration_v1_create();
+
+    output* out;
+    wl_list_for_each(out, &s->outputs, link) {
+        wlr_output_configuration_head_v1* head =
+            wlr_output_configuration_head_v1_create(config, out->wlr_output);
+        if (!head) {
+            wlr_output_configuration_v1_destroy(config);
+            return;
+        }
+        wlr_box box;
+        wlr_output_layout_get_box(s->output_layout, out->wlr_output, &box);
+        if (box.width > 0) {
+            head->state.x = box.x;
+            head->state.y = box.y;
+        }
+    }
+
+    wlr_output_manager_v1_set_configuration(s->output_mgr, config);
+}
+
+void output::on_output_mgr_test(wl_listener* listener, void* data) {
+    server* s = wl_container_of(listener, s, output_mgr_test);
+    auto* config = static_cast<struct wlr_output_configuration_v1*>(data);
+
+    size_t states_len;
+    wlr_backend_output_state* states = wlr_output_configuration_v1_build_state(config, &states_len);
+    if (!states) {
+        wlr_output_configuration_v1_send_failed(config);
+        wlr_output_configuration_v1_destroy(config);
+        return;
+    }
+
+    const bool ok = wlr_backend_test(s->backend, states, states_len);
+    free(states);
+
+    if (ok) {
+        wlr_output_configuration_v1_send_succeeded(config);
+    } else {
+        wlr_output_configuration_v1_send_failed(config);
+    }
+    wlr_output_configuration_v1_destroy(config);
+}
+
+void output::on_output_mgr_apply(wl_listener* listener, void* data) {
+    server* s = wl_container_of(listener, s, output_mgr_apply);
+    auto* config = static_cast<struct wlr_output_configuration_v1*>(data);
+
+    size_t states_len;
+    wlr_backend_output_state* states = wlr_output_configuration_v1_build_state(config, &states_len);
+    if (!states) {
+        wlr_output_configuration_v1_send_failed(config);
+        wlr_output_configuration_v1_destroy(config);
+        return;
+    }
+
+    if (!wlr_backend_commit(s->backend, states, states_len)) {
+        free(states);
+        wlr_output_configuration_v1_send_failed(config);
+        wlr_output_configuration_v1_destroy(config);
+        return;
+    }
+    free(states);
+
+    // apply layout positions
+    wlr_output_configuration_head_v1* head;
+    wl_list_for_each(head, &config->heads, link) {
+        output* out = find_for_wlr_output(s, head->state.output);
+        if (!out) {
+            continue;
+        }
+
+        if (head->state.enabled) {
+            for (const auto& lt : out->layer_trees) {
+                if (lt) {
+                    wlr_scene_node_set_enabled(&lt->node, true);
+                }
+            }
+            wlr_output_layout_output* lo = wlr_output_layout_add(s->output_layout, out->wlr_output,
+                                                                 head->state.x, head->state.y);
+            if (!out->scene_output) {
+                out->scene_output = wlr_scene_output_create(s->scene, out->wlr_output);
+                wlr_scene_output_layout_add_output(s->scene_layout, lo, out->scene_output);
+            }
+        } else {
+            if (out->taskbar) {
+                delete out->taskbar;
+                out->taskbar = nullptr;
+            }
+            for (const auto& lt : out->layer_trees) {
+                if (lt) {
+                    wlr_scene_node_set_enabled(&lt->node, false);
+                }
+            }
+            wlr_output_layout_remove(s->output_layout, out->wlr_output);
+            out->scene_output = nullptr;
+        }
+    }
+
+    ensure_taskbars(s);
+
+    wlr_output_configuration_v1_send_succeeded(config);
+    wlr_output_configuration_v1_destroy(config);
 }

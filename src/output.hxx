@@ -55,6 +55,7 @@ class output {
     static void on_set_gamma(struct wl_listener* listener, void* data);
     static void register_layout_change(server* s);
     static void reconfigure_all(server* s);
+    static void broadcast_output_config(server* s);
 
   private:
     static struct wlr_output_mode* pick_mode(struct wlr_output* wlr_output,
@@ -64,6 +65,10 @@ class output {
     static void on_request_state(struct wl_listener* listener, void* data);
     static void on_destroy(struct wl_listener* listener, void* data);
     static void on_layout_change(struct wl_listener* listener, void* data);
+    static void on_output_mgr_apply(struct wl_listener* listener, void* data);
+    static void on_output_mgr_test(struct wl_listener* listener, void* data);
+    static void ensure_taskbars(const server* s);
+    static output* find_for_wlr_output(const server* s, const struct wlr_output* wlr_out);
 };
 
 } // namespace steppewm
