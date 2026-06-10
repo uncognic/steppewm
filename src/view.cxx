@@ -28,16 +28,6 @@ bool view::can_configure(view* v) {
     return v->toplevel->base->initialized;
 }
 
-// refresh every output's taskbar
-static void refresh_taskbars(server* s) {
-    output* out;
-    wl_list_for_each(out, &s->outputs, link) {
-        if (out->taskbar) {
-            out->taskbar->refresh();
-        }
-    }
-}
-
 // show or hide a view depending on whether it lives on the current workspace
 void view::update_visibility() {
     bool visible = !minimized && workspace == srv->current_workspace;
@@ -68,7 +58,7 @@ void view::focus_next(server* s, view* skip) {
         next->focus(next->toplevel->base->surface);
     } else {
         wlr_seat_keyboard_notify_clear_focus(s->seat);
-        refresh_taskbars(s);
+        taskbar::refresh_taskbars(s);
     }
 }
 
@@ -76,7 +66,7 @@ void view::focus_next(server* s, view* skip) {
 void view::minimize(bool min) {
     minimized = min;
     update_visibility();
-    refresh_taskbars(srv);
+    taskbar::refresh_taskbars(srv);
 }
 
 void view::set_urgent(bool is_urgent) {
@@ -84,7 +74,7 @@ void view::set_urgent(bool is_urgent) {
         return;
     }
     urgent = is_urgent;
-    refresh_taskbars(srv);
+    taskbar::refresh_taskbars(srv);
 }
 
 // switch the visible workspace, hiding the old set and showing the new one
@@ -117,7 +107,7 @@ void view::workspace_switch(server* s, int workspace) {
     }
 
     // redraw taskbars so the active workspace and window list update
-    refresh_taskbars(s);
+    taskbar::refresh_taskbars(s);
 }
 
 // move a window to another workspace
@@ -133,7 +123,7 @@ void view::move_to_workspace(int ws) {
 
     // the window left the current workspace, hand focus to a remaining one
     view::focus_next(srv, this);
-    refresh_taskbars(srv);
+    taskbar::refresh_taskbars(srv);
 }
 
 // apply ssd deco

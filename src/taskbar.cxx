@@ -38,16 +38,9 @@
 #include "paint.hxx"
 #include "server.hxx"
 #include "taskbar.hxx"
-#include "view.hxx"
 
-// one button in the task row, tracking the window it represents
-namespace steppewm {
-struct task_button {
-    view* v;
-    struct wlr_scene_buffer* label;
-    Listener title_changed;
-};
-} // namespace steppewm
+#include "output.hxx"
+#include "view.hxx"
 
 using namespace steppewm;
 
@@ -244,7 +237,7 @@ view* taskbar::focused_view() const {
     if (!surf) {
         return nullptr;
     }
-    struct wlr_xdg_surface * xdg = wlr_xdg_surface_try_from_wlr_surface(surf);
+    struct wlr_xdg_surface* xdg = wlr_xdg_surface_try_from_wlr_surface(surf);
     if (!xdg || xdg->role != WLR_XDG_SURFACE_ROLE_TOPLEVEL) {
         return nullptr;
     }
@@ -284,7 +277,7 @@ void taskbar::layout() {
         wlr_scene_node_set_position(&ws_labels_[i]->node, cursor_x, pad);
         char num[4];
         snprintf(num, sizeof(num), "%d", i + 1);
-        float *bg = (i == current) ? cfg->color_task_active : cfg->color_task_normal;
+        float* bg = (i == current) ? cfg->color_task_active : cfg->color_task_normal;
         render_button(ws_labels_[i], num, ws_button_w, button_h, bg, cfg->color_task_text);
         cursor_x += ws_button_w + pad;
     }
@@ -294,7 +287,7 @@ void taskbar::layout() {
 
     // count windows that live on the current workspace
     int visible_count = 0;
-    for (auto &btn : buttons_) {
+    for (auto& btn : buttons_) {
         if (btn->v->workspace == current) {
             visible_count++;
         }
@@ -302,13 +295,13 @@ void taskbar::layout() {
 
     // if there's no windows on the current workspace, hide all of them
     if (visible_count == 0) {
-        for (auto &btn : buttons_) {
+        for (auto& btn : buttons_) {
             wlr_scene_node_set_enabled(&btn->label->node, false);
         }
         return;
     }
 
-    view *fv = focused_view();
+    view* fv = focused_view();
 
     // task row ends before the layout indicator and the clock on the right
     int right_limit = width_ - clock_w_ - pad - layout_ind_w_ - pad;
@@ -331,7 +324,7 @@ void taskbar::layout() {
     // draw each window button
     int slot = 0;
     bool has_visible_urgent = false;
-    for (auto &btn : buttons_) {
+    for (auto& btn : buttons_) {
         // skip and hide windows on other workspaces
         if (btn->v->workspace != current) {
             wlr_scene_node_set_enabled(&btn->label->node, false);
@@ -343,7 +336,7 @@ void taskbar::layout() {
         int button_x = task_row_left + slot * (button_w + pad);
         wlr_scene_node_set_position(&btn->label->node, button_x, pad);
 
-        float *bg;
+        float* bg;
         if (btn->v == fv) {
             bg = cfg->color_task_active;
         } else if (btn->v->urgent) {
@@ -357,7 +350,7 @@ void taskbar::layout() {
             bg = cfg->color_task_normal;
         }
 
-        const char *title = btn->v->toplevel->title ? btn->v->toplevel->title : "";
+        const char* title = btn->v->toplevel->title ? btn->v->toplevel->title : "";
         render_button(btn->label, title, button_w, button_h, bg, cfg->color_task_text);
         slot++;
     }
@@ -370,7 +363,7 @@ void taskbar::layout() {
 }
 
 // create taskbar, scene tree, and bg
-taskbar::taskbar(server *s, struct wlr_output* wlr_output) {
+taskbar::taskbar(server* s, struct wlr_output* wlr_output) {
     srv_ = s;
     wlr_output_ = wlr_output;
     height_ = s->cfg.taskbar_h;
@@ -416,7 +409,7 @@ void taskbar::view_added(view* v) {
 }
 
 // remove window's taskbar button and redraw the taskbar
-void taskbar::view_removed(view *v) {
+void taskbar::view_removed(view* v) {
     for (auto it = buttons_.begin(); it != buttons_.end(); ++it) {
         if ((*it)->v != v) {
             continue;
@@ -457,7 +450,7 @@ void taskbar::raise() {
 }
 
 // return corresponding steppewm_view depending on which taskbar button is at the xy position
-view *taskbar::view_at(double x, double y) {
+view* taskbar::view_at(double x, double y) {
     // safety
     if (buttons_.empty() || width_ <= 0) {
         return nullptr;
@@ -470,9 +463,9 @@ view *taskbar::view_at(double x, double y) {
     }
 
     // find x position relative to the taskbar's left edge
-    int local_x = (int)(x - x_);
+    int local_x = (int) (x - x_);
 
-    config *cfg = &srv_->cfg;
+    config* cfg = &srv_->cfg;
     int pad = cfg->taskbar_button_pad;
     int ws_button_w = ws_button_w_ > 0 ? ws_button_w_ : (height_ - 2 * pad);
     int button_w = button_w_ > 0 ? button_w_ : cfg->taskbar_button_w;
@@ -521,7 +514,7 @@ int taskbar::workspace_at(double x, double y) {
     }
 
     int local_x = (int) (x - x_);
-    config *cfg = &srv_->cfg;
+    config* cfg = &srv_->cfg;
     int pad = cfg->taskbar_button_pad;
     int ws_button_w = ws_button_w_ > 0 ? ws_button_w_ : (height_ - 2 * pad);
     if (ws_button_w < 1) {
@@ -537,4 +530,12 @@ int taskbar::workspace_at(double x, double y) {
         return -1;
     }
     return idx;
+}
+void taskbar::refresh_taskbars(server* s) {
+    output* out;
+    wl_list_for_each(out, &s->outputs, link) {
+        if (out->taskbar) {
+            out->taskbar->refresh();
+        }
+    }
 }

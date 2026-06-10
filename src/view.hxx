@@ -29,7 +29,8 @@ enum class deco_mode {
     CLIENT,
 };
 
-struct deco {
+class deco {
+  public:
     struct wlr_scene_rect *titlebar;
     struct wlr_scene_buffer *title_label;
     struct wlr_scene_rect *close_button;

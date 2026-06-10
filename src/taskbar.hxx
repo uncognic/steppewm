@@ -29,9 +29,12 @@ struct wl_event_source;
 
 namespace steppewm {
 
-class server;
-class view;
-struct task_button;
+class task_button {
+  public:
+    view* v{};
+    struct wlr_scene_buffer* label{};
+    Listener title_changed;
+};
 
 class taskbar {
   public:
@@ -48,6 +51,7 @@ class taskbar {
     void raise();
     view* view_at(double x, double y);
     int workspace_at(double x, double y);
+    static void refresh_taskbars(server* s);
 
   private:
     void layout();

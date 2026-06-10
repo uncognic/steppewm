@@ -33,14 +33,16 @@ class server;
 
 inline constexpr int num_workspaces = 9;
 
-struct keybind {
+class keybind {
+  public:
     uint32_t modifiers;
     xkb_keysym_t sym;
     char action[32];
     char arg[CFG_MAX_ARG];
 };
 
-struct output_config {
+class output_config {
+  public:
     char name[64];
     int width, height; // 0 = use preferred mode
     int refresh_mhz;   // 0 = highest refresh at WxH
