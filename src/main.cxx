@@ -63,6 +63,10 @@ bool server::init(server* s) {
     wlr_data_device_manager_create(s->display);
     wlr_primary_selection_v1_device_manager_create(s->display);
 
+    // clipboard managers
+    wlr_data_control_manager_v1_create(s->display);
+    wlr_ext_data_control_manager_v1_create(s->display, 1);
+
     // wp_viewporter protocol
     wlr_viewporter_create(s->display);
 
