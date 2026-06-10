@@ -385,6 +385,7 @@ void view::apply_state(view* v, bool maximized, bool fullscreen) {
     server* s = v->srv;
     struct wlr_scene_node* node = &v->scene_tree->node;
     bool was_special = v->maximized || v->fullscreen;
+    bool was_fullscreen = v->fullscreen;
     bool now_special = maximized || fullscreen;
 
     // save the current geometry
@@ -412,14 +413,22 @@ void view::apply_state(view* v, bool maximized, bool fullscreen) {
         wlr_output_layout_get_box(s->output_layout, wlr_out, &out_box);
         wlr_scene_node_set_position(node, out_box.x, out_box.y);
 
-        int ox = v->decoration_mode == deco_mode::SERVER ? s->cfg.border_w : 0;
-        int oy = v->decoration_mode == deco_mode::SERVER ? s->cfg.title_h : 0;
-        int bar_h = maximized && !fullscreen ? s->cfg.taskbar_h : 0;
-        wlr_xdg_toplevel_set_size(v->toplevel, out_box.width - 2 * ox,
-                                  out_box.height - oy - ox - bar_h);
+        if (fullscreen) {
+            wlr_scene_node_set_position(&v->xdg_tree->node, 0, 0);
+            wlr_xdg_toplevel_set_size(v->toplevel, out_box.width, out_box.height);
+        } else {
+            int ox = v->decoration_mode == deco_mode::SERVER ? s->cfg.border_w : 0;
+            int oy = v->decoration_mode == deco_mode::SERVER ? s->cfg.title_h : 0;
+            wlr_scene_node_set_position(&v->xdg_tree->node, ox, oy);
+            wlr_xdg_toplevel_set_size(v->toplevel, out_box.width - 2 * ox,
+                                      out_box.height - oy - ox - s->cfg.taskbar_h);
+        }
 
         // restore state if we are exiting
     } else if (was_special) {
+        int ox = v->decoration_mode == deco_mode::SERVER ? s->cfg.border_w : 0;
+        int oy = v->decoration_mode == deco_mode::SERVER ? s->cfg.title_h : 0;
+        wlr_scene_node_set_position(&v->xdg_tree->node, ox, oy);
         wlr_scene_node_set_position(node, v->saved_geo.x, v->saved_geo.y);
         wlr_xdg_toplevel_set_size(v->toplevel, v->saved_geo.width, v->saved_geo.height);
     }
@@ -429,6 +438,15 @@ void view::apply_state(view* v, bool maximized, bool fullscreen) {
     v->fullscreen = fullscreen;
     wlr_xdg_toplevel_set_maximized(v->toplevel, maximized);
     wlr_xdg_toplevel_set_fullscreen(v->toplevel, fullscreen);
+
+    // hide decorations and lift the window over the taskbar while fullscreen
+    v->deco_set_visible(!fullscreen);
+    if (fullscreen) {
+        wlr_scene_node_raise_to_top(node);
+    } else if (was_fullscreen) {
+        raise_overlays(s);
+    }
+
     // wayland brah
     if (can_configure(v)) {
         wlr_xdg_surface_schedule_configure(v->toplevel->base);
@@ -737,6 +755,20 @@ view* view::at(server* s, double lx, double ly, struct wlr_surface** surface, do
     return static_cast<view*>(tree->node.data);
 }
 
+void view::raise_overlays(server* s) {
+    output* out;
+    wl_list_for_each(out, &s->outputs, link) {
+        if (out->taskbar) {
+            out->taskbar->raise();
+        }
+        for (int i = ZWLR_LAYER_SHELL_V1_LAYER_TOP; i <= ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY; i++) {
+            if (out->layer_trees[i]) {
+                wlr_scene_node_raise_to_top(&out->layer_trees[i]->node);
+            }
+        }
+    }
+}
+
 // focus a view
 void view::focus(struct wlr_surface* surface) {
     if (!mapped) {
@@ -794,17 +826,16 @@ void view::focus(struct wlr_surface* surface) {
     // a window now owns keyboard focus, so no layer surface does
     s->focused_layer = nullptr;
 
+    raise_overlays(s);
+
     output* out;
     wl_list_for_each(out, &s->outputs, link) {
         if (out->taskbar) {
-            out->taskbar->raise();
             out->taskbar->refresh();
         }
-        // keep TOP and OVERLAY layer surfaces above taskbar
-        for (int i = ZWLR_LAYER_SHELL_V1_LAYER_TOP; i <= ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY; i++) {
-            if (out->layer_trees[i]) {
-                wlr_scene_node_raise_to_top(&out->layer_trees[i]->node);
-            }
-        }
+    }
+
+    if (fullscreen) {
+        wlr_scene_node_raise_to_top(&scene_tree->node);
     }
 }

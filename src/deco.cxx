@@ -94,7 +94,7 @@ void view::deco_create() {
 
 // called when the decoration needs to be updated
 void view::deco_update() const {
-    if (decoration_mode != deco_mode::SERVER || !deco.titlebar) {
+    if (decoration_mode != deco_mode::SERVER || !deco.titlebar || fullscreen) {
         return;
     }
 
@@ -147,6 +147,22 @@ void view::deco_update() const {
     const int corner_y = cfg->title_h + sh + cfg->border_w - cfg->corner_size;
     wlr_scene_node_set_position(&deco.corner_bl->node, 0, corner_y);
     wlr_scene_node_set_position(&deco.corner_br->node, tw - cfg->corner_size, corner_y);
+}
+
+void view::deco_set_visible(bool visible) const {
+    if (decoration_mode != deco_mode::SERVER || !deco.titlebar) {
+        return;
+    }
+    wlr_scene_node* nodes[] = {
+        &deco.titlebar->node,     &deco.close_button->node,  &deco.maximize->node,
+        &deco.minimize->node,     &deco.border_top->node,    &deco.border_left->node,
+        &deco.border_right->node, &deco.border_bottom->node, &deco.corner_tl->node,
+        &deco.corner_tr->node,    &deco.corner_bl->node,     &deco.corner_br->node,
+    };
+    for (wlr_scene_node* n : nodes) {
+        wlr_scene_node_set_enabled(n, visible);
+    }
+    wlr_scene_node_set_enabled(&deco.title_label->node, visible && srv->cfg.show_title_text);
 }
 
 // called when a view is destroyed

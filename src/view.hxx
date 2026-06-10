@@ -113,6 +113,7 @@ class view {
     void deco_update() const;
     void deco_destroy();
     void deco_set_focus(bool focused) const;
+    void deco_set_visible(bool visible) const;
     const char* deco_cursor_name(const struct wlr_scene_node* node) const;
     bool deco_handle_button(server* s, const struct wlr_scene_node* node, uint32_t button);
 
@@ -132,6 +133,7 @@ class view {
 
   private:
     static bool can_configure(view* v);
+    static void raise_overlays(server* s);
     static void apply_state(view* v, bool maximized, bool fullscreen);
     static void apply_pending_deco(view* v);
     static void initial_configure(void* data);
