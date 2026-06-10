@@ -52,8 +52,8 @@ struct task_button {
 using namespace steppewm;
 
 // render button into cairo then draw it
-static void render_button(struct wlr_scene_buffer* scene_buf, const char* text, int w, int h,
-                          float bg[4], float fg[4]) {
+void taskbar::render_button(struct wlr_scene_buffer* scene_buf, const char* text, int w, int h,
+                            float bg[4], float fg[4]) {
     paint::Canvas canvas(w, h);
     if (!canvas.valid()) {
         return;

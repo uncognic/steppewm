@@ -28,18 +28,34 @@ struct cpu_buf {
     struct wlr_buffer base;
     uint8_t *pixels;
     size_t stride;
+
+    static void destroy(struct wlr_buffer* wlr_buf);
+    static bool begin_data_ptr_access(struct wlr_buffer* wlr_buf, uint32_t flags, void** data,
+                                      uint32_t* format, size_t* stride);
+    static void end_data_ptr_access(struct wlr_buffer* wlr_buf);
+    static cpu_buf* create(int w, int h);
 };
 
 namespace {
 
-void cpu_buf_destroy(struct wlr_buffer *wlr_buf) {
+const struct wlr_buffer_impl cpu_buf_impl = {
+    .destroy = cpu_buf::destroy,
+    .get_dmabuf = nullptr,
+    .get_shm = nullptr,
+    .begin_data_ptr_access = cpu_buf::begin_data_ptr_access,
+    .end_data_ptr_access = cpu_buf::end_data_ptr_access,
+};
+
+} // namespace
+
+void cpu_buf::destroy(struct wlr_buffer* wlr_buf) {
     cpu_buf *buf = wl_container_of(wlr_buf, buf, base);
     free(buf->pixels);
     free(buf);
 }
 
-bool cpu_buf_begin_data_ptr_access(struct wlr_buffer *wlr_buf, uint32_t flags, void **data,
-                                   uint32_t *format, size_t *stride) {
+bool cpu_buf::begin_data_ptr_access(struct wlr_buffer* wlr_buf, uint32_t flags, void** data,
+                                    uint32_t* format, size_t* stride) {
     (void) flags;
     cpu_buf *buf = wl_container_of(wlr_buf, buf, base);
     *data = buf->pixels;
@@ -48,19 +64,11 @@ bool cpu_buf_begin_data_ptr_access(struct wlr_buffer *wlr_buf, uint32_t flags, v
     return true;
 }
 
-void cpu_buf_end_data_ptr_access(struct wlr_buffer *wlr_buf) {
+void cpu_buf::end_data_ptr_access(struct wlr_buffer* wlr_buf) {
     (void) wlr_buf;
 }
 
-const struct wlr_buffer_impl cpu_buf_impl = {
-    .destroy = cpu_buf_destroy,
-    .get_dmabuf = nullptr,
-    .get_shm = nullptr,
-    .begin_data_ptr_access = cpu_buf_begin_data_ptr_access,
-    .end_data_ptr_access = cpu_buf_end_data_ptr_access,
-};
-
-cpu_buf *cpu_buf_create(int w, int h) {
+cpu_buf* cpu_buf::create(int w, int h) {
     cpu_buf *buf = static_cast<cpu_buf *>(calloc(1, sizeof(*buf)));
     buf->stride = (size_t) w * 4;
     buf->pixels = static_cast<uint8_t *>(calloc(h, buf->stride));
@@ -68,15 +76,13 @@ cpu_buf *cpu_buf_create(int w, int h) {
     return buf;
 }
 
-} // namespace
-
 namespace paint {
 
 Canvas::Canvas(int width, int height) : width_(width), height_(height) {
     if (width <= 0 || height <= 0) {
         return;
     }
-    buf_ = cpu_buf_create(width, height);
+    buf_ = cpu_buf::create(width, height);
     surface_ = cairo_image_surface_create_for_data(buf_->pixels, CAIRO_FORMAT_ARGB32, width, height,
                                                    (int) buf_->stride);
     cr_ = cairo_create(surface_);

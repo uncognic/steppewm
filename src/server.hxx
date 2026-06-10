@@ -35,6 +35,8 @@
 #include <wlr/types/wlr_xdg_shell.h>
 #include <wlr/util/box.h>
 
+struct wlr_input_device;
+
 namespace steppewm {
 
 class view;
@@ -42,12 +44,13 @@ class layer_surface;
 class switcher;
 
 enum class cursor_mode {
-    PASSTHROUGH,
-    MOVE,
-    RESIZE,
+    passthrough,
+    move,
+    resize,
 };
 
-struct server {
+class server {
+  public:
     struct wl_display *display;
     struct wlr_backend *backend;
     struct wlr_session *session;
@@ -146,6 +149,38 @@ struct server {
 
     config cfg;
     char config_path[512];
+
+    static bool init(server* s);
+    static void run(server* s);
+    static void fini(server* s);
+
+    static void input_reconfigure(server* s);
+    static void cursor_begin_interactive(view* v, cursor_mode mode, uint32_t edges);
+    static bool handle_keybinding(server* s, uint32_t mods, xkb_keysym_t sym);
+
+  private:
+    static void spawn(const char* cmd);
+    static view* focused_view(server* s);
+    static void dispatch_action(server* s, const char* action, const char* arg, uint32_t mods);
+    static void on_new_input(struct wl_listener* listener, void* data);
+    static void on_cursor_motion(struct wl_listener* listener, void* data);
+    static void on_cursor_motion_absolute(struct wl_listener* listener, void* data);
+    static void on_cursor_button(struct wl_listener* listener, void* data);
+    static void on_cursor_axis(struct wl_listener* listener, void* data);
+    static void on_cursor_frame(struct wl_listener* listener, void* data);
+    static void process_cursor_move(server* s);
+    static void process_cursor_resize(server* s);
+    static void process_cursor_motion(server* s, uint32_t time_msec);
+    static void cursor_move_relative(server* s, struct wlr_input_device* device, double dx,
+                                     double dy, double unaccel_dx, double unaccel_dy,
+                                     uint32_t time_msec);
+    static void on_request_set_cursor(struct wl_listener* listener, void* data);
+    static void on_request_set_shape(struct wl_listener* listener, void* data);
+    static void on_request_set_selection(struct wl_listener* listener, void* data);
+    static void on_request_set_primary_selection(struct wl_listener* listener, void* data);
+    static void on_request_start_drag(struct wl_listener* listener, void* data);
+    static void on_start_drag(struct wl_listener* listener, void* data);
+    static void on_drag_destroy(struct wl_listener* listener, void* data);
 };
 
 } // namespace steppewm

@@ -18,12 +18,14 @@
 #include <wayland-server-core.h>
 
 struct wlr_output;
+struct wlr_output_mode;
 struct wlr_scene_output;
 struct wlr_scene_tree;
 
 namespace steppewm {
 
 struct server;
+struct output_config;
 class taskbar;
 class layer_surface;
 
@@ -47,11 +49,21 @@ class output {
     void apply_config();
     void create_taskbar();
 
+    static void init(server* s);
     static void on_new(struct wl_listener* listener, void* data);
     static void on_power_set_mode(struct wl_listener* listener, void* data);
     static void on_set_gamma(struct wl_listener* listener, void* data);
     static void register_layout_change(server* s);
     static void reconfigure_all(server* s);
+
+  private:
+    static struct wlr_output_mode* pick_mode(struct wlr_output* wlr_output,
+                                             const output_config* oc);
+    static bool any_taskbar(server* s);
+    static void on_frame(struct wl_listener* listener, void* data);
+    static void on_request_state(struct wl_listener* listener, void* data);
+    static void on_destroy(struct wl_listener* listener, void* data);
+    static void on_layout_change(struct wl_listener* listener, void* data);
 };
 
 } // namespace steppewm

@@ -28,7 +28,7 @@
 using namespace steppewm;
 
 // called on output frame events
-static void output_frame(struct wl_listener* listener, void* data) {
+void output::on_frame(struct wl_listener* listener, void* data) {
     (void) data;
     output* out = wl_container_of(listener, out, frame);
     struct wlr_scene_output* scene_output =
@@ -45,14 +45,14 @@ static void output_frame(struct wl_listener* listener, void* data) {
     wlr_scene_output_send_frame_done(scene_output, &now);
 }
 
-static void output_request_state(struct wl_listener* listener, void* data) {
+void output::on_request_state(struct wl_listener* listener, void* data) {
     output* out = wl_container_of(listener, out, request_state);
     const auto* event = static_cast<const struct wlr_output_event_request_state*>(data);
     wlr_output_commit_state(out->wlr_output, event->state);
 }
 
 // clean up output
-static void output_destroy(struct wl_listener* listener, void* data) {
+void output::on_destroy(struct wl_listener* listener, void* data) {
     (void) data;
     output* out = wl_container_of(listener, out, destroy);
 
@@ -84,7 +84,7 @@ static void output_destroy(struct wl_listener* listener, void* data) {
 }
 
 // update geometry of taskbar and layer surfaces for each output
-static void output_layout_change(struct wl_listener* listener, void* data) {
+void output::on_layout_change(struct wl_listener* listener, void* data) {
     (void) data;
     server* s = wl_container_of(listener, s, output_layout_change);
     output* out;
@@ -119,12 +119,38 @@ static void output_layout_change(struct wl_listener* listener, void* data) {
 
 // register a layout change
 void output::register_layout_change(server* s) {
-    s->output_layout_change.notify = output_layout_change;
+    s->output_layout_change.notify = on_layout_change;
     wl_signal_add(&s->output_layout->events.change, &s->output_layout_change);
 }
 
+void output::init(server* s) {
+    // create output layout
+    s->output_layout = wlr_output_layout_create(s->display);
+    output::register_layout_change(s);
+
+    // slurp needs xdg-output to enumerate output geometry
+    // grim needs screencopy to capture pixels
+    wlr_xdg_output_manager_v1_create(s->display, s->output_layout);
+    wlr_screencopy_manager_v1_create(s->display);
+
+    // wlr_output_power protocol
+    s->output_power_mgr = wlr_output_power_manager_v1_create(s->display);
+    s->output_power_set_mode.notify = output::on_power_set_mode;
+    wl_signal_add(&s->output_power_mgr->events.set_mode, &s->output_power_set_mode);
+
+    // wlr_gamma_control protocol
+    s->gamma_control_mgr = wlr_gamma_control_manager_v1_create(s->display);
+    s->set_gamma.notify = output::on_set_gamma;
+    wl_signal_add(&s->gamma_control_mgr->events.set_gamma, &s->set_gamma);
+
+    // create listeners and signals
+    wl_list_init(&s->outputs);
+    s->new_output.notify = output::on_new;
+    wl_signal_add(&s->backend->events.new_output, &s->new_output);
+}
+
 // pick the output mode best matching the configured width/height/refresh
-static struct wlr_output_mode* pick_mode(struct wlr_output* wlr_output, const output_config* oc) {
+struct wlr_output_mode* output::pick_mode(struct wlr_output* wlr_output, const output_config* oc) {
     struct wlr_output_mode *mode, *best = nullptr;
     wl_list_for_each(mode, &wlr_output->modes, link) {
         if (mode->width != oc->width || mode->height != oc->height) {
@@ -143,7 +169,7 @@ static struct wlr_output_mode* pick_mode(struct wlr_output* wlr_output, const ou
     return best;
 }
 
-static bool any_taskbar(server* s) {
+bool output::any_taskbar(server* s) {
     output* out;
     wl_list_for_each(out, &s->outputs, link) {
         if (out->taskbar) {
@@ -331,13 +357,13 @@ void output::on_new(struct wl_listener* listener, void* data) {
     out->wlr_output = wlr_output;
     wl_list_init(&out->layer_surfaces);
 
-    out->frame.notify = output_frame;
+    out->frame.notify = on_frame;
     wl_signal_add(&wlr_output->events.frame, &out->frame);
 
-    out->request_state.notify = output_request_state;
+    out->request_state.notify = on_request_state;
     wl_signal_add(&wlr_output->events.request_state, &out->request_state);
 
-    out->destroy.notify = output_destroy;
+    out->destroy.notify = on_destroy;
     wl_signal_add(&wlr_output->events.destroy, &out->destroy);
 
     wl_list_insert(&s->outputs, &out->link);

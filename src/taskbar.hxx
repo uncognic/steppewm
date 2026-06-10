@@ -51,6 +51,8 @@ class taskbar {
 
   private:
     void layout();
+    static void render_button(struct wlr_scene_buffer* scene_buf, const char* text, int w, int h,
+                              float bg[4], float fg[4]);
     void render_clock();
     void render_layout_indicator();
     void layout_code(char* out, size_t len);

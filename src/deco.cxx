@@ -23,7 +23,6 @@
 #include <wlr/types/wlr_xdg_shell.h>
 #include <wlr/util/edges.h>
 
-#include "deco.hxx"
 #include "input.hxx"
 #include "paint.hxx"
 #include "server.hxx"
@@ -32,8 +31,8 @@
 using namespace steppewm;
 
 // render decoration window title
-static void deco_render_title(struct wlr_scene_buffer* scene_buf, const char* text, const int w,
-                              const int h, float fg[4]) {
+void view::deco_render_title(struct wlr_scene_buffer* scene_buf, const char* text, const int w,
+                             const int h, float fg[4]) {
     paint::Canvas canvas(w, h);
     if (!canvas.valid()) {
         return;
@@ -220,8 +219,8 @@ const char* view::deco_cursor_name(const struct wlr_scene_node* node) const {
     return nullptr;
 }
 
-view* steppewm::deco_at(const server* s, const double lx, const double ly,
-                        struct wlr_scene_node** node) {
+view* view::deco_at(const server* s, const double lx, const double ly,
+                    struct wlr_scene_node** node) {
     double sx, sy;
     struct wlr_scene_node* hit = wlr_scene_node_at(&s->scene->tree.node, lx, ly, &sx, &sy);
     if (!hit) {
@@ -283,39 +282,41 @@ bool view::deco_handle_button(server* s, const struct wlr_scene_node* node, cons
     }
     // handle resizing
     if (node == &deco.titlebar->node) {
-        cursor_begin_interactive(this, cursor_mode::MOVE, 0);
+        server::cursor_begin_interactive(this, cursor_mode::move, 0);
         return true;
     }
     if (node == &deco.corner_tl->node) {
-        cursor_begin_interactive(this, cursor_mode::RESIZE, WLR_EDGE_TOP | WLR_EDGE_LEFT);
+        server::cursor_begin_interactive(this, cursor_mode::resize, WLR_EDGE_TOP | WLR_EDGE_LEFT);
         return true;
     }
     if (node == &deco.corner_tr->node) {
-        cursor_begin_interactive(this, cursor_mode::RESIZE, WLR_EDGE_TOP | WLR_EDGE_RIGHT);
+        server::cursor_begin_interactive(this, cursor_mode::resize, WLR_EDGE_TOP | WLR_EDGE_RIGHT);
         return true;
     }
     if (node == &deco.corner_bl->node) {
-        cursor_begin_interactive(this, cursor_mode::RESIZE, WLR_EDGE_BOTTOM | WLR_EDGE_LEFT);
+        server::cursor_begin_interactive(this, cursor_mode::resize,
+                                         WLR_EDGE_BOTTOM | WLR_EDGE_LEFT);
         return true;
     }
     if (node == &deco.corner_br->node) {
-        cursor_begin_interactive(this, cursor_mode::RESIZE, WLR_EDGE_BOTTOM | WLR_EDGE_RIGHT);
+        server::cursor_begin_interactive(this, cursor_mode::resize,
+                                         WLR_EDGE_BOTTOM | WLR_EDGE_RIGHT);
         return true;
     }
     if (node == &deco.border_left->node) {
-        cursor_begin_interactive(this, cursor_mode::RESIZE, WLR_EDGE_LEFT);
+        server::cursor_begin_interactive(this, cursor_mode::resize, WLR_EDGE_LEFT);
         return true;
     }
     if (node == &deco.border_right->node) {
-        cursor_begin_interactive(this, cursor_mode::RESIZE, WLR_EDGE_RIGHT);
+        server::cursor_begin_interactive(this, cursor_mode::resize, WLR_EDGE_RIGHT);
         return true;
     }
     if (node == &deco.border_top->node) {
-        cursor_begin_interactive(this, cursor_mode::RESIZE, WLR_EDGE_TOP);
+        server::cursor_begin_interactive(this, cursor_mode::resize, WLR_EDGE_TOP);
         return true;
     }
     if (node == &deco.border_bottom->node) {
-        cursor_begin_interactive(this, cursor_mode::RESIZE, WLR_EDGE_BOTTOM);
+        server::cursor_begin_interactive(this, cursor_mode::resize, WLR_EDGE_BOTTOM);
         return true;
     }
 
@@ -323,7 +324,7 @@ bool view::deco_handle_button(server* s, const struct wlr_scene_node* node, cons
 }
 
 // called when the client requests a decoration mode
-static void deco_request_mode(view* v, struct wlr_xdg_toplevel_decoration_v1* decoration) {
+void view::deco_request_mode(view* v, struct wlr_xdg_toplevel_decoration_v1* decoration) {
     // if the top leel surface hasnt been init yet
     if (!decoration->toplevel->base->initialized) {
         v->pending_deco = decoration;
@@ -335,7 +336,7 @@ static void deco_request_mode(view* v, struct wlr_xdg_toplevel_decoration_v1* de
 }
 
 // destroy decoration handle
-static void deco_handle_destroy(view* v) {
+void view::deco_handle_destroy(view* v) {
     v->pending_deco = nullptr;
     v->decoration = nullptr;
     v->request_deco_mode.disconnect();
@@ -343,7 +344,7 @@ static void deco_handle_destroy(view* v) {
 }
 
 // called when a new xdg toplevel is created
-void steppewm::deco_new(struct wl_listener* listener, void* data) {
+void view::deco_new(struct wl_listener* listener, void* data) {
     (void) listener;
     auto* decoration = static_cast<struct wlr_xdg_toplevel_decoration_v1*>(data);
 

@@ -22,6 +22,7 @@ struct wlr_scene_layer_surface_v1;
 
 namespace steppewm {
 
+struct server;
 class output;
 
 class layer_surface {
@@ -37,8 +38,16 @@ class layer_surface {
     struct wl_listener commit;
     struct wl_listener destroy;
 
+    static void init(server* s);
     static void on_new(struct wl_listener* listener, void* data);
     void configure() const;
+
+  private:
+    static void focus(layer_surface* ls);
+    static void on_commit(struct wl_listener* listener, void* data);
+    static void on_map(struct wl_listener* listener, void* data);
+    static void on_unmap(struct wl_listener* listener, void* data);
+    static void on_destroy(struct wl_listener* listener, void* data);
 };
 
 } // namespace steppewm

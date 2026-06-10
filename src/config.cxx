@@ -39,7 +39,7 @@ extern "C" {
 
 using namespace steppewm;
 
-static uint32_t parse_modifiers(const char* str) {
+uint32_t config::parse_modifiers(const char* str) {
     uint32_t mods = 0;
     char buf[64];
     strncpy(buf, str, sizeof(buf) - 1);
@@ -62,7 +62,7 @@ static uint32_t parse_modifiers(const char* str) {
 }
 
 // queue command to be run
-static int lua_exec(lua_State* L) {
+int config::lua_exec(lua_State* L) {
     lua_getfield(L, LUA_REGISTRYINDEX, "steppewm_cfg");
     auto* cfg = static_cast<config*>(lua_touserdata(L, -1));
     lua_pop(L, 1);
@@ -77,7 +77,7 @@ static int lua_exec(lua_State* L) {
 }
 
 // bind()
-static int lua_bind(lua_State* L) {
+int config::lua_bind(lua_State* L) {
     lua_getfield(L, LUA_REGISTRYINDEX, "steppewm_cfg");
     auto* cfg = static_cast<config*>(lua_touserdata(L, -1));
     lua_pop(L, 1);
@@ -107,7 +107,7 @@ static int lua_bind(lua_State* L) {
     return 0;
 }
 
-static int parse_transform(const char* str) {
+int config::parse_transform(const char* str) {
     if (strcasecmp(str, "normal") == 0 || strcmp(str, "0") == 0) {
         return WL_OUTPUT_TRANSFORM_NORMAL;
     }
@@ -135,7 +135,7 @@ static int parse_transform(const char* str) {
     return -1;
 }
 
-static int lua_output(lua_State* L) {
+int config::lua_output(lua_State* L) {
     lua_getfield(L, LUA_REGISTRYINDEX, "steppewm_cfg");
     auto* cfg = static_cast<config*>(lua_touserdata(L, -1));
     lua_pop(L, 1);
@@ -216,7 +216,7 @@ static int lua_output(lua_State* L) {
     return 0;
 }
 
-static void read_color(lua_State* L, const char* name, float out[4]) {
+void config::read_color(lua_State* L, const char* name, float out[4]) {
     lua_getglobal(L, name);
     if (!lua_istable(L, -1)) {
         lua_pop(L, 1);
@@ -232,7 +232,7 @@ static void read_color(lua_State* L, const char* name, float out[4]) {
     lua_pop(L, 1);
 }
 
-static void read_bool(lua_State* L, const char* name, bool* out) {
+void config::read_bool(lua_State* L, const char* name, bool* out) {
     lua_getglobal(L, name);
     if (lua_isboolean(L, -1)) {
         *out = lua_toboolean(L, -1);
@@ -240,7 +240,7 @@ static void read_bool(lua_State* L, const char* name, bool* out) {
     lua_pop(L, 1);
 }
 
-static void read_int(lua_State* L, const char* name, int* out) {
+void config::read_int(lua_State* L, const char* name, int* out) {
     lua_getglobal(L, name);
     if (lua_isinteger(L, -1)) {
         *out = static_cast<int>(lua_tointeger(L, -1));
@@ -250,7 +250,7 @@ static void read_int(lua_State* L, const char* name, int* out) {
     lua_pop(L, 1);
 }
 
-static void read_float(lua_State* L, const char* name, float* out) {
+void config::read_float(lua_State* L, const char* name, float* out) {
     lua_getglobal(L, name);
     if (lua_isnumber(L, -1)) {
         *out = static_cast<float>(lua_tonumber(L, -1));
@@ -258,7 +258,7 @@ static void read_float(lua_State* L, const char* name, float* out) {
     lua_pop(L, 1);
 }
 
-static void read_string(lua_State* L, const char* name, char* out, const size_t len) {
+void config::read_string(lua_State* L, const char* name, char* out, const size_t len) {
     lua_getglobal(L, name);
     if (lua_isstring(L, -1)) {
         strncpy(out, lua_tostring(L, -1), len - 1);
@@ -461,7 +461,7 @@ void config::run_execs() {
     }
 }
 
-void steppewm::config_reload(server* s) {
+void config::reload(server* s) {
     config* cfg = &s->cfg;
 
     cfg->set_defaults();
@@ -473,7 +473,7 @@ void steppewm::config_reload(server* s) {
     cfg->load(s->config_path);
 
     // re-apply keymap, repeat info, and libinput settings to all input devices
-    input_reconfigure(s);
+    server::input_reconfigure(s);
 
     // re-apply decoration colors/sizes and content layout to open windows
     view::reconfigure_all(s);

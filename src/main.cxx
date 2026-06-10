@@ -20,7 +20,6 @@
 #include <unistd.h>
 
 #include "config.hxx"
-#include "deco.hxx"
 #include "input.hxx"
 #include "layer.hxx"
 #include "lock.hxx"
@@ -31,7 +30,7 @@
 using namespace steppewm;
 
 // initialize server
-static bool server_init(server* s) {
+bool server::init(server* s) {
     // create display
     s->display = wl_display_create();
     if (!s->display) {
@@ -84,66 +83,26 @@ static bool server_init(server* s) {
         }
     }
 
-    // create output layout
-    s->output_layout = wlr_output_layout_create(s->display);
-    output::register_layout_change(s);
-
-    // slurp needs xdg-output to enumerate output geometry
-    // grim needs screencopy to capture pixels
-    wlr_xdg_output_manager_v1_create(s->display, s->output_layout);
-    wlr_screencopy_manager_v1_create(s->display);
-
-    // wlr_output_power protocol
-    s->output_power_mgr = wlr_output_power_manager_v1_create(s->display);
-    s->output_power_set_mode.notify = output::on_power_set_mode;
-    wl_signal_add(&s->output_power_mgr->events.set_mode, &s->output_power_set_mode);
-
-    // wlr_gamma_control protocol
-    s->gamma_control_mgr = wlr_gamma_control_manager_v1_create(s->display);
-    s->set_gamma.notify = output::on_set_gamma;
-    wl_signal_add(&s->gamma_control_mgr->events.set_gamma, &s->set_gamma);
-
-    // create listeners and signals
-    wl_list_init(&s->outputs);
-    s->new_output.notify = output::on_new;
-    wl_signal_add(&s->backend->events.new_output, &s->new_output);
+    output::init(s);
 
     s->scene = wlr_scene_create();
     s->scene_layout = wlr_scene_attach_output_layout(s->scene, s->output_layout);
 
     s->drag_icon_tree = wlr_scene_tree_create(&s->scene->tree);
 
-    wl_list_init(&s->views);
-    s->xdg_shell = wlr_xdg_shell_create(s->display, 6);
-
-    s->xdg_activation = wlr_xdg_activation_v1_create(s->display);
-    s->xdg_activation->token_timeout_msec = 30000;
-    s->request_activate.notify = view::handle_activation_request;
-    wl_signal_add(&s->xdg_activation->events.request_activate, &s->request_activate);
-
-    s->new_xdg_toplevel.notify = view::on_new;
-    wl_signal_add(&s->xdg_shell->events.new_toplevel, &s->new_xdg_toplevel);
-    s->new_xdg_popup.notify = popup::on_new;
-    wl_signal_add(&s->xdg_shell->events.new_popup, &s->new_xdg_popup);
-
-    s->layer_shell = wlr_layer_shell_v1_create(s->display, 4);
-    s->new_layer_surface.notify = layer_surface::on_new;
-    wl_signal_add(&s->layer_shell->events.new_surface, &s->new_layer_surface);
-
-    s->deco_manager = wlr_xdg_decoration_manager_v1_create(s->display);
-    s->new_deco.notify = deco_new;
-    wl_signal_add(&s->deco_manager->events.new_toplevel_decoration, &s->new_deco);
+    view::init(s);
+    layer_surface::init(s);
 
     s->cursor = wlr_cursor_create();
     wlr_cursor_attach_output_layout(s->cursor, s->output_layout);
 
     s->cursor_mgr = wlr_xcursor_manager_create(nullptr, 24);
 
-    s->cursor_motion.notify = cursor_motion;
-    s->cursor_motion_absolute.notify = cursor_motion_absolute;
-    s->cursor_button.notify = cursor_button;
-    s->cursor_axis.notify = cursor_axis;
-    s->cursor_frame.notify = cursor_frame;
+    s->cursor_motion.notify = on_cursor_motion;
+    s->cursor_motion_absolute.notify = on_cursor_motion_absolute;
+    s->cursor_button.notify = on_cursor_button;
+    s->cursor_axis.notify = on_cursor_axis;
+    s->cursor_frame.notify = on_cursor_frame;
     wl_signal_add(&s->cursor->events.motion, &s->cursor_motion);
     wl_signal_add(&s->cursor->events.motion_absolute, &s->cursor_motion_absolute);
     wl_signal_add(&s->cursor->events.button, &s->cursor_button);
@@ -152,48 +111,38 @@ static bool server_init(server* s) {
 
     wl_list_init(&s->keyboards);
     wl_list_init(&s->pointers);
-    s->new_input.notify = input_new;
+    s->new_input.notify = on_new_input;
     wl_signal_add(&s->backend->events.new_input, &s->new_input);
 
     s->seat = wlr_seat_create(s->display, "seat0");
-    s->request_set_cursor.notify = request_set_cursor;
-    s->request_set_selection.notify = request_set_selection;
-    s->request_set_primary_selection.notify = request_set_primary_selection;
+    s->request_set_cursor.notify = on_request_set_cursor;
+    s->request_set_selection.notify = on_request_set_selection;
+    s->request_set_primary_selection.notify = on_request_set_primary_selection;
     wl_signal_add(&s->seat->events.request_set_cursor, &s->request_set_cursor);
     wl_signal_add(&s->seat->events.request_set_selection, &s->request_set_selection);
     wl_signal_add(&s->seat->events.request_set_primary_selection,
                   &s->request_set_primary_selection);
 
     // drag and drop
-    s->request_start_drag.notify = request_start_drag;
-    s->start_drag.notify = start_drag;
+    s->request_start_drag.notify = on_request_start_drag;
+    s->start_drag.notify = on_start_drag;
     wl_signal_add(&s->seat->events.request_start_drag, &s->request_start_drag);
     wl_signal_add(&s->seat->events.start_drag, &s->start_drag);
 
     // wp_cursor_shape protocol
     struct wlr_cursor_shape_manager_v1* cursor_shape_mgr =
         wlr_cursor_shape_manager_v1_create(s->display, 1);
-    s->request_set_shape.notify = request_set_shape;
+    s->request_set_shape.notify = on_request_set_shape;
     wl_signal_add(&cursor_shape_mgr->events.request_set_shape, &s->request_set_shape);
 
-    s->relative_pointer_mgr = wlr_relative_pointer_manager_v1_create(s->display);
-
-    s->pointer_constraints = wlr_pointer_constraints_v1_create(s->display);
-    s->new_constraint.notify = pointer_constraint::on_new;
-    wl_signal_add(&s->pointer_constraints->events.new_constraint, &s->new_constraint);
-
-    s->idle_notifier = wlr_idle_notifier_v1_create(s->display);
-
-    s->idle_inhibit_mgr = wlr_idle_inhibit_v1_create(s->display);
-    s->new_idle_inhibitor.notify = idle_inhibitor::on_new;
-    wl_signal_add(&s->idle_inhibit_mgr->events.new_inhibitor, &s->new_idle_inhibitor);
-
+    pointer_constraint::init(s);
+    idle_inhibitor::init(s);
     session_lock::init(s);
 
     return true;
 }
 
-static void server_run(server* s) {
+void server::run(server* s) {
     // get a socket
     const char *socket = wl_display_add_socket_auto(s->display);
     if (!socket) {
@@ -217,7 +166,7 @@ static void server_run(server* s) {
 }
 
 // clean up
-static void server_fini(server* s) {
+void server::fini(server* s) {
     wl_display_destroy_clients(s->display);
     wlr_scene_node_destroy(&s->scene->tree.node);
     wlr_xcursor_manager_destroy(s->cursor_mgr);
@@ -269,12 +218,12 @@ int main(int argc, char *argv[]) {
     snprintf(svr.config_path, sizeof(svr.config_path), "%s", config_path);
     svr.cfg.load(svr.config_path);
 
-    if (!server_init(&svr)) {
+    if (!server::init(&svr)) {
         return EXIT_FAILURE;
     }
 
-    server_run(&svr);
-    server_fini(&svr);
+    server::run(&svr);
+    server::fini(&svr);
 
     return EXIT_SUCCESS;
 }

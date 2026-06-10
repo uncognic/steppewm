@@ -23,7 +23,7 @@
 using namespace steppewm;
 
 // give keyboard focus to a layer surface like slurp
-static void layer_surface_focus(layer_surface* ls) {
+void layer_surface::focus(layer_surface* ls) {
     server* s = ls->out->srv;
 
     if (s->locked) {
@@ -54,7 +54,7 @@ void layer_surface::configure() const {
 }
 
 // commit the layer surface
-static void layer_commit(struct wl_listener *listener, void *data) {
+void layer_surface::on_commit(struct wl_listener* listener, void* data) {
     (void) data;
     layer_surface* ls = wl_container_of(listener, ls, commit);
     if (ls->wlr_layer_surface->initial_commit) {
@@ -64,18 +64,18 @@ static void layer_commit(struct wl_listener *listener, void *data) {
 
 // map the layer surface
 // claim keyboard focus if the client asked for it
-static void layer_map(struct wl_listener *listener, void *data) {
+void layer_surface::on_map(struct wl_listener* listener, void* data) {
     (void) data;
     layer_surface* ls = wl_container_of(listener, ls, map);
     if (ls->wlr_layer_surface->current.keyboard_interactive !=
         ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_NONE) {
-        layer_surface_focus(ls);
+        focus(ls);
     }
 }
 
 // unmap the layer surface
 // hand keyboard focus back to a window
-static void layer_unmap(struct wl_listener *listener, void *data) {
+void layer_surface::on_unmap(struct wl_listener* listener, void* data) {
     (void) data;
     layer_surface* ls = wl_container_of(listener, ls, unmap);
     server* s = ls->out->srv;
@@ -86,7 +86,7 @@ static void layer_unmap(struct wl_listener *listener, void *data) {
 }
 
 // destroy layer
-static void layer_destroy(struct wl_listener *listener, void *data) {
+void layer_surface::on_destroy(struct wl_listener* listener, void* data) {
     (void) data;
     layer_surface* ls = wl_container_of(listener, ls, destroy);
     // guard against a dangling pointer
@@ -99,6 +99,12 @@ static void layer_destroy(struct wl_listener *listener, void *data) {
     wl_list_remove(&ls->destroy.link);
     wl_list_remove(&ls->link);
     delete ls;
+}
+
+void layer_surface::init(server* s) {
+    s->layer_shell = wlr_layer_shell_v1_create(s->display, 4);
+    s->new_layer_surface.notify = layer_surface::on_new;
+    wl_signal_add(&s->layer_shell->events.new_surface, &s->new_layer_surface);
 }
 
 // create new steppewm_layer_surface
@@ -184,16 +190,16 @@ void layer_surface::on_new(struct wl_listener* listener, void* data) {
     wl_list_insert(&out->layer_surfaces, &ls->link);
 
     // listen for commits
-    ls->commit.notify = layer_commit;
+    ls->commit.notify = on_commit;
     wl_signal_add(&wlr_ls->surface->events.commit, &ls->commit);
 
     // listen for map/unmap to manage keyboard focus
-    ls->map.notify = layer_map;
+    ls->map.notify = on_map;
     wl_signal_add(&wlr_ls->surface->events.map, &ls->map);
-    ls->unmap.notify = layer_unmap;
+    ls->unmap.notify = on_unmap;
     wl_signal_add(&wlr_ls->surface->events.unmap, &ls->unmap);
 
     // listen for layer destruction
-    ls->destroy.notify = layer_destroy;
+    ls->destroy.notify = on_destroy;
     wl_signal_add(&wlr_ls->events.destroy, &ls->destroy);
 }

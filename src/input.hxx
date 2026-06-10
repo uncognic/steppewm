@@ -29,30 +29,47 @@ namespace steppewm {
 
 class view;
 
-struct keyboard {
+class keyboard {
+  public:
     server* srv;
     wlr_keyboard* wlr_keyboard;
 
     wl_list link;
 
-    wl_listener modifiers;
-    wl_listener key;
-    wl_listener destroy;
+    Listener modifiers;
+    Listener key;
+    Listener destroy;
+
+    static void create(server* s, struct wlr_input_device* device);
+    static void apply_config(server* s, struct wlr_keyboard* wlr_keyboard);
+
+  private:
+    static void handle_modifiers(keyboard* kbd);
+    static void handle_key(keyboard* kbd, void* data);
+    static void handle_destroy(keyboard* kbd);
 };
 
-struct pointer {
+class pointer {
+  public:
     server* srv;
     wlr_input_device* device;
 
     wl_list link;
 
-    wl_listener destroy;
+    Listener destroy;
+
+    static void create(server* s, struct wlr_input_device* device);
+    static void apply_config(server* s, struct wlr_input_device* device);
+
+  private:
+    static void handle_destroy(pointer* ptr);
 };
 
 class pointer_constraint {
   public:
     pointer_constraint(server* s, wlr_pointer_constraint_v1* constraint);
 
+    static void init(server* s);
     static void on_new(wl_listener* listener, void* data);
     static void update(server* s);
 
@@ -68,32 +85,16 @@ class idle_inhibitor {
   public:
     idle_inhibitor(server* s, wlr_idle_inhibitor_v1* inhibitor);
 
+    static void init(server* s);
     static void on_new(wl_listener* listener, void* data);
     static void update(server* s, const wlr_idle_inhibitor_v1* exclude = nullptr);
 
   private:
+    static bool visible(server* s, struct wlr_surface* surface);
+
     server* srv;
     wlr_idle_inhibitor_v1* inhibitor;
     Listener destroy;
 };
-
-void input_new(struct wl_listener* listener, void* data);
-void input_reconfigure(server* s);
-
-void cursor_motion(struct wl_listener* listener, void* data);
-void cursor_motion_absolute(struct wl_listener* listener, void* data);
-void cursor_button(struct wl_listener* listener, void* data);
-void cursor_axis(struct wl_listener* listener, void* data);
-void cursor_frame(struct wl_listener* listener, void* data);
-
-void request_set_cursor(struct wl_listener* listener, void* data);
-void request_set_shape(struct wl_listener* listener, void* data);
-void request_set_selection(struct wl_listener* listener, void* data);
-void request_set_primary_selection(struct wl_listener* listener, void* data);
-
-void request_start_drag(struct wl_listener* listener, void* data);
-void start_drag(struct wl_listener* listener, void* data);
-
-void cursor_begin_interactive(view* v, cursor_mode mode, uint32_t edges);
 
 } // namespace steppewm

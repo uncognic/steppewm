@@ -54,6 +54,12 @@ class popup {
     Listener destroy;
 
     static void on_new(struct wl_listener* listener, void* data);
+
+  private:
+    static bool unconstrain(popup* p);
+    static void handle_commit(popup* p);
+    static void handle_reposition(popup* p);
+    static void handle_destroy(popup* p);
 };
 
 // a window
@@ -109,14 +115,43 @@ class view {
     const char* deco_cursor_name(const struct wlr_scene_node* node) const;
     bool deco_handle_button(server* s, const struct wlr_scene_node* node, uint32_t button);
 
+    static void init(server* s);
     static void on_new(struct wl_listener* listener, void* data);
     static void focus_next(server* s, view* skip);
     static void reconfigure_all(server* s);
     static view* at(server* s, double lx, double ly, struct wlr_surface** surface, double* sx,
                     double* sy);
     static void handle_activation_request(struct wl_listener* listener, void* data);
-};
+    static void workspace_switch(server* s, int workspace);
 
-void workspace_switch(server* s, int workspace);
+    // event callback for new xdg decoration
+    static void deco_new(struct wl_listener* listener, void* data);
+    // returns the view and sets *node to the hit rect
+    static view* deco_at(const server* s, double lx, double ly, struct wlr_scene_node** node);
+
+  private:
+    static bool can_configure(view* v);
+    static void apply_state(view* v, bool maximized, bool fullscreen);
+    static void apply_pending_deco(view* v);
+    static void initial_configure(void* data);
+    static void get_box(view* v, struct wlr_box* box);
+    static void place(view* v);
+    static void handle_map(view* v);
+    static void handle_unmap(view* v);
+    static void handle_commit(view* v);
+    static void handle_destroy(view* v);
+    static void handle_request_move(view* v);
+    static void handle_request_resize(view* v, void* data);
+    static void handle_request_maximize(view* v);
+    static void handle_request_fullscreen(view* v);
+    static void handle_request_minimize(view* v);
+    static view* from_surface(struct wlr_surface* surface);
+    static bool activation_token_valid(server* s, struct wlr_xdg_activation_token_v1* token);
+    static bool surface_is_view_focused(server* s, view* v);
+    static void deco_render_title(struct wlr_scene_buffer* scene_buf, const char* text, int w,
+                                  int h, float fg[4]);
+    static void deco_request_mode(view* v, struct wlr_xdg_toplevel_decoration_v1* decoration);
+    static void deco_handle_destroy(view* v);
+};
 
 } // namespace steppewm

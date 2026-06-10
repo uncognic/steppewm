@@ -31,7 +31,7 @@ using namespace steppewm;
 // backdrop behind the lock surface
 static constexpr float lock_bg_color[4] = {0.05f, 0.05f, 0.05f, 1.0f};
 
-static void broken_msg_hide(server* s) {
+void session_lock::broken_msg_hide(server* s) {
     if (s->lock_msg_tree) {
         wlr_scene_node_destroy(&s->lock_msg_tree->node);
         s->lock_msg_tree = nullptr;
@@ -39,7 +39,7 @@ static void broken_msg_hide(server* s) {
 }
 
 // draw the message centered on one output
-static void broken_msg_draw(server* s, const struct wlr_box* box) {
+void session_lock::broken_msg_draw(server* s, const struct wlr_box* box) {
     const char* line1 = "The screen locker crashed and the session is still locked.";
     char line2[256];
     const char* sock = getenv("WAYLAND_DISPLAY");
@@ -78,7 +78,7 @@ static void broken_msg_draw(server* s, const struct wlr_box* box) {
                                 box->y + (box->height - h) / 2);
 }
 
-static void broken_msg_show(server* s) {
+void session_lock::broken_msg_show(server* s) {
     broken_msg_hide(s);
     s->lock_msg_tree = wlr_scene_tree_create(s->lock_tree);
 
@@ -171,7 +171,7 @@ session_lock::session_lock(server* s, struct wlr_session_lock_v1* lock) : srv(s)
 
     // cancel anything interactive
     switcher::cancel(s);
-    s->grab_mode = cursor_mode::PASSTHROUGH;
+    s->grab_mode = cursor_mode::passthrough;
     s->grabbed_view = nullptr;
     s->grab_restore_pending = false;
 

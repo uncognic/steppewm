@@ -15,7 +15,6 @@
 
 #include "wlr.hxx" // must be first
 
-#include "deco.hxx"
 #include "input.hxx"
 #include "output.hxx"
 #include "server.hxx"
@@ -25,11 +24,9 @@
 
 using namespace steppewm;
 
-static bool view_can_configure(view* v) {
+bool view::can_configure(view* v) {
     return v->toplevel->base->initialized;
 }
-
-static void view_apply_state(view* v, bool maximized, bool fullscreen);
 
 // refresh every output's taskbar
 static void refresh_taskbars(server* s) {
@@ -91,7 +88,7 @@ void view::set_urgent(bool is_urgent) {
 }
 
 // switch the visible workspace, hiding the old set and showing the new one
-void steppewm::workspace_switch(server* s, int workspace) {
+void view::workspace_switch(server* s, int workspace) {
     if (workspace < 0 || workspace >= num_workspaces || workspace == s->current_workspace) {
         return;
     }
@@ -140,8 +137,8 @@ void view::move_to_workspace(int ws) {
 }
 
 // apply ssd deco
-static void view_apply_pending_deco(view* v) {
-    if (!v->pending_deco || !view_can_configure(v)) {
+void view::apply_pending_deco(view* v) {
+    if (!v->pending_deco || !can_configure(v)) {
         return;
     }
 
@@ -154,24 +151,24 @@ static void view_apply_pending_deco(view* v) {
 }
 
 // move
-static void view_initial_configure(void* data) {
+void view::initial_configure(void* data) {
     view* v = static_cast<view*>(data);
     v->initial_configure_idle = nullptr;
 
-    if (!view_can_configure(v)) {
+    if (!can_configure(v)) {
         return;
     }
 
-    view_apply_pending_deco(v);
+    apply_pending_deco(v);
     if (v->toplevel->requested.maximized || v->toplevel->requested.fullscreen) {
-        view_apply_state(v, v->toplevel->requested.maximized, v->toplevel->requested.fullscreen);
+        apply_state(v, v->toplevel->requested.maximized, v->toplevel->requested.fullscreen);
     } else {
         wlr_xdg_toplevel_set_size(v->toplevel, 0, 0);
     }
 }
 
 // full decorated bounding box of a view at its current scene position
-static void view_get_box(view* v, struct wlr_box* box) {
+void view::get_box(view* v, struct wlr_box* box) {
     struct wlr_box* geo = &v->toplevel->base->geometry;
     int bw = v->decoration_mode == deco_mode::SERVER ? v->srv->cfg.border_w : 0;
     int th = v->decoration_mode == deco_mode::SERVER ? v->srv->cfg.title_h : 0;
@@ -184,7 +181,7 @@ static void view_get_box(view* v, struct wlr_box* box) {
 // cascadeing
 // each new window steps down right from the last
 // when it gets to the bottom we go back to the top but sdhifted to the right
-static void view_place(view* v) {
+void view::place(view* v) {
     server* s = v->srv;
 
     // already-positioned states manage their own geometry
@@ -216,7 +213,7 @@ static void view_place(view* v) {
 
     // size of the window being placed with decorations
     struct wlr_box self;
-    view_get_box(v, &self);
+    get_box(v, &self);
     int w = self.width;
     int h = self.height;
 
@@ -265,7 +262,7 @@ static void view_place(view* v) {
 }
 
 // focus a new window
-static void view_map(view* v) {
+void view::handle_map(view* v) {
     // new windows open on the currently visible workspace
     v->mapped = true;
     v->workspace = v->srv->current_workspace;
@@ -273,7 +270,7 @@ static void view_map(view* v) {
     v->update_visibility();
 
     // position the window to avoid overlap
-    view_place(v);
+    place(v);
 
     // add window to all taskbars
     output* out;
@@ -287,10 +284,10 @@ static void view_map(view* v) {
 }
 
 // remove window (view)
-static void view_unmap(view* v) {
+void view::handle_unmap(view* v) {
     if (v->srv->grabbed_view == v) {
         v->srv->grabbed_view = nullptr;
-        v->srv->grab_mode = cursor_mode::PASSTHROUGH;
+        v->srv->grab_mode = cursor_mode::passthrough;
         v->srv->grab_restore_pending = false;
     }
 
@@ -328,21 +325,20 @@ static void view_unmap(view* v) {
 }
 
 // update/render window
-static void view_commit(view* v) {
+void view::handle_commit(view* v) {
     if (v->toplevel->base->initial_commit) {
         if (!v->initial_configure_idle) {
             struct wl_event_loop* event_loop = wl_display_get_event_loop(v->srv->display);
-            v->initial_configure_idle =
-                wl_event_loop_add_idle(event_loop, view_initial_configure, v);
+            v->initial_configure_idle = wl_event_loop_add_idle(event_loop, initial_configure, v);
         }
         return;
     }
-    view_apply_pending_deco(v);
+    apply_pending_deco(v);
     v->deco_update();
 }
 
 // clean up view
-static void view_destroy(view* v) {
+void view::handle_destroy(view* v) {
     if (v->initial_configure_idle) {
         wl_event_source_remove(v->initial_configure_idle);
     }
@@ -355,7 +351,7 @@ static void view_destroy(view* v) {
     // clear grab on window
     if (v->srv->grabbed_view == v) {
         v->srv->grabbed_view = nullptr;
-        v->srv->grab_mode = cursor_mode::PASSTHROUGH;
+        v->srv->grab_mode = cursor_mode::passthrough;
         v->srv->grab_restore_pending = false;
     }
 
@@ -378,20 +374,20 @@ static void view_destroy(view* v) {
 }
 
 // when the client wants to move or resize a window
-static void view_request_move(view* v) {
-    cursor_begin_interactive(v, cursor_mode::MOVE, 0);
+void view::handle_request_move(view* v) {
+    server::cursor_begin_interactive(v, cursor_mode::move, 0);
 }
 
-static void view_request_resize(view* v, void* data) {
+void view::handle_request_resize(view* v, void* data) {
     struct wlr_xdg_toplevel_resize_event* event =
         static_cast<struct wlr_xdg_toplevel_resize_event*>(data);
-    cursor_begin_interactive(v, cursor_mode::RESIZE, event->edges);
+    server::cursor_begin_interactive(v, cursor_mode::resize, event->edges);
 }
 
 // maximize/full screen and save the old geometry
-static void view_apply_state(view* v, bool maximized, bool fullscreen) {
+void view::apply_state(view* v, bool maximized, bool fullscreen) {
     // a client may request something before initial commit, so don't accept it
-    if (!view_can_configure(v)) {
+    if (!can_configure(v)) {
         return;
     }
 
@@ -444,23 +440,23 @@ static void view_apply_state(view* v, bool maximized, bool fullscreen) {
     wlr_xdg_toplevel_set_maximized(v->toplevel, maximized);
     wlr_xdg_toplevel_set_fullscreen(v->toplevel, fullscreen);
     // wayland brah
-    if (view_can_configure(v)) {
+    if (can_configure(v)) {
         wlr_xdg_surface_schedule_configure(v->toplevel->base);
     }
 }
 
 // maximize a view
-static void view_request_maximize(view* v) {
-    view_apply_state(v, v->toplevel->requested.maximized, v->fullscreen);
+void view::handle_request_maximize(view* v) {
+    apply_state(v, v->toplevel->requested.maximized, v->fullscreen);
 }
 
 // fullscreen a view
-static void view_request_fullscreen(view* v) {
-    view_apply_state(v, v->maximized, v->toplevel->requested.fullscreen);
+void view::handle_request_fullscreen(view* v) {
+    apply_state(v, v->maximized, v->toplevel->requested.fullscreen);
 }
 
 // minimize a view, handing focus to the next visible window
-static void view_on_request_minimize(view* v) {
+void view::handle_request_minimize(view* v) {
     if (!v->toplevel->requested.minimized) {
         return;
     }
@@ -471,7 +467,7 @@ static void view_on_request_minimize(view* v) {
 }
 
 void view::toggle_maximize() {
-    view_apply_state(this, !maximized, fullscreen);
+    apply_state(this, !maximized, fullscreen);
 }
 
 // restore a maximized view under the cursor so it can be dragged
@@ -482,7 +478,7 @@ void view::unmaximize_to_cursor(double cursor_x, double cursor_y) {
 
     // fraction of the cursor across the current decorated width
     struct wlr_box cur;
-    view_get_box(this, &cur);
+    get_box(this, &cur);
     double frac_x = cur.width > 0 ? (cursor_x - cur.x) / cur.width : 0.0;
     if (frac_x < 0.0) {
         frac_x = 0.0;
@@ -492,7 +488,7 @@ void view::unmaximize_to_cursor(double cursor_x, double cursor_y) {
     }
 
     // restore to the saved geometry size
-    view_apply_state(this, false, false);
+    apply_state(this, false, false);
 
     // place so the cursor keeps the same horizontal fraction and grabs the titlebar
     int bw = decoration_mode == deco_mode::SERVER ? srv->cfg.border_w : 0;
@@ -514,6 +510,25 @@ void view::reconfigure_all(server* s) {
         v->deco_update();
         v->deco_set_focus(focused && v->toplevel->base->surface == focused);
     }
+}
+
+void view::init(server* s) {
+    wl_list_init(&s->views);
+    s->xdg_shell = wlr_xdg_shell_create(s->display, 6);
+
+    s->xdg_activation = wlr_xdg_activation_v1_create(s->display);
+    s->xdg_activation->token_timeout_msec = 30000;
+    s->request_activate.notify = view::handle_activation_request;
+    wl_signal_add(&s->xdg_activation->events.request_activate, &s->request_activate);
+
+    s->new_xdg_toplevel.notify = view::on_new;
+    wl_signal_add(&s->xdg_shell->events.new_toplevel, &s->new_xdg_toplevel);
+    s->new_xdg_popup.notify = popup::on_new;
+    wl_signal_add(&s->xdg_shell->events.new_popup, &s->new_xdg_popup);
+
+    s->deco_manager = wlr_xdg_decoration_manager_v1_create(s->display);
+    s->new_deco.notify = view::deco_new;
+    wl_signal_add(&s->deco_manager->events.new_toplevel_decoration, &s->new_deco);
 }
 
 // create a new view
@@ -543,23 +558,23 @@ void view::on_new(struct wl_listener* listener, void* data) {
     toplevel->base->data = v;
 
     // wire up the toplevel events; each Listener removes itself in ~view
-    v->map.connect(&toplevel->base->surface->events.map, [v](void*) { view_map(v); });
-    v->unmap.connect(&toplevel->base->surface->events.unmap, [v](void*) { view_unmap(v); });
-    v->commit.connect(&toplevel->base->surface->events.commit, [v](void*) { view_commit(v); });
-    v->destroy.connect(&toplevel->events.destroy, [v](void*) { view_destroy(v); });
-    v->request_move.connect(&toplevel->events.request_move, [v](void*) { view_request_move(v); });
+    v->map.connect(&toplevel->base->surface->events.map, [v](void*) { handle_map(v); });
+    v->unmap.connect(&toplevel->base->surface->events.unmap, [v](void*) { handle_unmap(v); });
+    v->commit.connect(&toplevel->base->surface->events.commit, [v](void*) { handle_commit(v); });
+    v->destroy.connect(&toplevel->events.destroy, [v](void*) { handle_destroy(v); });
+    v->request_move.connect(&toplevel->events.request_move, [v](void*) { handle_request_move(v); });
     v->request_resize.connect(&toplevel->events.request_resize,
-                              [v](void* data) { view_request_resize(v, data); });
+                              [v](void* data) { handle_request_resize(v, data); });
     v->request_maximize.connect(&toplevel->events.request_maximize,
-                                [v](void*) { view_request_maximize(v); });
+                                [v](void*) { handle_request_maximize(v); });
     v->request_fullscreen.connect(&toplevel->events.request_fullscreen,
-                                  [v](void*) { view_request_fullscreen(v); });
+                                  [v](void*) { handle_request_fullscreen(v); });
     v->request_minimize.connect(&toplevel->events.request_minimize,
-                                [v](void*) { view_on_request_minimize(v); });
+                                [v](void*) { handle_request_minimize(v); });
     v->title_changed.connect(&toplevel->events.set_title, [v](void*) { v->deco_update(); });
 }
 
-static view* view_from_surface(struct wlr_surface* surface) {
+view* view::from_surface(struct wlr_surface* surface) {
     if (!surface) {
         return nullptr;
     }
@@ -575,7 +590,7 @@ static view* view_from_surface(struct wlr_surface* surface) {
     return static_cast<view*>(xdg->toplevel->base->data);
 }
 
-static bool activation_token_valid(server* s, struct wlr_xdg_activation_token_v1* token) {
+bool view::activation_token_valid(server* s, struct wlr_xdg_activation_token_v1* token) {
     if (!token || token->seat != s->seat || !token->surface) {
         return false;
     }
@@ -584,7 +599,7 @@ static bool activation_token_valid(server* s, struct wlr_xdg_activation_token_v1
     if (!focused) {
         return false;
     }
-    if (view_from_surface(focused) != view_from_surface(token->surface)) {
+    if (from_surface(focused) != from_surface(token->surface)) {
         return false;
     }
 
@@ -593,18 +608,18 @@ static bool activation_token_valid(server* s, struct wlr_xdg_activation_token_v1
     return seat_client && wlr_seat_client_validate_event_serial(seat_client, token->serial);
 }
 
-static bool surface_is_view_focused(server* s, view* v) {
+bool view::surface_is_view_focused(server* s, view* v) {
     struct wlr_surface* focused = s->seat->keyboard_state.focused_surface;
     if (!focused) {
         return false;
     }
-    return view_from_surface(focused) == v;
+    return from_surface(focused) == v;
 }
 
 void view::handle_activation_request(struct wl_listener* listener, void* data) {
     server* s = wl_container_of(listener, s, request_activate);
     auto* event = static_cast<struct wlr_xdg_activation_v1_request_activate_event*>(data);
-    view* target = view_from_surface(event->surface);
+    view* target = from_surface(event->surface);
     if (!target || !target->mapped) {
         return;
     }
@@ -618,7 +633,7 @@ void view::handle_activation_request(struct wl_listener* listener, void* data) {
         target->set_urgent(true);
     }
 }
-static bool popup_unconstrain(popup* p) {
+bool popup::unconstrain(popup* p) {
     struct wlr_xdg_popup* xdg_popup = p->xdg_popup;
     if (!xdg_popup->base->initialized) {
         return false; // configuring before the initial commit would assert
@@ -651,18 +666,18 @@ static bool popup_unconstrain(popup* p) {
     return true;
 }
 
-static void popup_commit(popup* p) {
+void popup::handle_commit(popup* p) {
     // unconstrain once, on the first commit after the surface is initialized
     if (!p->unconstrained) {
-        p->unconstrained = popup_unconstrain(p);
+        p->unconstrained = unconstrain(p);
     }
 }
 
-static void popup_reposition(popup* p) {
-    popup_unconstrain(p);
+void popup::handle_reposition(popup* p) {
+    unconstrain(p);
 }
 
-static void popup_destroy(popup* p) {
+void popup::handle_destroy(popup* p) {
     // the Listener members disconnect themselves in ~popup
     delete p;
 }
@@ -696,9 +711,9 @@ void popup::on_new(struct wl_listener* listener, void* data) {
 
     popup* p = new popup();
     p->xdg_popup = xdg_popup;
-    p->commit.connect(&xdg_popup->base->surface->events.commit, [p](void*) { popup_commit(p); });
-    p->reposition.connect(&xdg_popup->events.reposition, [p](void*) { popup_reposition(p); });
-    p->destroy.connect(&xdg_popup->events.destroy, [p](void*) { popup_destroy(p); });
+    p->commit.connect(&xdg_popup->base->surface->events.commit, [p](void*) { handle_commit(p); });
+    p->reposition.connect(&xdg_popup->events.reposition, [p](void*) { handle_reposition(p); });
+    p->destroy.connect(&xdg_popup->events.destroy, [p](void*) { handle_destroy(p); });
 }
 
 // find which view is at a certain coord, and return its steppewm_view

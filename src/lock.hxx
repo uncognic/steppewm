@@ -36,6 +36,10 @@ class session_lock {
     static void ensure_focus(server* s);
 
   private:
+    static void broken_msg_hide(server* s);
+    static void broken_msg_draw(server* s, const struct wlr_box* box);
+    static void broken_msg_show(server* s);
+
     server* srv;
     Listener new_surface;
     Listener unlock;

@@ -15,6 +15,7 @@
 
 #pragma once
 
+#include <cstddef>
 #include <cstdint>
 #include <xkbcommon/xkbcommon.h>
 
@@ -24,7 +25,11 @@
 #define CFG_MAX_CMD 512
 #define CFG_MAX_OUTPUT_CFGS 16
 
+struct lua_State;
+
 namespace steppewm {
+
+struct server;
 
 inline constexpr int num_workspaces = 9;
 
@@ -104,9 +109,19 @@ class config {
     bool load(const char* path);
     void run_execs();
     const output_config* find_output(const char* name) const;
-};
+    static void reload(server* s);
 
-struct server;
-void config_reload(server* s);
+  private:
+    static uint32_t parse_modifiers(const char* str);
+    static int parse_transform(const char* str);
+    static int lua_exec(struct lua_State* L);
+    static int lua_bind(struct lua_State* L);
+    static int lua_output(struct lua_State* L);
+    static void read_color(struct lua_State* L, const char* name, float out[4]);
+    static void read_bool(struct lua_State* L, const char* name, bool* out);
+    static void read_int(struct lua_State* L, const char* name, int* out);
+    static void read_float(struct lua_State* L, const char* name, float* out);
+    static void read_string(struct lua_State* L, const char* name, char* out, size_t len);
+};
 
 } // namespace steppewm
