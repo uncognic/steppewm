@@ -505,7 +505,7 @@ void server::cursor_begin_interactive(view* v, cursor_mode mode, uint32_t edges)
 
     // calculate grab offsets
     if (mode == cursor_mode::move) {
-        if (v->maximized || v->fullscreen) {
+        if (v->maximized || v->fullscreen || v->snapped != snap_edge::NONE) {
             s->grab_restore_pending = true;
             s->grab_start_x = s->cursor->x;
             s->grab_start_y = s->cursor->y;
@@ -530,6 +530,65 @@ void server::cursor_begin_interactive(view* v, cursor_mode mode, uint32_t edges)
         s->grab_geobox = (struct wlr_box) {sx, sy, geo->width, geo->height};
         s->resize_edges = edges;
     }
+}
+
+static snap_detect detect_snap(server* s) {
+    snap_detect r = {snap_edge::NONE, false, {}};
+
+    wlr_output* wlr_out = wlr_output_layout_output_at(s->output_layout, s->cursor->x, s->cursor->y);
+    if (!wlr_out) {
+        return r;
+    }
+
+    wlr_box ob;
+    wlr_output_layout_get_box(s->output_layout, wlr_out, &ob);
+    const bool at_left = s->cursor->x <= ob.x + 1;
+    const bool at_right = s->cursor->x >= ob.x + ob.width - 2;
+    const bool at_top = s->cursor->y <= ob.y + 1;
+    const bool at_bottom = s->cursor->y >= ob.y + ob.height - 2;
+    if (!at_left && !at_right && !at_top && !at_bottom) {
+        return r;
+    }
+
+    const int usable_h = ob.height - s->cfg.taskbar_h;
+    const int half_w = ob.width / 2;
+    const int half_h = usable_h / 2;
+
+    if (at_left && at_top) {
+        r.edge = snap_edge::TOP_LEFT;
+        r.zone = {ob.x, ob.y, half_w, half_h};
+    } else if (at_right && at_top) {
+        r.edge = snap_edge::TOP_RIGHT;
+        r.zone = {ob.x + half_w, ob.y, ob.width - half_w, half_h};
+    } else if (at_left && at_bottom) {
+        r.edge = snap_edge::BOTTOM_LEFT;
+        r.zone = {ob.x, ob.y + half_h, half_w, usable_h - half_h};
+    } else if (at_right && at_bottom) {
+        r.edge = snap_edge::BOTTOM_RIGHT;
+        r.zone = {ob.x + half_w, ob.y + half_h, ob.width - half_w, usable_h - half_h};
+    } else if (at_left) {
+        r.edge = snap_edge::LEFT;
+        r.zone = {ob.x, ob.y, half_w, usable_h};
+    } else if (at_right) {
+        r.edge = snap_edge::RIGHT;
+        r.zone = {ob.x + half_w, ob.y, ob.width - half_w, usable_h};
+    } else if (at_top) {
+        r.maximize = true;
+        r.zone = {ob.x, ob.y, ob.width, usable_h};
+    }
+    return r;
+}
+
+static void show_snap_indicator(const server* s, const wlr_box* zone) {
+    const int gap = 4;
+    wlr_scene_node_set_position(&s->snap_indicator->node, zone->x + gap, zone->y + gap);
+    wlr_scene_rect_set_size(s->snap_indicator, zone->width - 2 * gap, zone->height - 2 * gap);
+    wlr_scene_node_set_enabled(&s->snap_indicator->node, true);
+    wlr_scene_node_raise_to_top(&s->snap_indicator->node);
+}
+
+static void hide_snap_indicator(server* s) {
+    wlr_scene_node_set_enabled(&s->snap_indicator->node, false);
 }
 
 // distance the pointer must travel before a maximized window starts dragging
@@ -558,6 +617,13 @@ void server::process_cursor_move(server* s) {
 
     wlr_scene_node_set_position(&v->scene_tree->node, (int) (s->cursor->x - s->grab_x),
                                 (int) (s->cursor->y - s->grab_y));
+
+    snap_detect sd = detect_snap(s);
+    if (sd.edge != snap_edge::NONE || sd.maximize) {
+        show_snap_indicator(s, &sd.zone);
+    } else {
+        hide_snap_indicator(s);
+    }
 }
 
 // resize window with cursor movement
@@ -713,7 +779,7 @@ void server::on_cursor_motion_absolute(struct wl_listener* listener, void* data)
 void server::on_cursor_button(struct wl_listener* listener, void* data) {
     // get objects
     server* s = wl_container_of(listener, s, cursor_button);
-    struct wlr_pointer_button_event* event = static_cast<struct wlr_pointer_button_event*>(data);
+    const auto event = static_cast<struct wlr_pointer_button_event*>(data);
 
     wlr_idle_notifier_v1_notify_activity(s->idle_notifier, s->seat);
 
@@ -722,9 +788,21 @@ void server::on_cursor_button(struct wl_listener* listener, void* data) {
 
     // if the button was released, end any operation
     if (event->state == WL_POINTER_BUTTON_STATE_RELEASED) {
+        view* v = s->grabbed_view;
+        const cursor_mode mode = s->grab_mode;
         s->grab_mode = cursor_mode::passthrough;
         s->grabbed_view = nullptr;
         s->grab_restore_pending = false;
+        hide_snap_indicator(s);
+
+        if (mode == cursor_mode::move && v && v->mapped) {
+            const snap_detect sd = detect_snap(s);
+            if (sd.maximize) {
+                v->toggle_maximize();
+            } else if (sd.edge != snap_edge::NONE) {
+                v->snap_to(sd.edge);
+            }
+        }
         return;
     }
 

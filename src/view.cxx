@@ -126,6 +126,139 @@ void view::move_to_workspace(int ws) {
     taskbar::refresh_taskbars(srv);
 }
 
+static uint32_t snap_tiled_edges(const snap_edge edge) {
+    switch (edge) {
+        case snap_edge::LEFT:
+            return WLR_EDGE_LEFT | WLR_EDGE_TOP | WLR_EDGE_BOTTOM;
+        case snap_edge::RIGHT:
+            return WLR_EDGE_RIGHT | WLR_EDGE_TOP | WLR_EDGE_BOTTOM;
+        case snap_edge::TOP_LEFT:
+            return WLR_EDGE_LEFT | WLR_EDGE_TOP;
+        case snap_edge::TOP_RIGHT:
+            return WLR_EDGE_RIGHT | WLR_EDGE_TOP;
+        case snap_edge::BOTTOM_LEFT:
+            return WLR_EDGE_LEFT | WLR_EDGE_BOTTOM;
+        case snap_edge::BOTTOM_RIGHT:
+            return WLR_EDGE_RIGHT | WLR_EDGE_BOTTOM;
+        default:
+            return 0;
+    }
+}
+
+void view::snap_to(const snap_edge edge) {
+    if (!can_configure(this)) {
+        return;
+    }
+
+    server* s = srv;
+    const bool was_special = maximized || fullscreen || snapped != snap_edge::NONE;
+
+    if (edge == snap_edge::NONE) {
+        if (!was_special) {
+            return;
+        }
+        const int ox = decoration_mode == deco_mode::SERVER ? s->cfg.border_w : 0;
+        const int oy = decoration_mode == deco_mode::SERVER ? s->cfg.title_h : 0;
+        wlr_scene_node_set_position(&xdg_tree->node, ox, oy);
+        wlr_scene_node_set_position(&scene_tree->node, saved_geo.x, saved_geo.y);
+        wlr_xdg_toplevel_set_size(toplevel, saved_geo.width, saved_geo.height);
+        maximized = false;
+        fullscreen = false;
+        snapped = snap_edge::NONE;
+        wlr_xdg_toplevel_set_maximized(toplevel, false);
+        wlr_xdg_toplevel_set_fullscreen(toplevel, false);
+        wlr_xdg_toplevel_set_tiled(toplevel, 0);
+        deco_set_visible(true);
+        raise_overlays(s);
+        wlr_xdg_surface_schedule_configure(toplevel->base);
+        return;
+    }
+
+    if (!was_special) {
+        const wlr_box* geo = &toplevel->base->geometry;
+        saved_geo = (wlr_box) {
+            .x = scene_tree->node.x,
+            .y = scene_tree->node.y,
+            .width = geo->width,
+            .height = geo->height,
+        };
+    }
+
+    wlr_output* wlr_out = wlr_output_layout_output_at(s->output_layout, s->cursor->x, s->cursor->y);
+    if (!wlr_out) {
+        wlr_out =
+            wlr_output_layout_output_at(s->output_layout, scene_tree->node.x, scene_tree->node.y);
+    }
+    if (!wlr_out) {
+        return;
+    }
+
+    wlr_box out;
+    wlr_output_layout_get_box(s->output_layout, wlr_out, &out);
+
+    const auto ox = decoration_mode == deco_mode::SERVER ? s->cfg.border_w : 0;
+    const auto oy = decoration_mode == deco_mode::SERVER ? s->cfg.title_h : 0;
+    const auto usable_h = out.height - s->cfg.taskbar_h;
+    const auto half_w = out.width / 2;
+    const auto half_h = usable_h / 2;
+
+    int sx, sy, sw, sh;
+    switch (edge) {
+        case snap_edge::LEFT:
+            sx = out.x;
+            sy = out.y;
+            sw = half_w;
+            sh = usable_h;
+            break;
+        case snap_edge::RIGHT:
+            sx = out.x + half_w;
+            sy = out.y;
+            sw = out.width - half_w;
+            sh = usable_h;
+            break;
+        case snap_edge::TOP_LEFT:
+            sx = out.x;
+            sy = out.y;
+            sw = half_w;
+            sh = half_h;
+            break;
+        case snap_edge::TOP_RIGHT:
+            sx = out.x + half_w;
+            sy = out.y;
+            sw = out.width - half_w;
+            sh = half_h;
+            break;
+        case snap_edge::BOTTOM_LEFT:
+            sx = out.x;
+            sy = out.y + half_h;
+            sw = half_w;
+            sh = usable_h - half_h;
+            break;
+        case snap_edge::BOTTOM_RIGHT:
+            sx = out.x + half_w;
+            sy = out.y + half_h;
+            sw = out.width - half_w;
+            sh = usable_h - half_h;
+            break;
+        default:
+            return;
+    }
+
+    wlr_scene_node_set_position(&scene_tree->node, sx, sy);
+    wlr_scene_node_set_position(&xdg_tree->node, ox, oy);
+    wlr_xdg_toplevel_set_size(toplevel, sw - 2 * ox, sh - oy - ox);
+
+    maximized = false;
+    fullscreen = false;
+    snapped = edge;
+    wlr_xdg_toplevel_set_maximized(toplevel, false);
+    wlr_xdg_toplevel_set_fullscreen(toplevel, false);
+    wlr_xdg_toplevel_set_tiled(toplevel, snap_tiled_edges(edge));
+    deco_set_visible(true);
+    raise_overlays(s);
+    wlr_xdg_surface_schedule_configure(toplevel->base);
+}
+
 // apply ssd deco
 void view::apply_pending_deco(view* v) {
     if (!v->pending_deco || !can_configure(v)) {
@@ -388,7 +521,7 @@ void view::apply_state(view* v, bool maximized, bool fullscreen) {
     // stuff
     server* s = v->srv;
     struct wlr_scene_node* node = &v->scene_tree->node;
-    bool was_special = v->maximized || v->fullscreen;
+    bool was_special = v->maximized || v->fullscreen || v->snapped != snap_edge::NONE;
     bool was_fullscreen = v->fullscreen;
     bool now_special = maximized || fullscreen;
 
@@ -440,8 +573,10 @@ void view::apply_state(view* v, bool maximized, bool fullscreen) {
     // update state and notify the client
     v->maximized = maximized;
     v->fullscreen = fullscreen;
+    v->snapped = snap_edge::NONE;
     wlr_xdg_toplevel_set_maximized(v->toplevel, maximized);
     wlr_xdg_toplevel_set_fullscreen(v->toplevel, fullscreen);
+    wlr_xdg_toplevel_set_tiled(v->toplevel, 0);
 
     // hide decorations and lift the window over the taskbar while fullscreen
     v->deco_set_visible(!fullscreen);
@@ -482,9 +617,9 @@ void view::toggle_maximize() {
     apply_state(this, !maximized, fullscreen);
 }
 
-// restore a maximized view under the cursor so it can be dragged
+// restore a maximized/snapped view under the cursor so it can be dragged
 void view::unmaximize_to_cursor(double cursor_x, double cursor_y) {
-    if (!maximized && !fullscreen) {
+    if (!maximized && !fullscreen && snapped == snap_edge::NONE) {
         return;
     }
 
@@ -500,7 +635,11 @@ void view::unmaximize_to_cursor(double cursor_x, double cursor_y) {
     }
 
     // restore to the saved geometry size
-    apply_state(this, false, false);
+    if (snapped != snap_edge::NONE) {
+        snap_to(snap_edge::NONE);
+    } else {
+        apply_state(this, false, false);
+    }
 
     // place so the cursor keeps the same horizontal fraction and grabs the titlebar
     int bw = decoration_mode == deco_mode::SERVER ? srv->cfg.border_w : 0;
@@ -562,6 +701,7 @@ void view::on_new(struct wl_listener* listener, void* data) {
     v->decoration_mode = deco_mode::CLIENT; // switched to SERVER by the client when it detects
                                             // ssd support (which we do)
     v->urgent = false;
+    v->snapped = snap_edge::NONE;
     v->icon = nullptr;
 
     // whole scene for the window (title bar, border, surface)

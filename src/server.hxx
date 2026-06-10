@@ -151,6 +151,8 @@ class server {
     bool grab_restore_pending;
     double grab_start_x, grab_start_y;
 
+    wlr_scene_rect* snap_indicator;
+
     config cfg;
     char config_path[512];
 

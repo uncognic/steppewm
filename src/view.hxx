@@ -29,6 +29,16 @@ enum class deco_mode {
     CLIENT,
 };
 
+enum class snap_edge {
+    NONE,
+    LEFT,
+    RIGHT,
+    TOP_LEFT,
+    TOP_RIGHT,
+    BOTTOM_LEFT,
+    BOTTOM_RIGHT,
+};
+
 class deco {
   public:
     struct wlr_scene_rect *titlebar;
@@ -85,6 +95,7 @@ class view {
     bool urgent;
     bool mapped;
     int workspace;
+    snap_edge snapped;
     struct wlr_xdg_toplevel_icon_v1* icon;
     struct wlr_box saved_geo;
 
@@ -109,6 +120,7 @@ class view {
     void unmaximize_to_cursor(double cursor_x, double cursor_y);
     void update_visibility();
     void move_to_workspace(int workspace);
+    void snap_to(snap_edge edge);
 
     void deco_create();
     void deco_update() const;

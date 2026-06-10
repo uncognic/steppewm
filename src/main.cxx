@@ -94,6 +94,10 @@ bool server::init(server* s) {
 
     s->drag_icon_tree = wlr_scene_tree_create(&s->scene->tree);
 
+    float snap_color[] = {0.5f, 0.5f, 0.5f, 0.25f};
+    s->snap_indicator = wlr_scene_rect_create(&s->scene->tree, 0, 0, snap_color);
+    wlr_scene_node_set_enabled(&s->snap_indicator->node, false);
+
     view::init(s);
     layer_surface::init(s);
 

@@ -17,6 +17,7 @@
 
 #include "listener.hxx"
 #include "server.hxx"
+#include "view.hxx"
 
 #include <wayland-server-core.h>
 
@@ -95,6 +96,13 @@ class idle_inhibitor {
     server* srv;
     wlr_idle_inhibitor_v1* inhibitor;
     Listener destroy;
+};
+
+class snap_detect {
+  public:
+    snap_edge edge;
+    bool maximize;
+    wlr_box zone;
 };
 
 } // namespace steppewm
