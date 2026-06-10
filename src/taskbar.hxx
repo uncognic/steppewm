@@ -25,6 +25,7 @@ struct wlr_output;
 struct wlr_scene_buffer;
 struct wlr_scene_rect;
 struct wlr_scene_tree;
+struct wlr_xdg_toplevel_icon_v1;
 struct wl_event_source;
 
 namespace steppewm {
@@ -55,15 +56,16 @@ class taskbar {
 
   private:
     void layout();
-    static void render_button(struct wlr_scene_buffer* scene_buf, const char* text, int w, int h,
-                              float bg[4], float fg[4]);
+    static void render_button(struct wlr_scene_buffer* scene_buf, const char* text,
+                              struct wlr_xdg_toplevel_icon_v1* icon, int w, int h, float bg[4], float fg[4]);
     void render_clock();
     void render_layout_indicator();
     void layout_code(char* out, size_t len);
     [[nodiscard]] view* focused_view() const;
     static int clock_tick(void* data);
     static int urgent_tick(void* data);
-
+    static wlr_xdg_toplevel_icon_v1_buffer* pick_icon_buffer(struct wlr_xdg_toplevel_icon_v1* icon,
+                                                             int target_size);
     server* srv_;
     struct wlr_output* wlr_output_;
     struct wlr_scene_tree* tree_;

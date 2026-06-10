@@ -90,6 +90,10 @@ class server {
     struct wlr_xdg_decoration_manager_v1 *deco_manager;
     struct wl_listener new_deco;
 
+    // xdg-toplevel-icon protocol
+    struct wlr_xdg_toplevel_icon_manager_v1* icon_mgr;
+    struct wl_listener set_icon;
+
     // non-null only when visible
     switcher* sw;
 

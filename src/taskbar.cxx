@@ -24,7 +24,10 @@
 #include <memory>
 #include <vector>
 
+#include <climits>
+
 #include <cairo/cairo.h>
+#include <drm_fourcc.h>
 
 #include <wayland-server-core.h>
 
@@ -44,9 +47,25 @@
 
 using namespace steppewm;
 
+wlr_xdg_toplevel_icon_v1_buffer* taskbar::pick_icon_buffer(wlr_xdg_toplevel_icon_v1* icon,
+                                                           int target_size) {
+    struct wlr_xdg_toplevel_icon_v1_buffer* best = nullptr;
+    int best_diff = __INT_MAX__;
+    struct wlr_xdg_toplevel_icon_v1_buffer* ibuf;
+    wl_list_for_each(ibuf, &icon->buffers, link) {
+        int diff = abs(ibuf->buffer->width - target_size);
+        if (diff < best_diff) {
+            best = ibuf;
+            best_diff = diff;
+        }
+    }
+    return best;
+}
+
 // render button into cairo then draw it
-void taskbar::render_button(struct wlr_scene_buffer* scene_buf, const char* text, int w, int h,
-                            float bg[4], float fg[4]) {
+void taskbar::render_button(struct wlr_scene_buffer* scene_buf, const char* text,
+                            struct wlr_xdg_toplevel_icon_v1* icon, int w, int h, float bg[4],
+                            float fg[4]) {
     paint::Canvas canvas(w, h);
     if (!canvas.valid()) {
         return;
@@ -56,6 +75,47 @@ void taskbar::render_button(struct wlr_scene_buffer* scene_buf, const char* text
     cairo_set_source_rgba(cr, bg[0], bg[1], bg[2], bg[3]);
     cairo_paint(cr);
 
+    int text_left = 0;
+
+    // xdg-toplevel-icon protocol
+    if (icon && !wl_list_empty(&icon->buffers)) {
+        if (const int icon_size = h - 4; icon_size > 0) {
+            if (const wlr_xdg_toplevel_icon_v1_buffer* ibuf = pick_icon_buffer(icon, icon_size)) {
+                void* data;
+                uint32_t format;
+                size_t stride;
+                if (wlr_buffer_begin_data_ptr_access(ibuf->buffer, WLR_BUFFER_DATA_PTR_ACCESS_READ,
+                                                     &data, &format, &stride)) {
+                    cairo_format_t cairo_fmt;
+                    if (format == DRM_FORMAT_ARGB8888) {
+                        cairo_fmt = CAIRO_FORMAT_ARGB32;
+                    } else if (format == DRM_FORMAT_XRGB8888) {
+                        cairo_fmt = CAIRO_FORMAT_RGB24;
+                    } else {
+                        wlr_buffer_end_data_ptr_access(ibuf->buffer);
+                        goto draw_text;
+                    }
+
+                    cairo_surface_t* icon_surface = cairo_image_surface_create_for_data(
+                        static_cast<unsigned char*>(data), cairo_fmt, ibuf->buffer->width,
+                        ibuf->buffer->height, static_cast<int>(stride));
+                    const double scale = static_cast<double>(icon_size) / ibuf->buffer->width;
+                    cairo_save(cr);
+                    cairo_translate(cr, 2, 2);
+                    cairo_scale(cr, scale, scale);
+                    cairo_set_source_surface(cr, icon_surface, 0, 0);
+                    cairo_paint(cr);
+                    cairo_restore(cr);
+
+                    cairo_surface_destroy(icon_surface);
+                    wlr_buffer_end_data_ptr_access(ibuf->buffer);
+                    text_left = icon_size + 4;
+                }
+            }
+        }
+    }
+
+draw_text:
     if (text && text[0]) {
         cairo_select_font_face(cr, "sans-serif", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
         cairo_set_font_size(cr, h * 0.55);
@@ -63,7 +123,12 @@ void taskbar::render_button(struct wlr_scene_buffer* scene_buf, const char* text
 
         cairo_text_extents_t ext;
         cairo_text_extents(cr, text, &ext);
-        double tx = (w - ext.width) / 2.0 - ext.x_bearing;
+        double tx;
+        if (text_left > 0) {
+            tx = text_left;
+        } else {
+            tx = (w - ext.width) / 2.0 - ext.x_bearing;
+        }
         if (tx < 4.0) {
             tx = 4.0;
         }
@@ -278,7 +343,7 @@ void taskbar::layout() {
         char num[4];
         snprintf(num, sizeof(num), "%d", i + 1);
         float* bg = (i == current) ? cfg->color_task_active : cfg->color_task_normal;
-        render_button(ws_labels_[i], num, ws_button_w, button_h, bg, cfg->color_task_text);
+        render_button(ws_labels_[i], num, nullptr, ws_button_w, button_h, bg, cfg->color_task_text);
         cursor_x += ws_button_w + pad;
     }
 
@@ -351,7 +416,8 @@ void taskbar::layout() {
         }
 
         const char* title = btn->v->toplevel->title ? btn->v->toplevel->title : "";
-        render_button(btn->label, title, button_w, button_h, bg, cfg->color_task_text);
+        render_button(btn->label, title, btn->v->icon, button_w, button_h, bg,
+                      cfg->color_task_text);
         slot++;
     }
 

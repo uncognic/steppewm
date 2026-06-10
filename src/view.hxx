@@ -85,6 +85,7 @@ class view {
     bool urgent;
     bool mapped;
     int workspace;
+    struct wlr_xdg_toplevel_icon_v1* icon;
     struct wlr_box saved_geo;
 
     struct wl_list link;
@@ -148,6 +149,7 @@ class view {
     static void handle_request_maximize(view* v);
     static void handle_request_fullscreen(view* v);
     static void handle_request_minimize(view* v);
+    static void handle_set_icon(struct wl_listener* listener, void* data);
     static view* from_surface(struct wlr_surface* surface);
     static bool activation_token_valid(server* s, struct wlr_xdg_activation_token_v1* token);
     static bool surface_is_view_focused(server* s, view* v);

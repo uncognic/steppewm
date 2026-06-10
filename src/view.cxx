@@ -358,6 +358,10 @@ void view::handle_destroy(view* v) {
     // set properties
     v->toplevel->base->data = nullptr;
 
+    if (v->icon) {
+        wlr_xdg_toplevel_icon_v1_unref(v->icon);
+        v->icon = nullptr;
+    }
     v->deco_destroy();
     wlr_scene_node_destroy(&v->scene_tree->node);
     delete v;
@@ -537,6 +541,13 @@ void view::init(server* s) {
     s->deco_manager = wlr_xdg_decoration_manager_v1_create(s->display);
     s->new_deco.notify = view::deco_new;
     wl_signal_add(&s->deco_manager->events.new_toplevel_decoration, &s->new_deco);
+
+    // xdg-toplevel-icon protocol
+    s->icon_mgr = wlr_xdg_toplevel_icon_manager_v1_create(s->display, 1);
+    int icon_sizes[] = {16, 24, 32, 48};
+    wlr_xdg_toplevel_icon_manager_v1_set_sizes(s->icon_mgr, icon_sizes, 4);
+    s->set_icon.notify = view::handle_set_icon;
+    wl_signal_add(&s->icon_mgr->events.set_icon, &s->set_icon);
 }
 
 // create a new view
@@ -551,6 +562,7 @@ void view::on_new(struct wl_listener* listener, void* data) {
     v->decoration_mode = deco_mode::CLIENT; // switched to SERVER by the client when it detects
                                             // ssd support (which we do)
     v->urgent = false;
+    v->icon = nullptr;
 
     // whole scene for the window (title bar, border, surface)
     v->scene_tree = wlr_scene_tree_create(&s->scene->tree);
@@ -580,6 +592,22 @@ void view::on_new(struct wl_listener* listener, void* data) {
     v->request_minimize.connect(&toplevel->events.request_minimize,
                                 [v](void*) { handle_request_minimize(v); });
     v->title_changed.connect(&toplevel->events.set_title, [v](void*) { v->deco_update(); });
+}
+
+void view::handle_set_icon(struct wl_listener* listener, void* data) {
+    server* s = wl_container_of(listener, s, set_icon);
+    const auto* event = static_cast<struct wlr_xdg_toplevel_icon_manager_v1_set_icon_event*>(data);
+    const auto v = static_cast<view*>(event->toplevel->base->data);
+    if (!v) {
+        return;
+    }
+
+    if (v->icon) {
+        wlr_xdg_toplevel_icon_v1_unref(v->icon);
+    }
+    v->icon = event->icon ? wlr_xdg_toplevel_icon_v1_ref(event->icon) : nullptr;
+
+    taskbar::refresh_taskbars(s);
 }
 
 view* view::from_surface(struct wlr_surface* surface) {
