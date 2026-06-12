@@ -17,6 +17,7 @@
 
 #include <cstdio>
 #include <cstdlib>
+#include <sys/stat.h>
 #include <unistd.h>
 
 #include "config.hxx"
@@ -182,9 +183,48 @@ void server::start_xwayland() {
     wlr_log(WLR_INFO, "xwayland-satellite on %s", display);
 }
 
+static void setup_portals() {
+    const char* config_home = getenv("XDG_CONFIG_HOME");
+    char dir[512], path[512];
+    if (config_home) {
+        snprintf(dir, sizeof(dir), "%s/xdg-desktop-portal", config_home);
+    } else {
+        const char* home = getenv("HOME");
+        if (!home) {
+            return;
+        }
+        snprintf(dir, sizeof(dir), "%s/.config/xdg-desktop-portal", home);
+    }
+    snprintf(path, sizeof(path), "%s/steppewm-portals.conf", dir);
+
+    if (access(path, F_OK) == 0) {
+        return;
+    }
+
+    mkdir(dir, 0755);
+    FILE* f = fopen(path, "w");
+    if (!f) {
+        return;
+    }
+    fprintf(f, "[preferred]\n"
+               "default=gtk\n"
+               "org.freedesktop.impl.portal.Screenshot=wlr\n"
+               "org.freedesktop.impl.portal.ScreenCast=wlr\n");
+    fclose(f);
+    wlr_log(WLR_INFO, "wrote portal config: %s", path);
+}
+
+static void update_dbus_environment() {
+    if (pid_t pid = fork(); pid == 0) {
+        execlp("dbus-update-activation-environment", "dbus-update-activation-environment",
+               "WAYLAND_DISPLAY", "XDG_CURRENT_DESKTOP", "DISPLAY", static_cast<char*>(nullptr));
+        _exit(1);
+    }
+}
+
 void server::run(server* s) {
     // get a socket
-    const char *socket = wl_display_add_socket_auto(s->display);
+    const char* socket = wl_display_add_socket_auto(s->display);
     if (!socket) {
         wlr_log(WLR_ERROR, "failed to create Wayland socket");
         return;
@@ -204,6 +244,9 @@ void server::run(server* s) {
     if (s->cfg.xwayland) {
         start_xwayland();
     }
+
+    setup_portals();
+    update_dbus_environment();
 
     // run exec()s after setting up environment
     s->cfg.run_execs();
@@ -225,10 +268,10 @@ void server::fini(server* s) {
 }
 
 // entry
-int main(int argc, char *argv[]) {
+int main(int argc, char* argv[]) {
     wlr_log_init(WLR_DEBUG, nullptr);
 
-    const char *cli_config_path = nullptr;
+    const char* cli_config_path = nullptr;
 
     int opt;
     while ((opt = getopt(argc, argv, "c:")) != -1) {
@@ -250,12 +293,12 @@ int main(int argc, char *argv[]) {
     if (cli_config_path && cli_config_path[0]) {
         snprintf(config_path, sizeof(config_path), "%s", cli_config_path);
     } else {
-        const char *config_home = getenv("XDG_CONFIG_HOME");
+        const char* config_home = getenv("XDG_CONFIG_HOME");
 
         if (config_home && config_home[0]) {
             snprintf(config_path, sizeof(config_path), "%s/steppewm/config.lua", config_home);
         } else {
-            const char *home = getenv("HOME");
+            const char* home = getenv("HOME");
             snprintf(config_path, sizeof(config_path), "%s/.config/steppewm/config.lua",
                      home ? home : "/root");
         }
