@@ -107,6 +107,18 @@ void server::dispatch_action(server* s, const char* action, const char* arg, uin
             v->toggle_maximize();
         } else if (strcmp(action, "close") == 0) {
             wlr_xdg_toplevel_send_close(v->toplevel);
+        } else if (strcmp(action, "snap_left") == 0) {
+            v->snap_to(snap_edge::LEFT);
+        } else if (strcmp(action, "snap_right") == 0) {
+            v->snap_to(snap_edge::RIGHT);
+        } else if (strcmp(action, "snap_top_left") == 0) {
+            v->snap_to(snap_edge::TOP_LEFT);
+        } else if (strcmp(action, "snap_top_right") == 0) {
+            v->snap_to(snap_edge::TOP_RIGHT);
+        } else if (strcmp(action, "snap_bottom_left") == 0) {
+            v->snap_to(snap_edge::BOTTOM_LEFT);
+        } else if (strcmp(action, "snap_bottom_right") == 0) {
+            v->snap_to(snap_edge::BOTTOM_RIGHT);
         }
     }
 }

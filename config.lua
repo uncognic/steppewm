@@ -18,6 +18,11 @@ bind("Super", "Down", "minimize")
 bind("Super", "Up", "maximize")
 bind("Super", "q", "close")
 bind("Super+Shift", "c", "reload")
+bind("Super", "Left", "snap_left")
+bind("Super", "Right", "snap_right")
+bind("Super+Shift", "Left", "snap_top_left")
+bind("Super+Shift", "Right", "snap_top_right")
+
 
 for i = 1, 9 do
     bind("Super", tostring(i), "workspace", tostring(i))
