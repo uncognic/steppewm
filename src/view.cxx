@@ -24,20 +24,20 @@
 
 using namespace steppewm;
 
-bool view::can_configure(view* v) {
+bool view::can_configure(const view* v) {
     return v->toplevel->base->initialized;
 }
 
 // show or hide a view depending on whether it lives on the current workspace
-void view::update_visibility() {
-    bool visible = !minimized && workspace == srv->current_workspace;
+void view::update_visibility() const {
+    const bool visible = !minimized && (pinned || workspace == srv->current_workspace);
     wlr_scene_node_set_enabled(&scene_tree->node, visible);
 
-    // hidden windows shouldn't keep blocking idle (and vice versa)
+    // hidden windows shouldn't keep blocking idle
     idle_inhibitor::update(srv);
 }
 
-void view::focus_next(server* s, view* skip) {
+void view::focus_next(server* s, const view* skip) {
     if (s->locked) {
         return;
     }
@@ -47,7 +47,8 @@ void view::focus_next(server* s, view* skip) {
 
     // loop through views until we find one on this workspace that isn't minimzed
     wl_list_for_each(v, &s->views, link) {
-        if (v != skip && v->mapped && !v->minimized && v->workspace == s->current_workspace) {
+        if (v != skip && v->mapped && !v->minimized &&
+            (v->pinned || v->workspace == s->current_workspace)) {
             next = v;
             break;
         }
@@ -95,7 +96,7 @@ void view::workspace_switch(server* s, int workspace) {
     // focus the topmost window on the new workspace, otherwise clear focus
     view* focus = nullptr;
     wl_list_for_each(v, &s->views, link) {
-        if (v->mapped && !v->minimized && v->workspace == workspace) {
+        if (v->mapped && !v->minimized && (v->pinned || v->workspace == workspace)) {
             focus = v;
             break;
         }
@@ -112,9 +113,10 @@ void view::workspace_switch(server* s, int workspace) {
 
 // move a window to another workspace
 void view::move_to_workspace(int ws) {
-    if (ws < 0 || ws >= num_workspaces || workspace == ws) {
+    if (ws < 0 || ws >= num_workspaces || (!pinned && workspace == ws)) {
         return;
     }
+    pinned = false;
     workspace = ws;
     update_visibility();
 
@@ -701,6 +703,7 @@ void view::on_new(struct wl_listener* listener, void* data) {
     v->decoration_mode = deco_mode::CLIENT; // switched to SERVER by the client when it detects
                                             // ssd support (which we do)
     v->urgent = false;
+    v->pinned = false;
     v->snapped = snap_edge::NONE;
     v->icon = nullptr;
 
@@ -924,6 +927,14 @@ view* view::at(server* s, double lx, double ly, struct wlr_surface** surface, do
 }
 
 void view::raise_overlays(server* s) {
+    view* v;
+    // raise pinned windows
+    wl_list_for_each(v, &s->views, link) {
+        if (v->pinned && v->mapped) {
+            wlr_scene_node_raise_to_top(&v->scene_tree->node);
+        }
+    }
+
     output* out;
     wl_list_for_each(out, &s->outputs, link) {
         if (out->taskbar) {

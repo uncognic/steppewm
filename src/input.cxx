@@ -119,6 +119,12 @@ void server::dispatch_action(server* s, const char* action, const char* arg, uin
             v->snap_to(snap_edge::BOTTOM_LEFT);
         } else if (strcmp(action, "snap_bottom_right") == 0) {
             v->snap_to(snap_edge::BOTTOM_RIGHT);
+        } else if (strcmp(action, "pin") == 0) {
+            v->pinned = !v->pinned;
+            if (!v->pinned) {
+                v->workspace = s->current_workspace;
+            }
+            taskbar::refresh_taskbars(s);
         }
     }
 }

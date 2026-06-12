@@ -94,6 +94,7 @@ class view {
     bool minimized;
     bool urgent;
     bool mapped;
+    bool pinned;
     int workspace;
     snap_edge snapped;
     struct wlr_xdg_toplevel_icon_v1* icon;
@@ -118,7 +119,7 @@ class view {
     void set_urgent(bool urgent);
     void toggle_maximize();
     void unmaximize_to_cursor(double cursor_x, double cursor_y);
-    void update_visibility();
+    void update_visibility() const;
     void move_to_workspace(int workspace);
     void snap_to(snap_edge edge);
 
@@ -132,7 +133,7 @@ class view {
 
     static void init(server* s);
     static void on_new(struct wl_listener* listener, void* data);
-    static void focus_next(server* s, view* skip);
+    static void focus_next(server* s, const view* skip);
     static void reconfigure_all(server* s);
     static view* at(server* s, double lx, double ly, struct wlr_surface** surface, double* sx,
                     double* sy);
@@ -145,7 +146,7 @@ class view {
     static view* deco_at(const server* s, double lx, double ly, struct wlr_scene_node** node);
 
   private:
-    static bool can_configure(view* v);
+    static bool can_configure(const view* v);
     static void raise_overlays(server* s);
     static void apply_state(view* v, bool maximized, bool fullscreen);
     static void apply_pending_deco(view* v);

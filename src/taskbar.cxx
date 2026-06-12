@@ -64,8 +64,8 @@ wlr_xdg_toplevel_icon_v1_buffer* taskbar::pick_icon_buffer(wlr_xdg_toplevel_icon
 
 // render button into cairo then draw it
 void taskbar::render_button(struct wlr_scene_buffer* scene_buf, const char* text,
-                            struct wlr_xdg_toplevel_icon_v1* icon, int w, int h, float bg[4],
-                            float fg[4]) {
+                            struct wlr_xdg_toplevel_icon_v1* icon, bool pinned, int w, int h,
+                            float bg[4], float fg[4]) {
     paint::Canvas canvas(w, h);
     if (!canvas.valid()) {
         return;
@@ -135,6 +135,13 @@ draw_text:
         double ty = h / 2.0 - ext.y_bearing - ext.height / 2.0;
         cairo_move_to(cr, tx, ty);
         cairo_show_text(cr, text);
+    }
+
+    if (pinned) {
+        const double r = h * 0.15;
+        cairo_arc(cr, w - r - 2, r + 2, r, 0, 2 * M_PI);
+        cairo_set_source_rgba(cr, fg[0], fg[1], fg[2], fg[3]);
+        cairo_fill(cr);
     }
 
     canvas.commit(scene_buf);
@@ -343,7 +350,8 @@ void taskbar::layout() {
         char num[4];
         snprintf(num, sizeof(num), "%d", i + 1);
         float* bg = (i == current) ? cfg->color_task_active : cfg->color_task_normal;
-        render_button(ws_labels_[i], num, nullptr, ws_button_w, button_h, bg, cfg->color_task_text);
+        render_button(ws_labels_[i], num, nullptr, false, ws_button_w, button_h, bg,
+                      cfg->color_task_text);
         cursor_x += ws_button_w + pad;
     }
 
@@ -353,7 +361,7 @@ void taskbar::layout() {
     // count windows that live on the current workspace
     int visible_count = 0;
     for (auto& btn : buttons_) {
-        if (btn->v->workspace == current) {
+        if (btn->v->pinned || btn->v->workspace == current) {
             visible_count++;
         }
     }
@@ -391,7 +399,7 @@ void taskbar::layout() {
     bool has_visible_urgent = false;
     for (auto& btn : buttons_) {
         // skip and hide windows on other workspaces
-        if (btn->v->workspace != current) {
+        if (!btn->v->pinned && btn->v->workspace != current) {
             wlr_scene_node_set_enabled(&btn->label->node, false);
             continue;
         }
@@ -416,7 +424,7 @@ void taskbar::layout() {
         }
 
         const char* title = btn->v->toplevel->title ? btn->v->toplevel->title : "";
-        render_button(btn->label, title, btn->v->icon, button_w, button_h, bg,
+        render_button(btn->label, title, btn->v->icon, btn->v->pinned, button_w, button_h, bg,
                       cfg->color_task_text);
         slot++;
     }
@@ -557,7 +565,7 @@ view* taskbar::view_at(double x, double y) {
     int current = srv_->current_workspace;
     int count = 0;
     for (auto& btn : buttons_) {
-        if (btn->v->workspace != current) {
+        if (!btn->v->pinned && btn->v->workspace != current) {
             continue;
         }
         if (count == slot) {
