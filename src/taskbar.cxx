@@ -29,6 +29,14 @@
 #include <cairo/cairo.h>
 #include <drm_fourcc.h>
 
+#if defined(__FreeBSD__) || defined(__DragonFly__)
+#include <sys/sysctl.h>
+#include <sys/types.h>
+#elif defined(__OpenBSD__)
+#include <sys/sensors.h>
+#include <sys/sysctl.h>
+#endif
+
 #include <wayland-server-core.h>
 
 #include <wlr/types/wlr_output_layout.h>
@@ -202,6 +210,199 @@ void taskbar::render_clock() {
     wlr_scene_node_set_position(&clock_->node, width_ - w - pad, pad);
 }
 
+bool bat_info::read_battery(const char* battery_path) {
+    if (!battery_path[0]) {
+        return false;
+    }
+
+#if defined(__linux__)
+    const char* path = battery_path;
+    if (strcmp(path, "auto") == 0) {
+        return false;
+    }
+
+    char cap_path[256], status_path[256];
+    snprintf(cap_path, sizeof(cap_path), "%s/capacity", path);
+    snprintf(status_path, sizeof(status_path), "%s/status", path);
+
+    FILE* f = fopen(cap_path, "r");
+    if (!f) {
+        return false;
+    }
+    capacity = 0;
+    fscanf(f, "%d", &capacity);
+    fclose(f);
+
+    char status[32] = "";
+    f = fopen(status_path, "r");
+    if (f) {
+        fscanf(f, "%31s", status);
+        fclose(f);
+    }
+
+    if (strcmp(status, "Charging") == 0) {
+        state = bat_state::CHARGING;
+    } else if (strcmp(status, "Full") == 0) {
+        state = bat_state::FULL;
+    } else if (strcmp(status, "Discharging") == 0) {
+        state = bat_state::DISCHARGING;
+    } else {
+        state = bat_state::UNKNOWN;
+    }
+    return true;
+
+#elif defined(__FreeBSD__) || defined(__DragonFly__)
+    int life = -1, state = 0;
+    size_t len;
+
+    len = sizeof(life);
+    if (sysctlbyname("hw.acpi.battery.life", &life, &len, nullptr, 0) != 0 || life < 0) {
+        return false;
+    }
+    capacity = life;
+
+    len = sizeof(state);
+    sysctlbyname("hw.acpi.battery.state", &state, &len, nullptr, 0);
+    if (state == 2) {
+        state = bat_state::CHARGING;
+    } else if (state == 1) {
+        state = bat_state::DISCHARGING;
+    } else {
+        state = bat_state::FULL;
+    }
+    return true;
+
+#elif defined(__OpenBSD__)
+    int mib[5] = {CTL_HW, HW_SENSORS, 0, 0, 0};
+    struct sensordev sd;
+    size_t sdlen = sizeof(sd);
+    bool found = false;
+
+    for (int dev = 0;; dev++) {
+        mib[2] = dev;
+        sdlen = sizeof(sd);
+        if (sysctl(mib, 3, &sd, &sdlen, nullptr, 0) == -1) {
+            break;
+        }
+        if (strncmp(sd.xname, "acpibat", 7) == 0) {
+            found = true;
+            break;
+        }
+    }
+    if (!found) {
+        return false;
+    }
+
+    struct sensor s;
+    size_t slen = sizeof(s);
+
+    int64_t remaining = 0, full_cap = 1;
+
+    mib[3] = SENSOR_WATTHOUR;
+    mib[4] = 4;
+    slen = sizeof(s);
+    if (sysctl(mib, 5, &s, &slen, nullptr, 0) == 0) {
+        remaining = s.value;
+    }
+
+    mib[4] = 3;
+    slen = sizeof(s);
+    if (sysctl(mib, 5, &s, &slen, nullptr, 0) == 0 && s.value > 0) {
+        full_cap = s.value;
+    }
+
+    capacity = static_cast<int>((remaining * 100) / full_cap);
+    if (capacity > 100) {
+        capacity = 100;
+    }
+    if (capacity < 0) {
+        capacity = 0;
+    }
+
+    mib[3] = SENSOR_INTEGER;
+    mib[4] = 0;
+    slen = sizeof(s);
+    if (sysctl(mib, 5, &s, &slen, nullptr, 0) == 0) {
+        if (s.value == 2) {
+            state = bat_state::CHARGING;
+        } else if (s.value == 1) {
+            state = bat_state::DISCHARGING;
+        } else {
+            state = bat_state::FULL;
+        }
+    } else {
+        state = bat_state::UNKNOWN;
+    }
+    return true;
+
+#else
+    return false;
+#endif
+}
+
+// pretty self explanatory
+void taskbar::render_battery() {
+    if (width_ <= 0 || height_ <= 0 || !battery_) {
+        return;
+    }
+
+    bat_info info{};
+    if (!info.read_battery(srv_->cfg.battery_path)) {
+        battery_w_ = 0;
+        wlr_scene_node_set_enabled(&battery_->node, false);
+        return;
+    }
+
+    char text[32];
+    auto symbol = "";
+    if (info.state == bat_state::CHARGING) {
+        symbol = "+";
+    } else if (info.state == bat_state::FULL) {
+        symbol = "";
+    }
+    snprintf(text, sizeof(text), "BAT %d%%%s", info.capacity, symbol);
+
+    config* cfg = &srv_->cfg;
+    const int pad = cfg->taskbar_button_pad;
+    const int h = height_ - 2 * pad;
+    if (h <= 0) {
+        return;
+    }
+    const double font_size = h * 0.55;
+
+    const cairo_text_extents_t ext = paint::text_extents(text, font_size);
+    const int w = static_cast<int>(ext.width) + h;
+    if (w <= 0) {
+        return;
+    }
+    battery_w_ = w;
+
+    paint::Canvas canvas(w, h);
+    if (!canvas.valid()) {
+        return;
+    }
+    cairo_t* cr = canvas.cr();
+
+    const float* bg = cfg->color_task_normal;
+    cairo_set_source_rgba(cr, bg[0], bg[1], bg[2], bg[3]);
+    cairo_paint(cr);
+
+    const float* fg = cfg->color_task_text;
+    cairo_select_font_face(cr, "sans-serif", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
+    cairo_set_font_size(cr, font_size);
+    cairo_set_source_rgba(cr, fg[0], fg[1], fg[2], fg[3]);
+    const double tx = (w - ext.width) / 2.0 - ext.x_bearing;
+    const double ty = h / 2.0 - ext.y_bearing - ext.height / 2.0;
+    cairo_move_to(cr, tx, ty);
+    cairo_show_text(cr, text);
+
+    canvas.commit(battery_);
+    wlr_scene_node_set_enabled(&battery_->node, true);
+
+    const int x = width_ - clock_w_ - pad - layout_ind_w_ - pad - w - pad;
+    wlr_scene_node_set_position(&battery_->node, x, pad);
+}
+
 // build the short layout code for the active keyboard group
 void taskbar::layout_code(char* out, size_t len) {
     struct wlr_keyboard* kbd = wlr_seat_get_keyboard(srv_->seat);
@@ -329,6 +530,7 @@ void taskbar::layout() {
 
     render_clock();
     render_layout_indicator();
+    render_battery();
 
     config* cfg = &srv_->cfg;
     int pad = cfg->taskbar_button_pad;
@@ -376,8 +578,11 @@ void taskbar::layout() {
 
     view* fv = focused_view();
 
-    // task row ends before the layout indicator and the clock on the right
+    // task row ends before the right-side indicators
     int right_limit = width_ - clock_w_ - pad - layout_ind_w_ - pad;
+    if (battery_w_ > 0) {
+        right_limit -= battery_w_ + pad;
+    }
     int task_row_width = right_limit - pad - task_row_left;
 
     // divide by number of visible buttons to get width
@@ -447,6 +652,9 @@ taskbar::taskbar(server* s, struct wlr_output* wlr_output) {
     for (int i = 0; i < num_workspaces; i++) {
         ws_labels_[i] = wlr_scene_buffer_create(tree_, nullptr);
     }
+
+    // battery indicator
+    battery_ = wlr_scene_buffer_create(tree_, nullptr);
 
     // keyboard layout indicator
     layout_ind_ = wlr_scene_buffer_create(tree_, nullptr);

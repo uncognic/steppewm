@@ -17,6 +17,7 @@
 
 #include <cstdio>
 #include <cstring>
+#include <dirent.h>
 #include <strings.h>
 #include <sys/types.h>
 #include <unistd.h>
@@ -341,6 +342,22 @@ void config::set_defaults() {
     taskbar_button_w = 200;
     taskbar_button_pad = 2;
 
+    strncpy(battery_path, "auto", sizeof(battery_path));
+#ifdef __linux__
+    DIR* dir = opendir("/sys/class/power_supply");
+    if (dir) {
+        dirent* ent;
+        while ((ent = readdir(dir))) {
+            if (strncmp(ent->d_name, "BAT", 3) == 0) {
+                snprintf(battery_path, sizeof(battery_path), "/sys/class/power_supply/%s",
+                         ent->d_name);
+                break;
+            }
+        }
+        closedir(dir);
+    }
+#endif
+
     color_taskbar_bg[0] = 0.08f;
     color_taskbar_bg[1] = 0.08f;
     color_taskbar_bg[2] = 0.08f;
@@ -441,6 +458,7 @@ bool config::load(const char* path) {
     read_color(L, "task_minimized", color_task_minimized);
     read_color(L, "task_urgent", color_task_urgent);
     read_color(L, "task_text", color_task_text);
+    read_string(L, "battery_path", battery_path, sizeof(battery_path));
 
     lua_close(L);
     return true;

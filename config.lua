@@ -1,11 +1,11 @@
 -- steppewm config
-
 local terminal = "foot"
 local launcher = "wofi --show drun"
 local file_manager = "thunar"
 local screenshot = "grim -g \"$(slurp)\" - | tee ~/Screenshots/$(date +'%Y-%m-%d_%H-%M-%S').png | wl-copy"
 
-xwayland = true -- xwayland-satellite required
+-- battery_path = "/sys/class/power_supply/BAT0" -- leave empty to disable
+-- xwayland = true -- xwayland-satellite required, off by default
 
 bind("Super", "Return", "spawn", terminal)
 bind("Super", "d", "spawn", launcher)

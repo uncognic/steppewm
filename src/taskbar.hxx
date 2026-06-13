@@ -29,6 +29,14 @@ struct wlr_xdg_toplevel_icon_v1;
 struct wl_event_source;
 
 namespace steppewm {
+enum class bat_state { DISCHARGING, CHARGING, FULL, UNKNOWN };
+
+class bat_info {
+  public:
+    int capacity;
+    bat_state state;
+    bool read_battery(const char* battery_path);
+};
 
 class task_button {
   public:
@@ -60,6 +68,7 @@ class taskbar {
                               struct wlr_xdg_toplevel_icon_v1* icon, bool pinned, int w, int h,
                               float bg[4], float fg[4]);
     void render_clock();
+    void render_battery();
     void render_layout_indicator();
     void layout_code(char* out, size_t len);
     [[nodiscard]] view* focused_view() const;
@@ -75,6 +84,8 @@ class taskbar {
     struct wl_event_source* clock_timer_;
     struct wl_event_source* urgent_timer_;
     struct wlr_scene_buffer* layout_ind_;
+    struct wlr_scene_buffer* battery_;
+    int battery_w_ = 0;
     int layout_ind_w_ = 0;
     struct wlr_scene_buffer* ws_labels_[num_workspaces]{};
     int ws_button_w_ = 0;
