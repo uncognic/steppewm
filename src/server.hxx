@@ -135,6 +135,7 @@ class server {
     struct wlr_idle_notifier_v1* idle_notifier;
     struct wlr_idle_inhibit_manager_v1* idle_inhibit_mgr;
     struct wl_listener new_idle_inhibitor;
+    bool idle_inhibit_manual;
 
     struct wlr_session_lock_manager_v1* session_lock_mgr;
     struct wlr_session_lock_v1* cur_lock;

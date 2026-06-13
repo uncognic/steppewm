@@ -617,6 +617,66 @@ void taskbar::render_volume() {
 #endif
 }
 
+void taskbar::render_idle_indicator() {
+    if (width_ <= 0 || height_ <= 0 || !idle_ind_) {
+        return;
+    }
+
+    const bool inhibited = srv_->idle_inhibit_manual;
+    const char* text = inhibited ? "AWAKE" : "IDLE";
+
+    config* cfg = &srv_->cfg;
+    const int pad = cfg->taskbar_button_pad;
+    const int h = height_ - 2 * pad;
+    if (h <= 0) {
+        return;
+    }
+    const double font_size = h * 0.55;
+
+    const cairo_text_extents_t ext = paint::text_extents(text, font_size);
+    const int w = static_cast<int>(ext.width) + h;
+    if (w <= 0) {
+        return;
+    }
+    idle_ind_w_ = w;
+
+    paint::Canvas canvas(w, h);
+    if (!canvas.valid()) {
+        return;
+    }
+    cairo_t* cr = canvas.cr();
+
+    float* bg = inhibited ? cfg->color_task_active : cfg->color_task_normal;
+    cairo_set_source_rgba(cr, bg[0], bg[1], bg[2], bg[3]);
+    cairo_paint(cr);
+
+    const float* fg = cfg->color_task_text;
+    cairo_select_font_face(cr, "sans-serif", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
+    cairo_set_font_size(cr, font_size);
+    cairo_set_source_rgba(cr, fg[0], fg[1], fg[2], fg[3]);
+    const double tx = (w - ext.width) / 2.0 - ext.x_bearing;
+    const double ty = h / 2.0 - ext.y_bearing - ext.height / 2.0;
+    cairo_move_to(cr, tx, ty);
+    cairo_show_text(cr, text);
+
+    canvas.commit(idle_ind_);
+    wlr_scene_node_set_enabled(&idle_ind_->node, true);
+
+    int ix = width_ - clock_w_ - pad - layout_ind_w_ - pad;
+    if (battery_w_ > 0) {
+        ix -= battery_w_ + pad;
+    }
+    if (brightness_w_ > 0) {
+        ix -= brightness_w_ + pad;
+    }
+    if (volume_w_ > 0) {
+        ix -= volume_w_ + pad;
+    }
+    ix -= w + pad;
+    idle_ind_x_ = ix + x_;
+    wlr_scene_node_set_position(&idle_ind_->node, ix, pad);
+}
+
 // build the short layout code for the active keyboard group
 void taskbar::layout_code(char* out, size_t len) {
     struct wlr_keyboard* kbd = wlr_seat_get_keyboard(srv_->seat);
@@ -747,6 +807,7 @@ void taskbar::layout() {
     render_battery();
     render_brightness();
     render_volume();
+    render_idle_indicator();
 
     config* cfg = &srv_->cfg;
     const int pad = cfg->taskbar_button_pad;
@@ -804,6 +865,9 @@ void taskbar::layout() {
     }
     if (volume_w_ > 0) {
         right_limit -= volume_w_ + pad;
+    }
+    if (idle_ind_w_ > 0) {
+        right_limit -= idle_ind_w_ + pad;
     }
     int task_row_width = right_limit - pad - task_row_left;
 
@@ -879,6 +943,7 @@ taskbar::taskbar(server* s, struct wlr_output* wlr_output) {
     battery_ = wlr_scene_buffer_create(tree_, nullptr);
     brightness_ = wlr_scene_buffer_create(tree_, nullptr);
     volume_ = wlr_scene_buffer_create(tree_, nullptr);
+    idle_ind_ = wlr_scene_buffer_create(tree_, nullptr);
 
     // keyboard layout indicator
     layout_ind_ = wlr_scene_buffer_create(tree_, nullptr);
@@ -1037,6 +1102,24 @@ int taskbar::workspace_at(double x, double y) {
     }
     return idx;
 }
+
+bool taskbar::idle_inhibit_at(const double x, const double y) const {
+    // if the indicator doesn't exist yet
+    if (idle_ind_w_ <= 0 || width_ <= 0) {
+        return false;
+    }
+    // if it's obviously not hit
+    if (y < y_ || y >= y_ + height_) {
+        return false;
+    }
+
+    const int pad = srv_->cfg.taskbar_button_pad;
+    const int h = height_ - 2 * pad;
+    const bool in_x = x >= idle_ind_x_ && x < idle_ind_x_ + idle_ind_w_;
+    const bool in_y = y >= y_ + pad && y < y_ + pad + h;
+    return in_x && in_y;
+}
+
 void taskbar::refresh_taskbars(server* s) {
     output* out;
     wl_list_for_each(out, &s->outputs, link) {

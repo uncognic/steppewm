@@ -479,7 +479,7 @@ void idle_inhibitor::update(server* s, const wlr_idle_inhibitor_v1* exclude) {
             break;
         }
     }
-    wlr_idle_notifier_v1_set_inhibited(s->idle_notifier, inhibited);
+    wlr_idle_notifier_v1_set_inhibited(s->idle_notifier, inhibited || s->idle_inhibit_manual);
 }
 
 idle_inhibitor::idle_inhibitor(server* s, struct wlr_idle_inhibitor_v1* inhibitor)
@@ -879,7 +879,15 @@ void server::on_cursor_button(struct wl_listener* listener, void* data) {
             if (!out->taskbar) {
                 continue;
             }
-            // if the workspace button was clicked
+
+            // check if any buttons were pressed
+            if (out->taskbar->idle_inhibit_at(s->cursor->x, s->cursor->y)) {
+                // toggle it
+                s->idle_inhibit_manual = !s->idle_inhibit_manual;
+                idle_inhibitor::update(s);
+                taskbar::refresh_taskbars(s);
+                return;
+            }
             int ws = out->taskbar->workspace_at(s->cursor->x, s->cursor->y);
             if (ws >= 0) {
                 view::workspace_switch(s, ws);

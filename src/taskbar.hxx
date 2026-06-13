@@ -61,6 +61,7 @@ class taskbar {
     void raise();
     view* view_at(double x, double y);
     int workspace_at(double x, double y);
+    [[nodiscard]] bool idle_inhibit_at(double x, double y) const;
     static void refresh_taskbars(server* s);
     static void init_monitors(server* s);
     static void fini_monitors(const server* s);
@@ -74,6 +75,7 @@ class taskbar {
     void render_battery();
     void render_brightness();
     void render_volume();
+    void render_idle_indicator();
     void render_layout_indicator();
     void layout_code(char* out, size_t len);
     [[nodiscard]] view* focused_view() const;
@@ -95,6 +97,9 @@ class taskbar {
     int brightness_w_ = 0;
     struct wlr_scene_buffer* volume_;
     int volume_w_ = 0;
+    struct wlr_scene_buffer* idle_ind_;
+    int idle_ind_w_ = 0;
+    int idle_ind_x_ = 0;
     int layout_ind_w_ = 0;
     struct wlr_scene_buffer* ws_labels_[num_workspaces]{};
     int ws_button_w_ = 0;
