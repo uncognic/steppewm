@@ -403,6 +403,143 @@ void taskbar::render_battery() {
     wlr_scene_node_set_position(&battery_->node, x, pad);
 }
 
+static int read_brightness(const char* backlight_path) {
+    if (!backlight_path[0]) {
+        return -1;
+    }
+
+#if defined(__linux__)
+    if (strcmp(backlight_path, "auto") == 0) {
+        return -1;
+    }
+
+    char path[256];
+    int cur = 0, max = 0;
+
+    snprintf(path, sizeof(path), "%s/brightness", backlight_path);
+    FILE* f = fopen(path, "r");
+    if (!f) {
+        return -1;
+    }
+    fscanf(f, "%d", &cur);
+    fclose(f);
+
+    snprintf(path, sizeof(path), "%s/max_brightness", backlight_path);
+    f = fopen(path, "r");
+    if (!f) {
+        return -1;
+    }
+    fscanf(f, "%d", &max);
+    fclose(f);
+
+    if (max <= 0) {
+        return -1;
+    }
+    return (cur * 100 + max / 2) / max;
+
+#elif defined(__FreeBSD__) || defined(__DragonFly__)
+    int level = -1;
+    size_t len = sizeof(level);
+    if (sysctlbyname("hw.acpi.video.lcd0.brightness", &level, &len, nullptr, 0) != 0) {
+        return -1;
+    }
+    return level;
+
+#elif defined(__OpenBSD__)
+    int mib[5] = {CTL_HW, HW_SENSORS, 0, 0, 0};
+    struct sensordev sd;
+    size_t sdlen;
+    bool found = false;
+
+    for (int dev = 0;; dev++) {
+        mib[2] = dev;
+        sdlen = sizeof(sd);
+        if (sysctl(mib, 3, &sd, &sdlen, nullptr, 0) == -1) {
+            break;
+        }
+        if (strncmp(sd.xname, "acpivout", 8) == 0) {
+            found = true;
+            break;
+        }
+    }
+    if (!found) {
+        return -1;
+    }
+
+    struct sensor s;
+    size_t slen = sizeof(s);
+    mib[3] = SENSOR_PERCENT;
+    mib[4] = 0;
+    if (sysctl(mib, 5, &s, &slen, nullptr, 0) != 0) {
+        return -1;
+    }
+    return static_cast<int>(s.value / 1000);
+
+#else
+    return -1;
+#endif
+}
+
+void taskbar::render_brightness() {
+    if (width_ <= 0 || height_ <= 0 || !brightness_) {
+        return;
+    }
+
+    const int pct = read_brightness(srv_->cfg.backlight_path);
+    if (pct < 0) {
+        brightness_w_ = 0;
+        wlr_scene_node_set_enabled(&brightness_->node, false);
+        return;
+    }
+
+    char text[32];
+    snprintf(text, sizeof(text), "BRI %d%%", pct);
+
+    const config* cfg = &srv_->cfg;
+    const int pad = cfg->taskbar_button_pad;
+    const int h = height_ - 2 * pad;
+    if (h <= 0) {
+        return;
+    }
+    const double font_size = h * 0.55;
+
+    const cairo_text_extents_t ext = paint::text_extents(text, font_size);
+    const int w = static_cast<int>(ext.width) + h;
+    if (w <= 0) {
+        return;
+    }
+    brightness_w_ = w;
+
+    paint::Canvas canvas(w, h);
+    if (!canvas.valid()) {
+        return;
+    }
+    cairo_t* cr = canvas.cr();
+
+    const float* bg = cfg->color_task_normal;
+    cairo_set_source_rgba(cr, bg[0], bg[1], bg[2], bg[3]);
+    cairo_paint(cr);
+
+    const float* fg = cfg->color_task_text;
+    cairo_select_font_face(cr, "sans-serif", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
+    cairo_set_font_size(cr, font_size);
+    cairo_set_source_rgba(cr, fg[0], fg[1], fg[2], fg[3]);
+    const double tx = (w - ext.width) / 2.0 - ext.x_bearing;
+    const double ty = h / 2.0 - ext.y_bearing - ext.height / 2.0;
+    cairo_move_to(cr, tx, ty);
+    cairo_show_text(cr, text);
+
+    canvas.commit(brightness_);
+    wlr_scene_node_set_enabled(&brightness_->node, true);
+
+    int ix = width_ - clock_w_ - pad - layout_ind_w_ - pad;
+    if (battery_w_ > 0) {
+        ix -= battery_w_ + pad;
+    }
+    ix -= w + pad;
+    wlr_scene_node_set_position(&brightness_->node, ix, pad);
+}
+
 // build the short layout code for the active keyboard group
 void taskbar::layout_code(char* out, size_t len) {
     struct wlr_keyboard* kbd = wlr_seat_get_keyboard(srv_->seat);
@@ -418,7 +555,7 @@ void taskbar::layout_code(char* out, size_t len) {
     size_t n = 0;
     if (tok) {
         while (tok[n] && tok[n] != ',' && n + 1 < len) {
-            out[n] = (char) toupper((unsigned char) tok[n]);
+            out[n] = static_cast<char>(toupper(static_cast<unsigned char>(tok[n])));
             n++;
         }
     }
@@ -531,18 +668,19 @@ void taskbar::layout() {
     render_clock();
     render_layout_indicator();
     render_battery();
+    render_brightness();
 
     config* cfg = &srv_->cfg;
-    int pad = cfg->taskbar_button_pad;
+    const int pad = cfg->taskbar_button_pad;
     int button_h = height_ - 2 * pad;
     if (button_h < 1) {
         button_h = 1;
     }
-    int current = srv_->current_workspace;
+    const int current = srv_->current_workspace;
 
     // workspace indicator buttons
     // width is the same as height since it is square
-    int ws_button_w = button_h;
+    const int ws_button_w = button_h;
     ws_button_w_ = ws_button_w;
     int cursor_x = pad;
 
@@ -558,11 +696,11 @@ void taskbar::layout() {
     }
 
     // first task button starts just past the indicators
-    int task_row_left = cursor_x;
+    const int task_row_left = cursor_x;
 
     // count windows that live on the current workspace
     int visible_count = 0;
-    for (auto& btn : buttons_) {
+    for (const auto& btn : buttons_) {
         if (btn->v->pinned || btn->v->workspace == current) {
             visible_count++;
         }
@@ -570,18 +708,21 @@ void taskbar::layout() {
 
     // if there's no windows on the current workspace, hide all of them
     if (visible_count == 0) {
-        for (auto& btn : buttons_) {
+        for (const auto& btn : buttons_) {
             wlr_scene_node_set_enabled(&btn->label->node, false);
         }
         return;
     }
 
-    view* fv = focused_view();
+    const view* fv = focused_view();
 
     // task row ends before the right-side indicators
     int right_limit = width_ - clock_w_ - pad - layout_ind_w_ - pad;
     if (battery_w_ > 0) {
         right_limit -= battery_w_ + pad;
+    }
+    if (brightness_w_ > 0) {
+        right_limit -= brightness_w_ + pad;
     }
     int task_row_width = right_limit - pad - task_row_left;
 
@@ -602,7 +743,7 @@ void taskbar::layout() {
     // draw each window button
     int slot = 0;
     bool has_visible_urgent = false;
-    for (auto& btn : buttons_) {
+    for (const auto& btn : buttons_) {
         // skip and hide windows on other workspaces
         if (!btn->v->pinned && btn->v->workspace != current) {
             wlr_scene_node_set_enabled(&btn->label->node, false);
@@ -653,8 +794,9 @@ taskbar::taskbar(server* s, struct wlr_output* wlr_output) {
         ws_labels_[i] = wlr_scene_buffer_create(tree_, nullptr);
     }
 
-    // battery indicator
+    // battery and brightness indicators
     battery_ = wlr_scene_buffer_create(tree_, nullptr);
+    brightness_ = wlr_scene_buffer_create(tree_, nullptr);
 
     // keyboard layout indicator
     layout_ind_ = wlr_scene_buffer_create(tree_, nullptr);

@@ -69,6 +69,7 @@ class taskbar {
                               float bg[4], float fg[4]);
     void render_clock();
     void render_battery();
+    void render_brightness();
     void render_layout_indicator();
     void layout_code(char* out, size_t len);
     [[nodiscard]] view* focused_view() const;
@@ -86,6 +87,8 @@ class taskbar {
     struct wlr_scene_buffer* layout_ind_;
     struct wlr_scene_buffer* battery_;
     int battery_w_ = 0;
+    struct wlr_scene_buffer* brightness_;
+    int brightness_w_ = 0;
     int layout_ind_w_ = 0;
     struct wlr_scene_buffer* ws_labels_[num_workspaces]{};
     int ws_button_w_ = 0;

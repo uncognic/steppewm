@@ -358,6 +358,22 @@ void config::set_defaults() {
     }
 #endif
 
+    strncpy(backlight_path, "auto", sizeof(backlight_path));
+#ifdef __linux__
+    dir = opendir("/sys/class/backlight");
+    if (dir) {
+        dirent* ent;
+        while ((ent = readdir(dir))) {
+            if (ent->d_name[0] != '.') {
+                snprintf(backlight_path, sizeof(backlight_path), "/sys/class/backlight/%s",
+                         ent->d_name);
+                break;
+            }
+        }
+        closedir(dir);
+    }
+#endif
+
     color_taskbar_bg[0] = 0.08f;
     color_taskbar_bg[1] = 0.08f;
     color_taskbar_bg[2] = 0.08f;
@@ -459,6 +475,7 @@ bool config::load(const char* path) {
     read_color(L, "task_urgent", color_task_urgent);
     read_color(L, "task_text", color_task_text);
     read_string(L, "battery_path", battery_path, sizeof(battery_path));
+    read_string(L, "backlight_path", backlight_path, sizeof(backlight_path));
 
     lua_close(L);
     return true;

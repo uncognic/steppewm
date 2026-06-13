@@ -111,6 +111,7 @@ class config {
     int taskbar_button_pad;
 
     char battery_path[128];
+    char backlight_path[128];
 
     void set_defaults();
     bool load(const char* path);
