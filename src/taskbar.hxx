@@ -62,6 +62,8 @@ class taskbar {
     view* view_at(double x, double y);
     int workspace_at(double x, double y);
     static void refresh_taskbars(server* s);
+    static void init_monitors(server* s);
+    static void fini_monitors(const server* s);
 
   private:
     void layout();

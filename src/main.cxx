@@ -23,9 +23,11 @@
 #include "config.hxx"
 #include "input.hxx"
 #include "layer.hxx"
+#include "listener.hxx"
 #include "lock.hxx"
 #include "output.hxx"
 #include "server.hxx"
+#include "taskbar.hxx"
 #include "view.hxx"
 #include "volume.hxx"
 
@@ -255,6 +257,8 @@ void server::run(server* s) {
     s->vol_mon = nullptr;
 #endif
 
+    taskbar::init_monitors(s);
+
     // run exec()s after setting up environment
     s->cfg.run_execs();
 
@@ -263,6 +267,7 @@ void server::run(server* s) {
 
 // clean up
 void server::fini(server* s) {
+    taskbar::fini_monitors(s);
 #ifdef HAVE_LIBPULSE
     delete static_cast<volume_monitor*>(s->vol_mon);
 #endif

@@ -24,6 +24,17 @@ bind("Super+Shift", "Left", "snap_top_left")
 bind("Super+Shift", "Right", "snap_top_right")
 bind("Super", "p", "pin")
 
+-- media
+bind("", "XF86AudioMute", "spawn", "pactl set-sink-mute @DEFAULT_SINK@ toggle")
+bind("", "XF86AudioLowerVolume", "spawn", "pactl set-sink-volume @DEFAULT_SINK@ -5%")
+bind("", "XF86AudioRaiseVolume", "spawn", "pactl set-sink-volume @DEFAULT_SINK@ +5%")
+bind("", "XF86AudioMicMute", "spawn", "pactl set-source-mute @DEFAULT_SOURCE@ toggle")
+bind("", "XF86MonBrightnessDown", "spawn", "brightnessctl set 5%-")
+bind("", "XF86MonBrightnessUp", "spawn", "brightnessctl set 5%+")
+bind("", "XF86AudioPlay", "spawn", "playerctl play-pause")
+bind("", "XF86AudioPause", "spawn", "playerctl pause")
+bind("", "XF86AudioNext", "spawn", "playerctl next")
+bind("", "XF86AudioPrev", "spawn", "playerctl previous")
 
 for i = 1, 9 do
     bind("Super", tostring(i), "workspace", tostring(i))

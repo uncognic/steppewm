@@ -43,6 +43,7 @@ volume_monitor* volume_monitor::create(server* s) {
         return nullptr;
     }
 
+    // call on_wake when the volume fd changes
     struct wl_event_loop* loop = wl_display_get_event_loop(s->display);
     vm->wake_source_ = wl_event_loop_add_fd(loop, vm->wake_fd_, WL_EVENT_READABLE, on_wake, vm);
 
@@ -90,7 +91,7 @@ volume_monitor::~volume_monitor() {
     }
 }
 
-// called from the pulse thread to wake the wayland event loop
+// called from the pulse thread to write to the eventfd, which the wayland signal is connected to
 void volume_monitor::notify() const {
     uint64_t val = 1;
     write(wake_fd_, &val, sizeof(val));
@@ -113,7 +114,7 @@ void volume_monitor::on_context_state(pa_context* c, void* userdata) {
     if (state == PA_CONTEXT_READY) {
         pa_context_set_subscribe_callback(c,
             [](pa_context* ctx, pa_subscription_event_type_t t, uint32_t idx, void* ud) {
-                on_event(ctx, static_cast<int>(t), idx, ud);
+                on_event(ctx, t, idx, ud);
             }, vm);
         pa_context_subscribe(c,
             static_cast<pa_subscription_mask_t>(PA_SUBSCRIPTION_MASK_SINK | PA_SUBSCRIPTION_MASK_SERVER),

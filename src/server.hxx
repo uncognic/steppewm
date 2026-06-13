@@ -158,6 +158,10 @@ class server {
 
     void* vol_mon;
 
+    int brightness_watch_fd;
+    wl_event_source* brightness_source;
+    wl_event_source* indicator_timer;
+
     config cfg;
     char config_path[512];
 

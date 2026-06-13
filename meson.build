@@ -17,8 +17,13 @@ libinput = dependency('libinput')
 lua = dependency('lua5.4', 'lua-5.4', 'lua', version : '>=5.4')
 pixman = dependency('pixman-1')
 cairo = dependency('cairo')
+pulse = dependency('libpulse', required : false)
 
 deps = [wlroots, wayland, xkbcommon, libinput, lua, pixman, cairo]
+if pulse.found()
+  deps += pulse
+  add_project_arguments('-DHAVE_LIBPULSE', language : ['c', 'cpp'])
+endif
 
 wl_protocols = dependency('wayland-protocols')
 wl_protocol_dir = wl_protocols.get_variable('pkgdatadir')
@@ -54,6 +59,7 @@ sources = files(
   'src/layer.cxx',
   'src/listener.cxx',
   'src/lock.cxx',
+  'src/volume.cxx',
 )
 
 executable('steppewm',

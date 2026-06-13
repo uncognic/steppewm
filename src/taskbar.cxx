@@ -25,6 +25,10 @@
 #include <vector>
 
 #include <climits>
+#include <unistd.h>
+#ifdef __linux__
+#include <sys/inotify.h>
+#endif
 
 #include <cairo/cairo.h>
 #include <drm_fourcc.h>
@@ -1039,5 +1043,75 @@ void taskbar::refresh_taskbars(server* s) {
         if (out->taskbar) {
             out->taskbar->refresh();
         }
+    }
+}
+
+// called every two seconds by the wlroots event in taskbar::init_monitors
+static int on_indicator_poll(void* data) {
+    auto* s = static_cast<server*>(data);
+    taskbar::refresh_taskbars(s);
+    wl_event_source_timer_update(s->indicator_timer, 2000);
+    return 0;
+}
+
+// called when the brightness file is updated
+#ifdef __linux__
+static int on_brightness_inotify(int fd, uint32_t, void* data) {
+    char buf[sizeof(inotify_event) + NAME_MAX + 1];
+
+    // drain the inotify queue
+    while (read(fd, buf, sizeof(buf)) > 0) {
+    }
+
+    // refresh indicators
+    taskbar::refresh_taskbars(static_cast<server*>(data));
+    return 0;
+}
+#endif
+
+// create monitors for the taskbar indicators
+void taskbar::init_monitors(server* s) {
+    wl_event_loop* loop = wl_display_get_event_loop(s->display);
+    s->brightness_watch_fd = -1;
+
+    // polling on all platforms
+    s->indicator_timer = wl_event_loop_add_timer(loop, on_indicator_poll, s);
+    wl_event_source_timer_update(s->indicator_timer, 2000);
+
+    // linux specific stuff
+#ifdef __linux__
+    if (s->cfg.backlight_path[0] && strcmp(s->cfg.backlight_path, "auto") != 0) {
+        // create inotify fd
+        int ifd = inotify_init1(IN_CLOEXEC | IN_NONBLOCK);
+
+        if (ifd >= 0) {
+            char path[256];
+            // watch this path for modifications
+            snprintf(path, sizeof(path), "%s/brightness", s->cfg.backlight_path);
+
+            if (inotify_add_watch(ifd, path, IN_MODIFY) >= 0) {
+                s->brightness_watch_fd = ifd;
+
+                // call on_brighntess_inotify whenever the inotify fd changes
+                s->brightness_source =
+                    wl_event_loop_add_fd(loop, ifd, WL_EVENT_READABLE, on_brightness_inotify, s);
+            } else {
+                close(ifd);
+            }
+        }
+    }
+#endif
+}
+
+// destroy indicator monitors
+void taskbar::fini_monitors(const server* s) {
+    if (s->indicator_timer) {
+        wl_event_source_remove(s->indicator_timer);
+    }
+    if (s->brightness_source) {
+        wl_event_source_remove(s->brightness_source);
+    }
+    if (s->brightness_watch_fd >= 0) {
+        close(s->brightness_watch_fd);
     }
 }

@@ -208,7 +208,7 @@ void keyboard::handle_key(keyboard* kbd, void* data) {
         }
     }
     // no keybinds while the session is locked
-    if (!handled && modifiers && !s->locked && event->state == WL_KEYBOARD_KEY_STATE_PRESSED) {
+    if (!handled && !s->locked && event->state == WL_KEYBOARD_KEY_STATE_PRESSED) {
         for (int i = 0; i < nsyms; i++) {
             handled = server::handle_keybinding(s, modifiers, syms[i]) || handled;
         }
