@@ -156,6 +156,8 @@ class server {
 
     wlr_scene_rect* snap_indicator;
 
+    void* vol_mon;
+
     config cfg;
     char config_path[512];
 

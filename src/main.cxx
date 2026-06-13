@@ -27,6 +27,7 @@
 #include "output.hxx"
 #include "server.hxx"
 #include "view.hxx"
+#include "volume.hxx"
 
 using namespace steppewm;
 
@@ -248,6 +249,12 @@ void server::run(server* s) {
     setup_portals();
     update_dbus_environment();
 
+#ifdef HAVE_LIBPULSE
+    s->vol_mon = volume_monitor::create(s);
+#else
+    s->vol_mon = nullptr;
+#endif
+
     // run exec()s after setting up environment
     s->cfg.run_execs();
 
@@ -256,6 +263,9 @@ void server::run(server* s) {
 
 // clean up
 void server::fini(server* s) {
+#ifdef HAVE_LIBPULSE
+    delete static_cast<volume_monitor*>(s->vol_mon);
+#endif
     wl_display_destroy_clients(s->display);
     wlr_scene_node_destroy(&s->scene->tree.node);
     wlr_xcursor_manager_destroy(s->cursor_mgr);

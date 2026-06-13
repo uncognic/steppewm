@@ -26,6 +26,7 @@ struct wlr_scene_buffer;
 struct wlr_scene_rect;
 struct wlr_scene_tree;
 struct wlr_xdg_toplevel_icon_v1;
+struct wlr_xdg_toplevel_icon_v1_buffer;
 struct wl_event_source;
 
 namespace steppewm {
@@ -70,6 +71,7 @@ class taskbar {
     void render_clock();
     void render_battery();
     void render_brightness();
+    void render_volume();
     void render_layout_indicator();
     void layout_code(char* out, size_t len);
     [[nodiscard]] view* focused_view() const;
@@ -89,6 +91,8 @@ class taskbar {
     int battery_w_ = 0;
     struct wlr_scene_buffer* brightness_;
     int brightness_w_ = 0;
+    struct wlr_scene_buffer* volume_;
+    int volume_w_ = 0;
     int layout_ind_w_ = 0;
     struct wlr_scene_buffer* ws_labels_[num_workspaces]{};
     int ws_button_w_ = 0;

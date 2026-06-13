@@ -52,6 +52,7 @@
 
 #include "output.hxx"
 #include "view.hxx"
+#include "volume.hxx"
 
 using namespace steppewm;
 
@@ -540,6 +541,78 @@ void taskbar::render_brightness() {
     wlr_scene_node_set_position(&brightness_->node, ix, pad);
 }
 
+void taskbar::render_volume() {
+    if (width_ <= 0 || height_ <= 0 || !volume_) {
+        return;
+    }
+
+#ifdef HAVE_LIBPULSE
+    const auto* vm = static_cast<volume_monitor*>(srv_->vol_mon);
+    if (!vm || vm->volume() < 0) {
+        volume_w_ = 0;
+        wlr_scene_node_set_enabled(&volume_->node, false);
+        return;
+    }
+
+    char text[32];
+    if (vm->muted()) {
+        snprintf(text, sizeof(text), "VOL MUTE");
+    } else {
+        snprintf(text, sizeof(text), "VOL %d%%", vm->volume());
+    }
+
+    config* cfg = &srv_->cfg;
+    const int pad = cfg->taskbar_button_pad;
+    const int h = height_ - 2 * pad;
+    if (h <= 0) {
+        return;
+    }
+    const double font_size = h * 0.55;
+
+    const cairo_text_extents_t ext = paint::text_extents(text, font_size);
+    const int w = static_cast<int>(ext.width) + h;
+    if (w <= 0) {
+        return;
+    }
+    volume_w_ = w;
+
+    paint::Canvas canvas(w, h);
+    if (!canvas.valid()) {
+        return;
+    }
+    cairo_t* cr = canvas.cr();
+
+    const float* bg = cfg->color_task_normal;
+    cairo_set_source_rgba(cr, bg[0], bg[1], bg[2], bg[3]);
+    cairo_paint(cr);
+
+    const float* fg = cfg->color_task_text;
+    cairo_select_font_face(cr, "sans-serif", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
+    cairo_set_font_size(cr, font_size);
+    cairo_set_source_rgba(cr, fg[0], fg[1], fg[2], fg[3]);
+    const double tx = (w - ext.width) / 2.0 - ext.x_bearing;
+    const double ty = h / 2.0 - ext.y_bearing - ext.height / 2.0;
+    cairo_move_to(cr, tx, ty);
+    cairo_show_text(cr, text);
+
+    canvas.commit(volume_);
+    wlr_scene_node_set_enabled(&volume_->node, true);
+
+    int vx = width_ - clock_w_ - pad - layout_ind_w_ - pad;
+    if (battery_w_ > 0) {
+        vx -= battery_w_ + pad;
+    }
+    if (brightness_w_ > 0) {
+        vx -= brightness_w_ + pad;
+    }
+    vx -= w + pad;
+    wlr_scene_node_set_position(&volume_->node, vx, pad);
+#else
+    volume_w_ = 0;
+    wlr_scene_node_set_enabled(&volume_->node, false);
+#endif
+}
+
 // build the short layout code for the active keyboard group
 void taskbar::layout_code(char* out, size_t len) {
     struct wlr_keyboard* kbd = wlr_seat_get_keyboard(srv_->seat);
@@ -669,6 +742,7 @@ void taskbar::layout() {
     render_layout_indicator();
     render_battery();
     render_brightness();
+    render_volume();
 
     config* cfg = &srv_->cfg;
     const int pad = cfg->taskbar_button_pad;
@@ -723,6 +797,9 @@ void taskbar::layout() {
     }
     if (brightness_w_ > 0) {
         right_limit -= brightness_w_ + pad;
+    }
+    if (volume_w_ > 0) {
+        right_limit -= volume_w_ + pad;
     }
     int task_row_width = right_limit - pad - task_row_left;
 
@@ -794,9 +871,10 @@ taskbar::taskbar(server* s, struct wlr_output* wlr_output) {
         ws_labels_[i] = wlr_scene_buffer_create(tree_, nullptr);
     }
 
-    // battery and brightness indicators
+    // status indicators
     battery_ = wlr_scene_buffer_create(tree_, nullptr);
     brightness_ = wlr_scene_buffer_create(tree_, nullptr);
+    volume_ = wlr_scene_buffer_create(tree_, nullptr);
 
     // keyboard layout indicator
     layout_ind_ = wlr_scene_buffer_create(tree_, nullptr);
