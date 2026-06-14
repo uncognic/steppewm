@@ -61,6 +61,9 @@ class config {
     char execs[CFG_MAX_EXECS][CFG_MAX_CMD];
     int nexecs;
 
+    char ran_execs[CFG_MAX_EXECS][CFG_MAX_CMD];
+    int nran;
+
     output_config output_cfgs[CFG_MAX_OUTPUT_CFGS];
     int noutput_cfgs;
 

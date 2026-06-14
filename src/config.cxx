@@ -492,6 +492,22 @@ const output_config* config::find_output(const char* name) const {
 
 void config::run_execs() {
     for (int i = 0; i < nexecs; i++) {
+        // don't run those we already ran
+        bool already = false;
+        for (int j = 0; j < nran; j++) {
+            if (strcmp(execs[i], ran_execs[j]) == 0) {
+                already = true;
+                break;
+            }
+        }
+        if (already) {
+            continue;
+        }
+
+        if (nran < CFG_MAX_EXECS) {
+            strncpy(ran_execs[nran++], execs[i], CFG_MAX_CMD - 1);
+        }
+
         if (pid_t pid = fork(); pid == 0) {
             setsid();
             execl("/bin/sh", "sh", "-c", execs[i], static_cast<char*>(nullptr));
@@ -504,12 +520,11 @@ void config::reload(server* s) {
     config* cfg = &s->cfg;
 
     cfg->set_defaults();
-
-    // do not rerun exec()s
     cfg->nexecs = 0;
 
-    // reload config and bindings
     cfg->load(s->config_path);
+
+    cfg->run_execs();
 
     // re-apply keymap, repeat info, and libinput settings to all input devices
     server::input_reconfigure(s);
