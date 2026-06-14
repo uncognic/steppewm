@@ -59,6 +59,7 @@ sources = files(
   'src/layer.cxx',
   'src/listener.cxx',
   'src/lock.cxx',
+  'src/osd.cxx',
   'src/volume.cxx',
 )
 

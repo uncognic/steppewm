@@ -4,7 +4,8 @@ local launcher = "wofi --show drun"
 local file_manager = "thunar"
 local screenshot = "grim -g \"$(slurp)\" - | tee ~/Screenshots/$(date +'%Y-%m-%d_%H-%M-%S').png | wl-copy"
 
--- battery_path = "/sys/class/power_supply/BAT0" -- leave empty to disable
+-- battery_path = "/sys/class/power_supply/BAT0" -- leave empty to disable taskbar indicator
+-- backlight_path = "/sys/class/backlight/amdgpu_bl1" -- leave empty to disable taskbar indicator and osd
 -- xwayland = true -- xwayland-satellite required, off by default
 
 bind("Super", "Return", "spawn", terminal)

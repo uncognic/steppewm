@@ -25,6 +25,7 @@
 #include "layer.hxx"
 #include "listener.hxx"
 #include "lock.hxx"
+#include "osd.hxx"
 #include "output.hxx"
 #include "server.hxx"
 #include "taskbar.hxx"
@@ -258,6 +259,7 @@ void server::run(server* s) {
 #endif
 
     taskbar::init_monitors(s);
+    s->osd_overlay = new osd(s);
 
     // run exec()s after setting up environment
     s->cfg.run_execs();
@@ -267,6 +269,7 @@ void server::run(server* s) {
 
 // clean up
 void server::fini(server* s) {
+    delete s->osd_overlay;
     taskbar::fini_monitors(s);
 #ifdef HAVE_LIBPULSE
     delete static_cast<volume_monitor*>(s->vol_mon);

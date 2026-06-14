@@ -54,6 +54,7 @@
 #include "server.hxx"
 #include "taskbar.hxx"
 
+#include "osd.hxx"
 #include "output.hxx"
 #include "view.hxx"
 #include "volume.hxx"
@@ -1146,8 +1147,16 @@ static int on_brightness_inotify(int fd, uint32_t, void* data) {
     while (read(fd, buf, sizeof(buf)) > 0) {
     }
 
-    // refresh indicators
-    taskbar::refresh_taskbars(static_cast<server*>(data));
+    auto* s = static_cast<server*>(data);
+    taskbar::refresh_taskbars(s);
+    if (s->osd_overlay) {
+        int pct = read_brightness(s->cfg.backlight_path);
+        if (pct >= 0) {
+            char text[32];
+            snprintf(text, sizeof(text), "BRI %d%%", pct);
+            s->osd_overlay->show(text);
+        }
+    }
     return 0;
 }
 #endif

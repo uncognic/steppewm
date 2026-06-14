@@ -42,6 +42,7 @@ namespace steppewm {
 class view;
 class layer_surface;
 class switcher;
+class osd;
 
 enum class cursor_mode {
     passthrough,
@@ -158,6 +159,7 @@ class server {
     wlr_scene_rect* snap_indicator;
 
     void* vol_mon;
+    osd* osd_overlay;
 
     int brightness_watch_fd;
     wl_event_source* brightness_source;

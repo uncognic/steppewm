@@ -25,6 +25,7 @@
 #include "wlr.hxx" // must be first
 
 #include "listener.hxx"
+#include "osd.hxx"
 #include "server.hxx"
 #include "taskbar.hxx"
 #include "view.hxx"
@@ -103,6 +104,15 @@ int volume_monitor::on_wake(int fd, uint32_t, void* data) {
     read(fd, &val, sizeof(val));
     auto* vm = static_cast<volume_monitor*>(data);
     taskbar::refresh_taskbars(vm->srv_);
+    if (vm->srv_->osd_overlay) {
+        char text[32];
+        if (vm->muted()) {
+            snprintf(text, sizeof(text), "VOL MUTE");
+        } else {
+            snprintf(text, sizeof(text), "VOL %d%%", vm->volume());
+        }
+        vm->srv_->osd_overlay->show(text);
+    }
     return 0;
 }
 
