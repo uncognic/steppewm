@@ -836,7 +836,7 @@ void server::on_cursor_button(struct wl_listener* listener, void* data) {
     struct wlr_keyboard* keyboard = wlr_seat_get_keyboard(s->seat);
     uint32_t mods = keyboard ? wlr_keyboard_get_modifiers(keyboard) : 0;
     if (mods & WLR_MODIFIER_ALT && v) {
-        v->focus(surface);
+        v->focus(v->toplevel->base->surface);
         // left click for move
         if (event->button == BTN_LEFT) {
             cursor_begin_interactive(v, cursor_mode::move, 0);
@@ -858,7 +858,7 @@ void server::on_cursor_button(struct wl_listener* listener, void* data) {
     }
 
     if (v) {
-        v->focus(surface);
+        v->focus(v->toplevel->base->surface);
         return;
     }
 
