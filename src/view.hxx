@@ -82,7 +82,7 @@ class view {
     struct wlr_scene_tree *xdg_tree;   // content: the actual content w/o titlebar and borders
     deco_mode decoration_mode;
 
-    deco deco; // the decoration
+    deco window_decoration;
     struct wlr_xdg_toplevel_decoration_v1 *decoration;
     struct wlr_xdg_toplevel_decoration_v1* pending_deco;
     Listener request_deco_mode;

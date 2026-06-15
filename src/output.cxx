@@ -57,9 +57,9 @@ void output::on_destroy(struct wl_listener* listener, void* data) {
     output* out = wl_container_of(listener, out, destroy);
 
     // remove taskbar for listener (output)
-    if (out->taskbar) {
-        delete out->taskbar;
-        out->taskbar = nullptr;
+    if (out->output_taskbar) {
+        delete out->output_taskbar;
+        out->output_taskbar = nullptr;
     }
 
     // destroy layer surfaces (sends closed to clients)
@@ -111,9 +111,9 @@ void output::on_layout_change(struct wl_listener* listener, void* data) {
             ls->configure();
         }
 
-        if (out->taskbar) {
-            out->taskbar->update_geometry();
-            out->taskbar->raise();
+        if (out->output_taskbar) {
+            out->output_taskbar->update_geometry();
+            out->output_taskbar->raise();
         }
     }
 
@@ -183,7 +183,7 @@ struct wlr_output_mode* output::pick_mode(struct wlr_output* wlr_output, const o
 bool output::any_taskbar(server* s) {
     output* out;
     wl_list_for_each(out, &s->outputs, link) {
-        if (out->taskbar) {
+        if (out->output_taskbar) {
             return true;
         }
     }
@@ -192,10 +192,10 @@ bool output::any_taskbar(server* s) {
 
 // create a taskbar on this output and populate it with the open views
 void output::create_taskbar() {
-    taskbar = new steppewm::taskbar(srv, wlr_output);
+    output_taskbar = new steppewm::taskbar(srv, wlr_output);
     view* v;
     wl_list_for_each(v, &srv->views, link) {
-        taskbar->view_added(v);
+        output_taskbar->view_added(v);
     }
 }
 
@@ -255,9 +255,9 @@ void output::apply_config() {
     wlr_output_state_finish(&state);
 
     if (!enable) {
-        if (taskbar) {
-            delete taskbar;
-            taskbar = nullptr;
+        if (output_taskbar) {
+            delete output_taskbar;
+            output_taskbar = nullptr;
         }
         for (const auto& layer_tree : layer_trees) {
             if (layer_tree) {
@@ -390,7 +390,7 @@ void output::ensure_taskbars(const server* s) {
         if (!primary) {
             primary = out;
         }
-        if (out->taskbar) {
+        if (out->output_taskbar) {
             primary = out;
             break;
         }
@@ -398,15 +398,15 @@ void output::ensure_taskbars(const server* s) {
 
     wl_list_for_each(out, &s->outputs, link) {
         const bool needs = out->scene_output && (s->cfg.taskbar_all_outputs || out == primary);
-        if (needs && !out->taskbar) {
+        if (needs && !out->output_taskbar) {
             out->create_taskbar();
-        } else if (!needs && out->taskbar) {
-            delete out->taskbar;
-            out->taskbar = nullptr;
+        } else if (!needs && out->output_taskbar) {
+            delete out->output_taskbar;
+            out->output_taskbar = nullptr;
         }
-        if (out->taskbar) {
-            out->taskbar->update_geometry();
-            out->taskbar->raise();
+        if (out->output_taskbar) {
+            out->output_taskbar->update_geometry();
+            out->output_taskbar->raise();
         }
     }
 }
@@ -497,9 +497,9 @@ void output::on_output_mgr_apply(wl_listener* listener, void* data) {
                 wlr_scene_output_layout_add_output(s->scene_layout, lo, out->scene_output);
             }
         } else {
-            if (out->taskbar) {
-                delete out->taskbar;
-                out->taskbar = nullptr;
+            if (out->output_taskbar) {
+                delete out->output_taskbar;
+                out->output_taskbar = nullptr;
             }
             for (const auto& lt : out->layer_trees) {
                 if (lt) {

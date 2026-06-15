@@ -33,7 +33,7 @@ class view;
 class keyboard {
   public:
     server* srv;
-    wlr_keyboard* wlr_keyboard;
+    wlr_keyboard* wlr_kb;
 
     wl_list link;
 

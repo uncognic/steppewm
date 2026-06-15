@@ -62,31 +62,36 @@ void view::deco_render_title(struct wlr_scene_buffer* scene_buf, const char* tex
 void view::deco_create() {
     const config* cfg = &srv->cfg;
 
-    deco.titlebar = wlr_scene_rect_create(scene_tree, 0, cfg->title_h, cfg->color_title_inactive);
-    wlr_scene_node_set_position(&deco.titlebar->node, 0, 0);
+    window_decoration.titlebar =
+        wlr_scene_rect_create(scene_tree, 0, cfg->title_h, cfg->color_title_inactive);
+    wlr_scene_node_set_position(&window_decoration.titlebar->node, 0, 0);
 
-    deco.title_label = wlr_scene_buffer_create(scene_tree, nullptr);
-    wlr_scene_node_set_enabled(&deco.title_label->node, cfg->show_title_text);
+    window_decoration.title_label = wlr_scene_buffer_create(scene_tree, nullptr);
+    wlr_scene_node_set_enabled(&window_decoration.title_label->node, cfg->show_title_text);
 
-    deco.close_button = wlr_scene_rect_create(scene_tree, cfg->close_button_w, cfg->title_h,
-                                              cfg->color_close_inactive);
-    deco.maximize =
+    window_decoration.close_button = wlr_scene_rect_create(scene_tree, cfg->close_button_w,
+                                                           cfg->title_h, cfg->color_close_inactive);
+    window_decoration.maximize =
         wlr_scene_rect_create(scene_tree, cfg->maximize_button_w, cfg->title_h, cfg->color_button);
-    deco.minimize =
+    window_decoration.minimize =
         wlr_scene_rect_create(scene_tree, cfg->minimize_button_w, cfg->title_h, cfg->color_button);
 
     // create objects for corners and edges
-    deco.border_top = wlr_scene_rect_create(scene_tree, 0, cfg->border_w, cfg->color_invisible);
-    deco.border_left = wlr_scene_rect_create(scene_tree, cfg->border_w, 0, cfg->color_border);
-    deco.border_right = wlr_scene_rect_create(scene_tree, cfg->border_w, 0, cfg->color_border);
-    deco.border_bottom = wlr_scene_rect_create(scene_tree, 0, cfg->border_w, cfg->color_border);
-    deco.corner_tl =
+    window_decoration.border_top =
+        wlr_scene_rect_create(scene_tree, 0, cfg->border_w, cfg->color_invisible);
+    window_decoration.border_left =
+        wlr_scene_rect_create(scene_tree, cfg->border_w, 0, cfg->color_border);
+    window_decoration.border_right =
+        wlr_scene_rect_create(scene_tree, cfg->border_w, 0, cfg->color_border);
+    window_decoration.border_bottom =
+        wlr_scene_rect_create(scene_tree, 0, cfg->border_w, cfg->color_border);
+    window_decoration.corner_tl =
         wlr_scene_rect_create(scene_tree, cfg->corner_size, cfg->corner_size, cfg->color_invisible);
-    deco.corner_tr =
+    window_decoration.corner_tr =
         wlr_scene_rect_create(scene_tree, cfg->corner_size, cfg->corner_size, cfg->color_invisible);
-    deco.corner_bl =
+    window_decoration.corner_bl =
         wlr_scene_rect_create(scene_tree, cfg->corner_size, cfg->corner_size, cfg->color_invisible);
-    deco.corner_br =
+    window_decoration.corner_br =
         wlr_scene_rect_create(scene_tree, cfg->corner_size, cfg->corner_size, cfg->color_invisible);
 
     deco_update();
@@ -94,7 +99,7 @@ void view::deco_create() {
 
 // called when the decoration needs to be updated
 void view::deco_update() const {
-    if (decoration_mode != deco_mode::SERVER || !deco.titlebar || fullscreen) {
+    if (decoration_mode != deco_mode::SERVER || !window_decoration.titlebar || fullscreen) {
         return;
     }
 
@@ -103,101 +108,105 @@ void view::deco_update() const {
     const int sh = toplevel->base->geometry.height;
     const int tw = sw + 2 * cfg->border_w;
 
-    wlr_scene_rect_set_size(deco.titlebar, tw, cfg->title_h);
+    wlr_scene_rect_set_size(window_decoration.titlebar, tw, cfg->title_h);
 
-    wlr_scene_rect_set_size(deco.close_button, cfg->close_button_w, cfg->title_h - 4);
+    wlr_scene_rect_set_size(window_decoration.close_button, cfg->close_button_w, cfg->title_h - 4);
     const int close_x = tw - cfg->close_button_w - 4;
-    wlr_scene_node_set_position(&deco.close_button->node, close_x, 0);
+    wlr_scene_node_set_position(&window_decoration.close_button->node, close_x, 0);
 
-    wlr_scene_rect_set_size(deco.maximize, cfg->maximize_button_w, cfg->title_h - 4);
+    wlr_scene_rect_set_size(window_decoration.maximize, cfg->maximize_button_w, cfg->title_h - 4);
     const int maximize_x = close_x - 4 - cfg->maximize_button_w;
-    wlr_scene_node_set_position(&deco.maximize->node, maximize_x, 0);
+    wlr_scene_node_set_position(&window_decoration.maximize->node, maximize_x, 0);
 
-    wlr_scene_rect_set_size(deco.minimize, cfg->minimize_button_w, cfg->title_h - 4);
+    wlr_scene_rect_set_size(window_decoration.minimize, cfg->minimize_button_w, cfg->title_h - 4);
     const int minimize_x = maximize_x - 2 - cfg->minimize_button_w;
-    wlr_scene_node_set_position(&deco.minimize->node, minimize_x, 0);
+    wlr_scene_node_set_position(&window_decoration.minimize->node, minimize_x, 0);
 
-    if (deco.title_label) {
+    if (window_decoration.title_label) {
         // render the titlebar text
-        wlr_scene_node_set_enabled(&deco.title_label->node, cfg->show_title_text);
+        wlr_scene_node_set_enabled(&window_decoration.title_label->node, cfg->show_title_text);
         if (cfg->show_title_text) {
             const int label_w = minimize_x - 4;
             const char* title = toplevel->title ? toplevel->title : "";
-            deco_render_title(deco.title_label, title, label_w, cfg->title_h,
+            deco_render_title(window_decoration.title_label, title, label_w, cfg->title_h,
                               cfg->color_title_text);
-            wlr_scene_node_set_position(&deco.title_label->node, 0, 0);
+            wlr_scene_node_set_position(&window_decoration.title_label->node, 0, 0);
         }
     }
 
-    wlr_scene_rect_set_size(deco.border_top, tw, cfg->border_w);
-    wlr_scene_node_set_position(&deco.border_top->node, 0, 0);
+    wlr_scene_rect_set_size(window_decoration.border_top, tw, cfg->border_w);
+    wlr_scene_node_set_position(&window_decoration.border_top->node, 0, 0);
 
-    wlr_scene_rect_set_size(deco.border_left, cfg->border_w, sh);
-    wlr_scene_node_set_position(&deco.border_left->node, 0, cfg->title_h);
+    wlr_scene_rect_set_size(window_decoration.border_left, cfg->border_w, sh);
+    wlr_scene_node_set_position(&window_decoration.border_left->node, 0, cfg->title_h);
 
-    wlr_scene_rect_set_size(deco.border_right, cfg->border_w, sh);
-    wlr_scene_node_set_position(&deco.border_right->node, tw - cfg->border_w, cfg->title_h);
+    wlr_scene_rect_set_size(window_decoration.border_right, cfg->border_w, sh);
+    wlr_scene_node_set_position(&window_decoration.border_right->node, tw - cfg->border_w,
+                                cfg->title_h);
 
-    wlr_scene_rect_set_size(deco.border_bottom, tw, cfg->border_w);
-    wlr_scene_node_set_position(&deco.border_bottom->node, 0, cfg->title_h + sh);
+    wlr_scene_rect_set_size(window_decoration.border_bottom, tw, cfg->border_w);
+    wlr_scene_node_set_position(&window_decoration.border_bottom->node, 0, cfg->title_h + sh);
 
-    wlr_scene_node_set_position(&deco.corner_tl->node, 0, 0);
-    wlr_scene_node_set_position(&deco.corner_tr->node, tw - cfg->corner_size, 0);
+    wlr_scene_node_set_position(&window_decoration.corner_tl->node, 0, 0);
+    wlr_scene_node_set_position(&window_decoration.corner_tr->node, tw - cfg->corner_size, 0);
 
     const int corner_y = cfg->title_h + sh + cfg->border_w - cfg->corner_size;
-    wlr_scene_node_set_position(&deco.corner_bl->node, 0, corner_y);
-    wlr_scene_node_set_position(&deco.corner_br->node, tw - cfg->corner_size, corner_y);
+    wlr_scene_node_set_position(&window_decoration.corner_bl->node, 0, corner_y);
+    wlr_scene_node_set_position(&window_decoration.corner_br->node, tw - cfg->corner_size,
+                                corner_y);
 }
 
 void view::deco_set_visible(bool visible) const {
-    if (decoration_mode != deco_mode::SERVER || !deco.titlebar) {
+    if (decoration_mode != deco_mode::SERVER || !window_decoration.titlebar) {
         return;
     }
     wlr_scene_node* nodes[] = {
-        &deco.titlebar->node,     &deco.close_button->node,  &deco.maximize->node,
-        &deco.minimize->node,     &deco.border_top->node,    &deco.border_left->node,
-        &deco.border_right->node, &deco.border_bottom->node, &deco.corner_tl->node,
-        &deco.corner_tr->node,    &deco.corner_bl->node,     &deco.corner_br->node,
+        &window_decoration.titlebar->node,     &window_decoration.close_button->node,
+        &window_decoration.maximize->node,     &window_decoration.minimize->node,
+        &window_decoration.border_top->node,   &window_decoration.border_left->node,
+        &window_decoration.border_right->node, &window_decoration.border_bottom->node,
+        &window_decoration.corner_tl->node,    &window_decoration.corner_tr->node,    &window_decoration.corner_bl->node,     &window_decoration.corner_br->node,
     };
     for (wlr_scene_node* n : nodes) {
         wlr_scene_node_set_enabled(n, visible);
     }
-    wlr_scene_node_set_enabled(&deco.title_label->node, visible && srv->cfg.show_title_text);
+    wlr_scene_node_set_enabled(&window_decoration.title_label->node,
+                               visible && srv->cfg.show_title_text);
 }
 
 // called when a view is destroyed
 void view::deco_destroy() {
-    if (decoration_mode != deco_mode::SERVER || !deco.titlebar) {
+    if (decoration_mode != deco_mode::SERVER || !window_decoration.titlebar) {
         return;
     }
     // free stuff
-    deco.titlebar = nullptr;
-    deco.title_label = nullptr;
-    deco.close_button = nullptr;
-    deco.maximize = nullptr;
-    deco.minimize = nullptr;
-    deco.border_top = nullptr;
-    deco.border_left = nullptr;
-    deco.border_right = nullptr;
-    deco.border_bottom = nullptr;
-    deco.corner_tl = nullptr;
-    deco.corner_tr = nullptr;
-    deco.corner_bl = nullptr;
-    deco.corner_br = nullptr;
+    window_decoration.titlebar = nullptr;
+    window_decoration.title_label = nullptr;
+    window_decoration.close_button = nullptr;
+    window_decoration.maximize = nullptr;
+    window_decoration.minimize = nullptr;
+    window_decoration.border_top = nullptr;
+    window_decoration.border_left = nullptr;
+    window_decoration.border_right = nullptr;
+    window_decoration.border_bottom = nullptr;
+    window_decoration.corner_tl = nullptr;
+    window_decoration.corner_tr = nullptr;
+    window_decoration.corner_bl = nullptr;
+    window_decoration.corner_br = nullptr;
 }
 
 void view::deco_set_focus(const bool focused) const {
-    if (decoration_mode != deco_mode::SERVER || !deco.titlebar) {
+    if (decoration_mode != deco_mode::SERVER || !window_decoration.titlebar) {
         return;
     }
     const config* cfg = &srv->cfg;
-    wlr_scene_rect_set_color(deco.titlebar,
+    wlr_scene_rect_set_color(window_decoration.titlebar,
                              focused ? cfg->color_title_active : cfg->color_title_inactive);
-    wlr_scene_rect_set_color(deco.close_button,
+    wlr_scene_rect_set_color(window_decoration.close_button,
                              focused ? cfg->color_close_active : cfg->color_close_inactive);
-    wlr_scene_rect_set_color(deco.maximize,
+    wlr_scene_rect_set_color(window_decoration.maximize,
                              focused ? cfg->color_button : cfg->color_button_inactive);
-    wlr_scene_rect_set_color(deco.minimize,
+    wlr_scene_rect_set_color(window_decoration.minimize,
                              focused ? cfg->color_button : cfg->color_button_inactive);
 }
 
@@ -207,28 +216,28 @@ const char* view::deco_cursor_name(const struct wlr_scene_node* node) const {
     }
 
     // set cursor when in a resize area
-    if (node == &deco.corner_tl->node) {
+    if (node == &window_decoration.corner_tl->node) {
         return "nw-resize";
     }
-    if (node == &deco.corner_tr->node) {
+    if (node == &window_decoration.corner_tr->node) {
         return "ne-resize";
     }
-    if (node == &deco.corner_bl->node) {
+    if (node == &window_decoration.corner_bl->node) {
         return "sw-resize";
     }
-    if (node == &deco.corner_br->node) {
+    if (node == &window_decoration.corner_br->node) {
         return "se-resize";
     }
-    if (node == &deco.border_left->node) {
+    if (node == &window_decoration.border_left->node) {
         return "w-resize";
     }
-    if (node == &deco.border_right->node) {
+    if (node == &window_decoration.border_right->node) {
         return "e-resize";
     }
-    if (node == &deco.border_top->node) {
+    if (node == &window_decoration.border_top->node) {
         return "n-resize";
     }
-    if (node == &deco.border_bottom->node) {
+    if (node == &window_decoration.border_bottom->node) {
         return "s-resize";
     }
 
@@ -259,8 +268,8 @@ view* view::deco_at(const server* s, const double lx, const double ly,
 
     // clicking on the title label should behave like clicking the titlebar
     if (hit->type == WLR_SCENE_NODE_BUFFER && v->decoration_mode == deco_mode::SERVER &&
-        v->deco.title_label && hit == &v->deco.title_label->node) {
-        *node = &v->deco.titlebar->node;
+        v->window_decoration.title_label && hit == &v->window_decoration.title_label->node) {
+        *node = &v->window_decoration.titlebar->node;
         return v;
     }
 
@@ -273,7 +282,7 @@ bool view::deco_handle_button(server* s, const struct wlr_scene_node* node, cons
     }
 
     // handle close
-    if (node == &deco.close_button->node) {
+    if (node == &window_decoration.close_button->node) {
         if (button == BTN_LEFT) {
             wlr_xdg_toplevel_send_close(toplevel);
         }
@@ -281,7 +290,7 @@ bool view::deco_handle_button(server* s, const struct wlr_scene_node* node, cons
     }
 
     // handle maximize
-    if (node == &deco.maximize->node) {
+    if (node == &window_decoration.maximize->node) {
         if (button == BTN_LEFT) {
             toggle_maximize();
         }
@@ -289,7 +298,7 @@ bool view::deco_handle_button(server* s, const struct wlr_scene_node* node, cons
     }
 
     // handle minimize
-    if (node == &deco.minimize->node) {
+    if (node == &window_decoration.minimize->node) {
         if (button == BTN_LEFT) {
             minimize(true);
             view::focus_next(s, this);
@@ -297,41 +306,41 @@ bool view::deco_handle_button(server* s, const struct wlr_scene_node* node, cons
         return true;
     }
     // handle resizing
-    if (node == &deco.titlebar->node) {
+    if (node == &window_decoration.titlebar->node) {
         server::cursor_begin_interactive(this, cursor_mode::move, 0);
         return true;
     }
-    if (node == &deco.corner_tl->node) {
+    if (node == &window_decoration.corner_tl->node) {
         server::cursor_begin_interactive(this, cursor_mode::resize, WLR_EDGE_TOP | WLR_EDGE_LEFT);
         return true;
     }
-    if (node == &deco.corner_tr->node) {
+    if (node == &window_decoration.corner_tr->node) {
         server::cursor_begin_interactive(this, cursor_mode::resize, WLR_EDGE_TOP | WLR_EDGE_RIGHT);
         return true;
     }
-    if (node == &deco.corner_bl->node) {
+    if (node == &window_decoration.corner_bl->node) {
         server::cursor_begin_interactive(this, cursor_mode::resize,
                                          WLR_EDGE_BOTTOM | WLR_EDGE_LEFT);
         return true;
     }
-    if (node == &deco.corner_br->node) {
+    if (node == &window_decoration.corner_br->node) {
         server::cursor_begin_interactive(this, cursor_mode::resize,
                                          WLR_EDGE_BOTTOM | WLR_EDGE_RIGHT);
         return true;
     }
-    if (node == &deco.border_left->node) {
+    if (node == &window_decoration.border_left->node) {
         server::cursor_begin_interactive(this, cursor_mode::resize, WLR_EDGE_LEFT);
         return true;
     }
-    if (node == &deco.border_right->node) {
+    if (node == &window_decoration.border_right->node) {
         server::cursor_begin_interactive(this, cursor_mode::resize, WLR_EDGE_RIGHT);
         return true;
     }
-    if (node == &deco.border_top->node) {
+    if (node == &window_decoration.border_top->node) {
         server::cursor_begin_interactive(this, cursor_mode::resize, WLR_EDGE_TOP);
         return true;
     }
-    if (node == &deco.border_bottom->node) {
+    if (node == &window_decoration.border_bottom->node) {
         server::cursor_begin_interactive(this, cursor_mode::resize, WLR_EDGE_BOTTOM);
         return true;
     }

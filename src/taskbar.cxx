@@ -1523,8 +1523,8 @@ bool taskbar::idle_inhibit_at(const double x, const double y) const {
 void taskbar::refresh_taskbars(server* s) {
     output* out;
     wl_list_for_each(out, &s->outputs, link) {
-        if (out->taskbar) {
-            out->taskbar->refresh();
+        if (out->output_taskbar) {
+            out->output_taskbar->refresh();
         }
     }
 }

@@ -43,8 +43,8 @@ using namespace steppewm;
 void tray_host::refresh_all() const {
     output* out;
     wl_list_for_each(out, &srv_->outputs, link) {
-        if (out->taskbar) {
-            out->taskbar->refresh();
+        if (out->output_taskbar) {
+            out->output_taskbar->refresh();
         }
     }
 }

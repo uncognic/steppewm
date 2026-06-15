@@ -401,8 +401,8 @@ void view::handle_map(view* v) {
     output* out;
     // update for each output's taskbar
     wl_list_for_each(out, &v->srv->outputs, link) {
-        if (out->taskbar) {
-            out->taskbar->view_added(v);
+        if (out->output_taskbar) {
+            out->output_taskbar->view_added(v);
         }
     }
     v->focus(v->toplevel->base->surface);
@@ -440,8 +440,8 @@ void view::handle_unmap(view* v) {
     output* out;
     // update for each output's taskbar
     wl_list_for_each(out, &v->srv->outputs, link) {
-        if (out->taskbar) {
-            out->taskbar->view_removed(v);
+        if (out->output_taskbar) {
+            out->output_taskbar->view_removed(v);
         }
     }
 
@@ -937,8 +937,8 @@ void view::raise_overlays(server* s) {
 
     output* out;
     wl_list_for_each(out, &s->outputs, link) {
-        if (out->taskbar) {
-            out->taskbar->raise();
+        if (out->output_taskbar) {
+            out->output_taskbar->raise();
         }
         for (int i = ZWLR_LAYER_SHELL_V1_LAYER_TOP; i <= ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY; i++) {
             if (out->layer_trees[i]) {
@@ -1009,8 +1009,8 @@ void view::focus(struct wlr_surface* surface) {
 
     output* out;
     wl_list_for_each(out, &s->outputs, link) {
-        if (out->taskbar) {
-            out->taskbar->refresh();
+        if (out->output_taskbar) {
+            out->output_taskbar->refresh();
         }
     }
 

@@ -56,8 +56,8 @@ void server::spawn(const char* cmd) {
 static void refresh_taskbars(server* s) {
     output* out;
     wl_list_for_each(out, &s->outputs, link) {
-        if (out->taskbar) {
-            out->taskbar->refresh();
+        if (out->output_taskbar) {
+            out->output_taskbar->refresh();
         }
     }
 }
@@ -146,16 +146,16 @@ bool server::handle_keybinding(server* s, uint32_t mods, xkb_keysym_t sym) {
 // called when keyboard modifiers change
 void keyboard::handle_modifiers(keyboard* kbd) {
     // focus keyboard
-    wlr_seat_set_keyboard(kbd->srv->seat, kbd->wlr_keyboard);
+    wlr_seat_set_keyboard(kbd->srv->seat, kbd->wlr_kb);
 
     // send modifier
-    wlr_seat_keyboard_notify_modifiers(kbd->srv->seat, &kbd->wlr_keyboard->modifiers);
+    wlr_seat_keyboard_notify_modifiers(kbd->srv->seat, &kbd->wlr_kb->modifiers);
 
     wlr_idle_notifier_v1_notify_activity(kbd->srv->idle_notifier, kbd->srv->seat);
 
-    switcher::handle_modifiers(kbd->srv, wlr_keyboard_get_modifiers(kbd->wlr_keyboard));
+    switcher::handle_modifiers(kbd->srv, wlr_keyboard_get_modifiers(kbd->wlr_kb));
 
-    uint32_t group = kbd->wlr_keyboard->modifiers.group;
+    uint32_t group = kbd->wlr_kb->modifiers.group;
     if (group != kbd->srv->layout_group) {
         kbd->srv->layout_group = group;
         refresh_taskbars(kbd->srv);
@@ -184,11 +184,11 @@ void keyboard::handle_key(keyboard* kbd, void* data) {
 
     // make keycode into keysim
     const xkb_keysym_t* syms;
-    int nsyms = xkb_state_key_get_syms(kbd->wlr_keyboard->xkb_state, keycode, &syms);
+    int nsyms = xkb_state_key_get_syms(kbd->wlr_kb->xkb_state, keycode, &syms);
 
     // check for keybinds, only when a modifier is held
     bool handled = false;
-    uint32_t modifiers = wlr_keyboard_get_modifiers(kbd->wlr_keyboard);
+    uint32_t modifiers = wlr_keyboard_get_modifiers(kbd->wlr_kb);
     if (event->state == WL_KEYBOARD_KEY_STATE_PRESSED) {
         for (int i = 0; i < nsyms; i++) {
             if (syms[i] >= XKB_KEY_XF86Switch_VT_1 && syms[i] <= XKB_KEY_XF86Switch_VT_12) {
@@ -215,9 +215,8 @@ void keyboard::handle_key(keyboard* kbd, void* data) {
         }
 
         if (!handled) {
-            struct xkb_keymap* keymap = xkb_state_get_keymap(kbd->wlr_keyboard->xkb_state);
-            xkb_layout_index_t layout =
-                xkb_state_key_get_layout(kbd->wlr_keyboard->xkb_state, keycode);
+            struct xkb_keymap* keymap = xkb_state_get_keymap(kbd->wlr_kb->xkb_state);
+            xkb_layout_index_t layout = xkb_state_key_get_layout(kbd->wlr_kb->xkb_state, keycode);
             const xkb_keysym_t* raw_syms;
             int raw_nsyms = xkb_keymap_key_get_syms_by_level(keymap, keycode, layout, 0, &raw_syms);
             for (int i = 0; i < raw_nsyms; i++) {
@@ -228,7 +227,7 @@ void keyboard::handle_key(keyboard* kbd, void* data) {
 
     // if the key event wasnt a keybind, pass it to the focused client
     if (!handled) {
-        wlr_seat_set_keyboard(seat, kbd->wlr_keyboard);
+        wlr_seat_set_keyboard(seat, kbd->wlr_kb);
         wlr_seat_keyboard_notify_key(seat, event->time_msec, event->keycode, event->state);
     }
 }
@@ -311,7 +310,7 @@ void keyboard::create(server* s, struct wlr_input_device* device) {
     // create keyboard
     auto* kbd = new keyboard();
     kbd->srv = s;
-    kbd->wlr_keyboard = wlr_keyboard;
+    kbd->wlr_kb = wlr_keyboard;
 
     apply_config(s, wlr_keyboard);
 
@@ -375,7 +374,7 @@ void server::on_new_input(struct wl_listener* listener, void* data) {
 void server::input_reconfigure(server* s) {
     keyboard* kbd;
     wl_list_for_each(kbd, &s->keyboards, link) {
-        keyboard::apply_config(s, kbd->wlr_keyboard);
+        keyboard::apply_config(s, kbd->wlr_kb);
     }
 
     pointer* ptr;
@@ -876,10 +875,10 @@ void server::on_cursor_button(struct wl_listener* listener, void* data) {
     {
         output* out;
         wl_list_for_each(out, &s->outputs, link) {
-            if (!out->taskbar) {
+            if (!out->output_taskbar) {
                 continue;
             }
-            int tray_idx = out->taskbar->tray_at(s->cursor->x, s->cursor->y);
+            int tray_idx = out->output_taskbar->tray_at(s->cursor->x, s->cursor->y);
             if (tray_idx >= 0) {
 #ifdef HAVE_SDBUS
                 auto* tray = static_cast<tray_host*>(s->tray);
@@ -906,24 +905,24 @@ void server::on_cursor_button(struct wl_listener* listener, void* data) {
         output* out;
         wl_list_for_each(out, &s->outputs, link) {
             // prevent dereferencing NULL on outputs that don't have a taskbar
-            if (!out->taskbar) {
+            if (!out->output_taskbar) {
                 continue;
             }
 
             // check if any buttons were pressed
-            if (out->taskbar->idle_inhibit_at(s->cursor->x, s->cursor->y)) {
+            if (out->output_taskbar->idle_inhibit_at(s->cursor->x, s->cursor->y)) {
                 // toggle it
                 s->idle_inhibit_manual = !s->idle_inhibit_manual;
                 idle_inhibitor::update(s);
                 taskbar::refresh_taskbars(s);
                 return;
             }
-            int ws = out->taskbar->workspace_at(s->cursor->x, s->cursor->y);
+            int ws = out->output_taskbar->workspace_at(s->cursor->x, s->cursor->y);
             if (ws >= 0) {
                 view::workspace_switch(s, ws);
                 return;
             }
-            view* tv = out->taskbar->view_at(s->cursor->x, s->cursor->y);
+            view* tv = out->output_taskbar->view_at(s->cursor->x, s->cursor->y);
             if (tv) {
                 if (!tv->pinned && tv->workspace != s->current_workspace) {
                     view::workspace_switch(s, tv->workspace);
@@ -931,7 +930,7 @@ void server::on_cursor_button(struct wl_listener* listener, void* data) {
                 tv->focus(tv->toplevel->base->surface);
                 return;
             }
-            int pin_idx = out->taskbar->pin_at(s->cursor->x, s->cursor->y);
+            int pin_idx = out->output_taskbar->pin_at(s->cursor->x, s->cursor->y);
             if (pin_idx >= 0) {
                 server::spawn(s->cfg.pins[pin_idx].command);
                 return;

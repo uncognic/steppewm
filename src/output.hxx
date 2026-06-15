@@ -35,7 +35,7 @@ class output {
     struct wlr_output *wlr_output;
     struct wlr_scene_output *scene_output;
 
-    taskbar* taskbar;
+    taskbar* output_taskbar;
 
     struct wlr_scene_tree *layer_trees[4];
     struct wl_list layer_surfaces;
