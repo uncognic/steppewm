@@ -62,6 +62,97 @@
 
 using namespace steppewm;
 
+static cairo_surface_t* try_icon_name(const char* name, const int target_size) {
+    static const int sizes[] = {512, 256, 128, 96, 72, 64, 48, 36, 32, 24, 22, 16};
+    char path[512];
+
+    // find the best match
+    int best_size = 0;
+    int best_diff = INT_MAX;
+    for (const int s : sizes) {
+        snprintf(path, sizeof(path), "/usr/share/icons/hicolor/%dx%d/apps/%s.png", s, s, name);
+        if (access(path, R_OK) == 0) {
+            const int diff = abs(s - target_size);
+            if (diff < best_diff) {
+                best_diff = diff;
+                best_size = s;
+            }
+        }
+    }
+
+    // return the best size if we got one
+    if (best_size > 0) {
+        snprintf(path, sizeof(path), "/usr/share/icons/hicolor/%dx%d/apps/%s.png", best_size,
+                 best_size, name);
+        cairo_surface_t* surf = cairo_image_surface_create_from_png(path);
+        if (cairo_surface_status(surf) == CAIRO_STATUS_SUCCESS) {
+            return surf;
+        }
+        cairo_surface_destroy(surf);
+    }
+
+    // try pixmaps
+    snprintf(path, sizeof(path), "/usr/share/pixmaps/%s.png", name);
+    if (access(path, R_OK) == 0) {
+        cairo_surface_t* surf = cairo_image_surface_create_from_png(path);
+        if (cairo_surface_status(surf) == CAIRO_STATUS_SUCCESS) {
+            return surf;
+        }
+        cairo_surface_destroy(surf);
+    }
+
+    return nullptr;
+}
+
+static cairo_surface_t* load_app_icon(const char* app_id, int target_size) {
+    cairo_surface_t* surf = try_icon_name(app_id, target_size);
+    if (surf) {
+        return surf;
+    }
+
+    // look up the Icon= field from .desktop files
+    char path[512];
+    const char* dirs[] = {"/usr/share/applications", "/usr/local/share/applications"};
+    for (const char* dir : dirs) {
+        snprintf(path, sizeof(path), "%s/%s.desktop", dir, app_id);
+        FILE* f = fopen(path, "r");
+        if (!f) {
+            continue;
+        }
+        char line[512];
+        char icon_name[256] = "";
+        while (fgets(line, sizeof(line), f)) {
+            if (strncmp(line, "Icon=", 5) == 0) {
+                char* nl = strchr(line + 5, '\n');
+                if (nl) {
+                    *nl = '\0';
+                }
+                strncpy(icon_name, line + 5, sizeof(icon_name) - 1);
+                icon_name[sizeof(icon_name) - 1] = '\0';
+                break;
+            }
+        }
+        fclose(f);
+
+        if (icon_name[0]) {
+            if (icon_name[0] == '/') {
+                surf = cairo_image_surface_create_from_png(icon_name);
+                if (cairo_surface_status(surf) == CAIRO_STATUS_SUCCESS) {
+                    return surf;
+                }
+                cairo_surface_destroy(surf);
+            } else {
+                surf = try_icon_name(icon_name, target_size);
+                if (surf) {
+                    return surf;
+                }
+            }
+        }
+    }
+
+    return nullptr;
+}
+
 wlr_xdg_toplevel_icon_v1_buffer* taskbar::pick_icon_buffer(wlr_xdg_toplevel_icon_v1* icon,
                                                            int target_size) {
     struct wlr_xdg_toplevel_icon_v1_buffer* best = nullptr;
@@ -980,6 +1071,7 @@ void taskbar::layout() {
         button_h = 1;
     }
     const int current = srv_->current_workspace;
+    const int npins = cfg->npins;
 
     // workspace indicator buttons
     // width is the same as height since it is square
@@ -1001,19 +1093,94 @@ void taskbar::layout() {
     // first task button starts just past the indicators
     const int task_row_left = cursor_x;
 
-    // count windows that live on the current workspace
-    int visible_count = 0;
-    for (const auto& btn : buttons_) {
-        if (btn->v->pinned || btn->v->workspace == current) {
-            visible_count++;
+    // sync pin label scene buffers and icon cache to match config
+    bool pins_changed = static_cast<int>(pin_labels_.size()) != npins;
+    while (static_cast<int>(pin_labels_.size()) < npins) {
+        pin_labels_.push_back(wlr_scene_buffer_create(tree_, nullptr));
+    }
+    while (static_cast<int>(pin_labels_.size()) > npins) {
+        wlr_scene_node_destroy(&pin_labels_.back()->node);
+        pin_labels_.pop_back();
+    }
+
+    if (pins_changed) {
+        // remove all
+        for (auto* s : pin_icons_) {
+            if (s) {
+                cairo_surface_destroy(s);
+            }
+        }
+        pin_icons_.clear();
+        pin_icons_.resize(npins, nullptr);
+        const int target = button_h > 0 ? button_h : 20;
+
+        // redraw each
+        for (int i = 0; i < npins; i++) {
+            // if a path was specified
+            if (cfg->pins[i].icon_path[0]) {
+                pin_icons_[i] = cairo_image_surface_create_from_png(cfg->pins[i].icon_path);
+                if (cairo_surface_status(pin_icons_[i]) != CAIRO_STATUS_SUCCESS) {
+                    cairo_surface_destroy(pin_icons_[i]);
+                    pin_icons_[i] = nullptr;
+                }
+            }
+
+            // if not
+            if (!pin_icons_[i]) {
+                pin_icons_[i] = load_app_icon(cfg->pins[i].app_id, target);
+            }
         }
     }
 
-    // if there's no windows on the current workspace, hide all of them
-    if (visible_count == 0) {
-        for (const auto& btn : buttons_) {
-            wlr_scene_node_set_enabled(&btn->label->node, false);
+    // pinned apps then open windows
+    slots_.clear();
+    std::vector claimed(buttons_.size(), false);
+
+    // for each pinned app
+    for (int pin_index = 0; pin_index < npins; pin_index++) {
+        task_button* matched_btn = nullptr;
+        view* matched_view = nullptr;
+        // for each taskbar button
+        for (size_t bi = 0; bi < buttons_.size(); bi++) {
+            if (claimed[bi]) {
+                continue;
+            }
+            const char* app_id = buttons_[bi]->v->toplevel->app_id;
+
+            // if button app_id matches pin app_id
+            if (app_id && strcmp(app_id, cfg->pins[pin_index].app_id) == 0) {
+                matched_view = buttons_[bi]->v;
+                matched_btn = buttons_[bi].get();
+                claimed[bi] = true;
+                break;
+            }
         }
+        slots_.push_back({matched_view, matched_btn, pin_index, 0, 0});
+    }
+
+    // for each button that hasn't been matched yet
+    for (size_t button_index = 0; button_index < buttons_.size(); button_index++) {
+        if (claimed[button_index]) {
+            continue;
+        }
+        view* v = buttons_[button_index]->v;
+        if (!v->pinned && v->workspace != current) {
+            continue;
+        }
+        slots_.push_back({v, buttons_[button_index].get(), -1, 0, 0});
+    }
+
+    const int total_slots = static_cast<int>(slots_.size());
+
+    // hide everything first
+    for (const auto& btn : buttons_) {
+        wlr_scene_node_set_enabled(&btn->label->node, false);
+    }
+    for (auto* pl : pin_labels_) {
+        wlr_scene_node_set_enabled(&pl->node, false);
+    }
+
+    if (total_slots == 0) {
         return;
     }
 
@@ -1038,53 +1205,115 @@ void taskbar::layout() {
     }
     const int task_row_width = right_limit - pad - task_row_left;
 
-    // divide by number of visible buttons to get width
-    int button_w = (task_row_width - visible_count * pad) / visible_count;
-
-    // don't exceed configured max
-    if (button_w > cfg->taskbar_button_w) {
-        button_w = cfg->taskbar_button_w;
+    // calculate how much space pins will take up
+    const int pin_button_w = button_h;
+    int num_launchers = 0;
+    for (auto& display_slot : slots_) {
+        // no task button but valid pin index
+        if (!display_slot.btn && display_slot.pin_idx >= 0) {
+            num_launchers++;
+        }
     }
+    const int num_window_slots = total_slots - num_launchers;
+    const int launcher_space = num_launchers * (pin_button_w + pad);
 
-    // never zero
-    if (button_w < 1) {
-        button_w = 1;
+    // calculate each window button width
+    int button_w = 1;
+    if (num_window_slots > 0) {
+        button_w = (task_row_width - launcher_space - num_window_slots * pad) / num_window_slots;
+        if (button_w > cfg->taskbar_button_w) {
+            button_w = cfg->taskbar_button_w;
+        }
+        if (button_w < 1) {
+            button_w = 1;
+        }
     }
     button_w_ = button_w;
 
-    // draw each window button
-    int slot = 0;
+    // draw each slot
+    int cx = task_row_left;
     bool has_visible_urgent = false;
-    for (const auto& btn : buttons_) {
-        // skip and hide windows on other workspaces
-        if (!btn->v->pinned && btn->v->workspace != current) {
-            wlr_scene_node_set_enabled(&btn->label->node, false);
-            continue;
+    for (auto& ds : slots_) {
+        // if it is an open window (matched pin or unpinned window)
+        if (ds.btn) {
+            ds.x = cx;
+            ds.w = button_w;
+            wlr_scene_node_set_enabled(&ds.btn->label->node, true);
+            wlr_scene_node_set_position(&ds.btn->label->node, cx, pad);
+
+            float* bg;
+            if (ds.btn->v == fv) {
+                bg = cfg->color_task_active;
+            } else if (ds.btn->v->urgent) {
+                has_visible_urgent = true;
+                bg = urgent_flash_on_ ? cfg->color_task_urgent
+                                      : (ds.btn->v->minimized ? cfg->color_task_minimized
+                                                              : cfg->color_task_normal);
+            } else if (ds.btn->v->minimized) {
+                bg = cfg->color_task_minimized;
+            } else {
+                bg = cfg->color_task_normal;
+            }
+
+            const char* title = ds.btn->v->toplevel->title ? ds.btn->v->toplevel->title : "";
+            render_button(ds.btn->label, title, ds.btn->v->icon, ds.btn->v->pinned, button_w,
+                          button_h, bg, cfg->color_task_text);
+            cx += button_w + pad;
+        } else if (ds.pin_idx >= 0) { // launcher with no running app
+            ds.x = cx;
+            ds.w = pin_button_w;
+            wlr_scene_buffer* buf = pin_labels_[ds.pin_idx];
+            wlr_scene_node_set_enabled(&buf->node, true);
+            wlr_scene_node_set_position(&buf->node, cx, pad);
+
+            paint::Canvas canvas(pin_button_w, button_h);
+            if (canvas.valid()) {
+                cairo_t* cr = canvas.cr();
+                float* bg = cfg->color_task_normal;
+                cairo_set_source_rgba(cr, bg[0], bg[1], bg[2], bg[3]);
+                cairo_paint(cr);
+
+                cairo_surface_t* icon_surf = ds.pin_idx < static_cast<int>(pin_icons_.size())
+                                                 ? pin_icons_[ds.pin_idx]
+                                                 : nullptr;
+                if (icon_surf) {
+                    const int icon_size = button_h - 4;
+                    if (icon_size > 0) {
+                        const double scale = static_cast<double>(icon_size) /
+                                             std::max(cairo_image_surface_get_width(icon_surf),
+                                                      cairo_image_surface_get_height(icon_surf));
+                        const int iw =
+                            static_cast<int>(cairo_image_surface_get_width(icon_surf) * scale);
+                        const int ih =
+                            static_cast<int>(cairo_image_surface_get_height(icon_surf) * scale);
+                        cairo_save(cr);
+                        cairo_translate(cr, (pin_button_w - iw) / 2.0, (button_h - ih) / 2.0);
+                        cairo_scale(cr, scale, scale);
+                        cairo_set_source_surface(cr, icon_surf, 0, 0);
+                        cairo_paint(cr);
+                        cairo_restore(cr);
+                    }
+                } else {
+                    // fallback is the first character of the app_id
+                    float* fg = cfg->color_task_text;
+                    cairo_select_font_face(cr, "sans-serif", CAIRO_FONT_SLANT_NORMAL,
+                                           CAIRO_FONT_WEIGHT_NORMAL);
+                    cairo_set_font_size(cr, button_h * 0.55);
+                    cairo_set_source_rgba(cr, fg[0], fg[1], fg[2], fg[3]);
+                    char ch[2] = {static_cast<char>(toupper(
+                                      static_cast<unsigned char>(cfg->pins[ds.pin_idx].app_id[0]))),
+                                  '\0'};
+                    cairo_text_extents_t ext;
+                    cairo_text_extents(cr, ch, &ext);
+                    double tx = (pin_button_w - ext.width) / 2.0 - ext.x_bearing;
+                    double ty = button_h / 2.0 - ext.y_bearing - ext.height / 2.0;
+                    cairo_move_to(cr, tx, ty);
+                    cairo_show_text(cr, ch);
+                }
+                canvas.commit(buf);
+            }
+            cx += pin_button_w + pad;
         }
-        wlr_scene_node_set_enabled(&btn->label->node, true);
-
-        // set top left corner of the button
-        int button_x = task_row_left + slot * (button_w + pad);
-        wlr_scene_node_set_position(&btn->label->node, button_x, pad);
-
-        float* bg;
-        if (btn->v == fv) {
-            bg = cfg->color_task_active;
-        } else if (btn->v->urgent) {
-            has_visible_urgent = true;
-            bg = urgent_flash_on_
-                     ? cfg->color_task_urgent
-                     : (btn->v->minimized ? cfg->color_task_minimized : cfg->color_task_normal);
-        } else if (btn->v->minimized) {
-            bg = cfg->color_task_minimized;
-        } else {
-            bg = cfg->color_task_normal;
-        }
-
-        const char* title = btn->v->toplevel->title ? btn->v->toplevel->title : "";
-        render_button(btn->label, title, btn->v->icon, btn->v->pinned, button_w, button_h, bg,
-                      cfg->color_task_text);
-        slot++;
     }
 
     if (has_visible_urgent) {
@@ -1129,6 +1358,11 @@ taskbar::taskbar(server* s, struct wlr_output* wlr_output) {
 
 // destroy bar
 taskbar::~taskbar() {
+    for (auto* s : pin_icons_) {
+        if (s) {
+            cairo_surface_destroy(s);
+        }
+    }
     if (clock_timer_) {
         wl_event_source_remove(clock_timer_);
     }
@@ -1196,8 +1430,7 @@ void taskbar::raise() {
 
 // return corresponding steppewm_view depending on which taskbar button is at the xy position
 view* taskbar::view_at(double x, double y) {
-    // safety
-    if (buttons_.empty() || width_ <= 0) {
+    if (slots_.empty() || width_ <= 0) {
         return nullptr;
     }
     if (y < y_ || y >= y_ + height_) {
@@ -1207,47 +1440,40 @@ view* taskbar::view_at(double x, double y) {
         return nullptr;
     }
 
-    // find x position relative to the taskbar's left edge
-    int local_x = (int) (x - x_);
-
-    config* cfg = &srv_->cfg;
-    int pad = cfg->taskbar_button_pad;
-    int ws_button_w = ws_button_w_ > 0 ? ws_button_w_ : (height_ - 2 * pad);
-    int button_w = button_w_ > 0 ? button_w_ : cfg->taskbar_button_w;
-
-    // task buttons begin just past the workspace indicators
-    int task_row_left = pad + num_workspaces * (ws_button_w + pad);
-    if (local_x < task_row_left) {
-        return nullptr;
-    }
-
-    // find which visible slot we are on
-    int slot = (local_x - task_row_left) / (button_w + pad);
-    if (slot < 0) {
-        return nullptr;
-    }
-
-    // reject clicks in the gap or past the button's right edge
-    if ((local_x - task_row_left) - slot * (button_w + pad) >= button_w) {
-        return nullptr;
-    }
-
-    // map the slot to the slot-th window on the current workspace
-    int current = srv_->current_workspace;
-    int count = 0;
-    for (auto& btn : buttons_) {
-        if (!btn->v->pinned && btn->v->workspace != current) {
-            continue;
+    const int local_x = static_cast<int>(x - x_);
+    for (const auto& ds : slots_) {
+        if (local_x >= ds.x && local_x < ds.x + ds.w) {
+            return ds.v;
         }
-        if (count == slot) {
-            return btn->v;
-        }
-        count++;
     }
     return nullptr;
 }
 
-int taskbar::workspace_at(double x, double y) {
+// return pin index if click is on an unmatched pinned app launcher
+int taskbar::pin_at(double x, double y) const {
+    if (slots_.empty() || width_ <= 0) {
+        return -1;
+    }
+    if (y < y_ || y >= y_ + height_) {
+        return -1;
+    }
+    if (x < x_ || x >= x_ + width_) {
+        return -1;
+    }
+
+    const int local_x = static_cast<int>(x - x_);
+    for (const auto& ds : slots_) {
+        if (local_x >= ds.x && local_x < ds.x + ds.w) {
+            if (ds.v == nullptr && ds.pin_idx >= 0) {
+                return ds.pin_idx;
+            }
+            return -1;
+        }
+    }
+    return -1;
+}
+
+int taskbar::workspace_at(double x, double y) const {
     if (width_ <= 0) {
         return -1;
     }

@@ -925,7 +925,15 @@ void server::on_cursor_button(struct wl_listener* listener, void* data) {
             }
             view* tv = out->taskbar->view_at(s->cursor->x, s->cursor->y);
             if (tv) {
+                if (!tv->pinned && tv->workspace != s->current_workspace) {
+                    view::workspace_switch(s, tv->workspace);
+                }
                 tv->focus(tv->toplevel->base->surface);
+                return;
+            }
+            int pin_idx = out->taskbar->pin_at(s->cursor->x, s->cursor->y);
+            if (pin_idx >= 0) {
+                server::spawn(s->cfg.pins[pin_idx].command);
                 return;
             }
         }

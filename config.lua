@@ -42,7 +42,10 @@ for i = 1, 9 do
     bind("Super+Shift", tostring(i), "move_to_workspace", tostring(i))
 end
 
-exec("swaybg -i ~/Pictures/Vallpapers/bolatbek-gabiden-dsL_tvf1Z-E-unsplash.jpg -m fill")
+-- exec("swaybg -i /path/to/wallpaper -m fill")
+-- exec("nm-applet")
+-- exec('blueman-applet')
+
 -- exec("firefox")
 
 -- outputs, names match wlr output names (DP-1, HDMI-A-1, eDP-1)
@@ -90,6 +93,15 @@ exec("swaybg -i ~/Pictures/Vallpapers/bolatbek-gabiden-dsL_tvf1Z-E-unsplash.jpg 
 -- corner_size = 8
 -- close_button_width = 40
 -- minimize_button_width = 20
+
+-- pinned apps
+-- pin("app_id", "launch command")
+-- pin("app_id", "launch command", "/path/to/icon.png") -- optional icon override
+
+-- pin("thunar", "thunar")
+-- pin("firefox", "firefox")
+-- pin("org.gnome.Nautilus", "nautilus")
+-- pin("foot", "foot")
 
 -- taskbar
 -- taskbar_all_outputs = true

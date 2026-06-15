@@ -61,7 +61,8 @@ class taskbar {
     void update_geometry();
     void raise();
     view* view_at(double x, double y);
-    int workspace_at(double x, double y);
+    int pin_at(double x, double y) const;
+    int workspace_at(double x, double y) const;
     [[nodiscard]] bool idle_inhibit_at(double x, double y) const;
     [[nodiscard]] int tray_at(double x, double y) const;
     static void refresh_taskbars(server* s);
@@ -107,6 +108,17 @@ class taskbar {
     int layout_ind_w_ = 0;
     struct wlr_scene_buffer* ws_labels_[num_workspaces]{};
     int ws_button_w_ = 0;
+    class display_slot {
+      public:
+        view* v{};
+        task_button* btn{};
+        int pin_idx{-1};
+        int x{};
+        int w{};
+    };
+    std::vector<display_slot> slots_;
+    std::vector<wlr_scene_buffer*> pin_labels_;
+    std::vector<struct _cairo_surface*> pin_icons_;
     std::vector<std::unique_ptr<task_button>> buttons_;
     // what each tray_bufs_ slot was rendered from, to avoid rerendering what we don't need to
     class tray_buf_state {

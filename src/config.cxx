@@ -136,6 +136,33 @@ int config::parse_transform(const char* str) {
     return -1;
 }
 
+int config::lua_pin(lua_State* L) {
+    lua_getfield(L, LUA_REGISTRYINDEX, "steppewm_cfg");
+    auto* cfg = static_cast<config*>(lua_touserdata(L, -1));
+    lua_pop(L, 1);
+
+    if (cfg->npins >= CFG_MAX_PINS) {
+        return luaL_error(L, "too many pin() calls (max %d)", CFG_MAX_PINS);
+    }
+
+    const char* app_id = luaL_checkstring(L, 1);
+    const char* command = luaL_checkstring(L, 2);
+
+    pinned_app* p = &cfg->pins[cfg->npins++];
+    strncpy(p->app_id, app_id, sizeof(p->app_id) - 1);
+    p->app_id[sizeof(p->app_id) - 1] = '\0';
+    strncpy(p->command, command, sizeof(p->command) - 1);
+    p->command[sizeof(p->command) - 1] = '\0';
+    p->icon_path[0] = '\0';
+
+    if (lua_gettop(L) >= 3 && lua_isstring(L, 3)) {
+        strncpy(p->icon_path, lua_tostring(L, 3), sizeof(p->icon_path) - 1);
+        p->icon_path[sizeof(p->icon_path) - 1] = '\0';
+    }
+
+    return 0;
+}
+
 int config::lua_output(lua_State* L) {
     lua_getfield(L, LUA_REGISTRYINDEX, "steppewm_cfg");
     auto* cfg = static_cast<config*>(lua_touserdata(L, -1));
@@ -271,6 +298,7 @@ void config::read_string(lua_State* L, const char* name, char* out, const size_t
 void config::set_defaults() {
     nbinds = 0;
     noutput_cfgs = 0;
+    npins = 0;
 
     xkb_layout[0] = '\0';
     xkb_variant[0] = '\0';
@@ -427,6 +455,9 @@ bool config::load(const char* path) {
 
     lua_pushcfunction(L, lua_output);
     lua_setglobal(L, "output");
+
+    lua_pushcfunction(L, lua_pin);
+    lua_setglobal(L, "pin");
 
     if (luaL_dofile(L, path) != LUA_OK) {
         fprintf(stderr, "steppewm: config error: %s\n", lua_tostring(L, -1));

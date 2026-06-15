@@ -177,8 +177,9 @@ class server {
     static void cursor_begin_interactive(view* v, cursor_mode mode, uint32_t edges);
     static bool handle_keybinding(server* s, uint32_t mods, xkb_keysym_t sym);
 
-  private:
     static void spawn(const char* cmd);
+
+  private:
     static void start_xwayland();
     static int find_free_x_display();
     static view* focused_view(server* s);

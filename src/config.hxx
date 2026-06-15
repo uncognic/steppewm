@@ -19,11 +19,12 @@
 #include <cstdint>
 #include <xkbcommon/xkbcommon.h>
 
-#define CFG_MAX_BINDS 128
-#define CFG_MAX_ARG 512
-#define CFG_MAX_EXECS 64
-#define CFG_MAX_CMD 512
-#define CFG_MAX_OUTPUT_CFGS 16
+constexpr int CFG_MAX_BINDS = 128;
+constexpr int CFG_MAX_ARG = 512;
+constexpr int CFG_MAX_EXECS = 64;
+constexpr int CFG_MAX_CMD = 512;
+constexpr int CFG_MAX_OUTPUT_CFGS = 16;
+constexpr int CFG_MAX_PINS = 32;
 
 struct lua_State;
 
@@ -39,6 +40,13 @@ class keybind {
     xkb_keysym_t sym;
     char action[32];
     char arg[CFG_MAX_ARG];
+};
+
+class pinned_app {
+  public:
+    char app_id[128];
+    char command[CFG_MAX_CMD];
+    char icon_path[512];
 };
 
 class output_config {
@@ -116,6 +124,9 @@ class config {
     char battery_path[128];
     char backlight_path[128];
 
+    pinned_app pins[CFG_MAX_PINS];
+    int npins;
+
     void set_defaults();
     bool load(const char* path);
     void run_execs();
@@ -128,6 +139,7 @@ class config {
     static int lua_exec(struct lua_State* L);
     static int lua_bind(struct lua_State* L);
     static int lua_output(struct lua_State* L);
+    static int lua_pin(struct lua_State* L);
     static void read_color(struct lua_State* L, const char* name, float out[4]);
     static void read_bool(struct lua_State* L, const char* name, bool* out);
     static void read_int(struct lua_State* L, const char* name, int* out);
