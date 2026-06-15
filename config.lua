@@ -8,6 +8,12 @@ local screenshot = "grim -g \"$(slurp)\" - | tee ~/Screenshots/$(date +'%Y-%m-%d
 -- backlight_path = "/sys/class/backlight/amdgpu_bl1" -- leave empty to disable taskbar indicator and osd
 -- xwayland = true -- xwayland-satellite required, off by default
 
+-- scroll on taskbar indicators
+brightness_scroll_up = "brightnessctl set 5%+"
+brightness_scroll_down = "brightnessctl set 5%-"
+volume_scroll_up = "pactl set-sink-volume @DEFAULT_SINK@ +5%"
+volume_scroll_down = "pactl set-sink-volume @DEFAULT_SINK@ -5%"
+
 bind("Super", "Return", "spawn", terminal)
 bind("Super", "d", "spawn", launcher)
 bind("Super", "e", "spawn", file_manager)
@@ -116,3 +122,4 @@ end
 -- task_minimized = {0.12, 0.12, 0.12, 1.0}
 -- task_urgent = {0.65, 0.08, 0.08, 1.0}
 -- task_text = {0.88, 0.88, 0.88, 1.0}
+

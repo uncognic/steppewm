@@ -947,6 +947,31 @@ void server::on_cursor_axis(struct wl_listener* listener, void* data) {
 
     wlr_idle_notifier_v1_notify_activity(s->idle_notifier, s->seat);
 
+    if (!s->locked && event->orientation == WL_POINTER_AXIS_VERTICAL_SCROLL) {
+        output* out;
+        wl_list_for_each(out, &s->outputs, link) {
+            if (!out->output_taskbar) {
+                continue;
+            }
+            if (out->output_taskbar->brightness_at(s->cursor->x, s->cursor->y)) {
+                const char* cmd =
+                    event->delta < 0 ? s->cfg.brightness_scroll_up : s->cfg.brightness_scroll_down;
+                if (cmd[0]) {
+                    spawn(cmd);
+                }
+                return;
+            }
+            if (out->output_taskbar->volume_at(s->cursor->x, s->cursor->y)) {
+                const char* cmd =
+                    event->delta < 0 ? s->cfg.volume_scroll_up : s->cfg.volume_scroll_down;
+                if (cmd[0]) {
+                    spawn(cmd);
+                }
+                return;
+            }
+        }
+    }
+
     // forward scroll event to the seat
     wlr_seat_pointer_notify_axis(s->seat, event->time_msec, event->orientation, event->delta,
                                  event->delta_discrete, event->source, event->relative_direction);

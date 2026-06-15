@@ -386,6 +386,11 @@ void config::set_defaults() {
     }
 #endif
 
+    brightness_scroll_up[0] = '\0';
+    brightness_scroll_down[0] = '\0';
+    volume_scroll_up[0] = '\0';
+    volume_scroll_down[0] = '\0';
+
     strncpy(backlight_path, "auto", sizeof(backlight_path));
 #ifdef __linux__
     dir = opendir("/sys/class/backlight");
@@ -507,6 +512,11 @@ bool config::load(const char* path) {
     read_color(L, "task_text", color_task_text);
     read_string(L, "battery_path", battery_path, sizeof(battery_path));
     read_string(L, "backlight_path", backlight_path, sizeof(backlight_path));
+    read_string(L, "brightness_scroll_up", brightness_scroll_up, sizeof(brightness_scroll_up));
+    read_string(L, "brightness_scroll_down", brightness_scroll_down,
+                sizeof(brightness_scroll_down));
+    read_string(L, "volume_scroll_up", volume_scroll_up, sizeof(volume_scroll_up));
+    read_string(L, "volume_scroll_down", volume_scroll_down, sizeof(volume_scroll_down));
 
     lua_close(L);
     return true;

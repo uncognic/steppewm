@@ -123,6 +123,10 @@ class config {
 
     char battery_path[128];
     char backlight_path[128];
+    char brightness_scroll_up[CFG_MAX_CMD];
+    char brightness_scroll_down[CFG_MAX_CMD];
+    char volume_scroll_up[CFG_MAX_CMD];
+    char volume_scroll_down[CFG_MAX_CMD];
 
     pinned_app pins[CFG_MAX_PINS];
     int npins;

@@ -64,6 +64,8 @@ class taskbar {
     int pin_at(double x, double y) const;
     int workspace_at(double x, double y) const;
     [[nodiscard]] bool idle_inhibit_at(double x, double y) const;
+    [[nodiscard]] bool brightness_at(double x, double y) const;
+    [[nodiscard]] bool volume_at(double x, double y) const;
     [[nodiscard]] int tray_at(double x, double y) const;
     static void refresh_taskbars(server* s);
     static void init_monitors(server* s);
@@ -100,8 +102,10 @@ class taskbar {
     int battery_w_ = 0;
     struct wlr_scene_buffer* brightness_;
     int brightness_w_ = 0;
+    int brightness_x_ = 0;
     struct wlr_scene_buffer* volume_;
     int volume_w_ = 0;
+    int volume_x_ = 0;
     struct wlr_scene_buffer* idle_ind_;
     int idle_ind_w_ = 0;
     int idle_ind_x_ = 0;

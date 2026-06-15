@@ -635,6 +635,7 @@ void taskbar::render_brightness() {
         ix -= battery_w_ + pad;
     }
     ix -= w + pad;
+    brightness_x_ = ix + x_;
     wlr_scene_node_set_position(&brightness_->node, ix, pad);
 }
 
@@ -703,6 +704,7 @@ void taskbar::render_volume() {
         vx -= brightness_w_ + pad;
     }
     vx -= w + pad;
+    volume_x_ = vx + x_;
     wlr_scene_node_set_position(&volume_->node, vx, pad);
 #else
     volume_w_ = 0;
@@ -1516,6 +1518,34 @@ bool taskbar::idle_inhibit_at(const double x, const double y) const {
     const int pad = srv_->cfg.taskbar_button_pad;
     const int h = height_ - 2 * pad;
     const bool in_x = x >= idle_ind_x_ && x < idle_ind_x_ + idle_ind_w_;
+    const bool in_y = y >= y_ + pad && y < y_ + pad + h;
+    return in_x && in_y;
+}
+
+bool taskbar::brightness_at(const double x, const double y) const {
+    if (brightness_w_ <= 0 || width_ <= 0) {
+        return false;
+    }
+    if (y < y_ || y >= y_ + height_) {
+        return false;
+    }
+    const int pad = srv_->cfg.taskbar_button_pad;
+    const int h = height_ - 2 * pad;
+    const bool in_x = x >= brightness_x_ && x < brightness_x_ + brightness_w_;
+    const bool in_y = y >= y_ + pad && y < y_ + pad + h;
+    return in_x && in_y;
+}
+
+bool taskbar::volume_at(const double x, const double y) const {
+    if (volume_w_ <= 0 || width_ <= 0) {
+        return false;
+    }
+    if (y < y_ || y >= y_ + height_) {
+        return false;
+    }
+    const int pad = srv_->cfg.taskbar_button_pad;
+    const int h = height_ - 2 * pad;
+    const bool in_x = x >= volume_x_ && x < volume_x_ + volume_w_;
     const bool in_y = y >= y_ + pad && y < y_ + pad + h;
     return in_x && in_y;
 }
