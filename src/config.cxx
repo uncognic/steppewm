@@ -517,6 +517,7 @@ bool config::load(const char* path) {
                 sizeof(brightness_scroll_down));
     read_string(L, "volume_scroll_up", volume_scroll_up, sizeof(volume_scroll_up));
     read_string(L, "volume_scroll_down", volume_scroll_down, sizeof(volume_scroll_down));
+    read_string(L, "volume_middle_button", volume_middle_button, sizeof(volume_middle_button));
 
     lua_close(L);
     return true;

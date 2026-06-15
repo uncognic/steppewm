@@ -13,6 +13,7 @@ brightness_scroll_up = "brightnessctl set 5%+"
 brightness_scroll_down = "brightnessctl set 5%-"
 volume_scroll_up = "pactl set-sink-volume @DEFAULT_SINK@ +5%"
 volume_scroll_down = "pactl set-sink-volume @DEFAULT_SINK@ -5%"
+volume_middle_button = "pactl set-sink-mute @DEFAULT_SINK@ toggle"
 
 bind("Super", "Return", "spawn", terminal)
 bind("Super", "d", "spawn", launcher)

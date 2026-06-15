@@ -127,6 +127,7 @@ class config {
     char brightness_scroll_down[CFG_MAX_CMD];
     char volume_scroll_up[CFG_MAX_CMD];
     char volume_scroll_down[CFG_MAX_CMD];
+    char volume_middle_button[CFG_MAX_CMD];
 
     pinned_app pins[CFG_MAX_PINS];
     int npins;

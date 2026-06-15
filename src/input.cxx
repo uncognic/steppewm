@@ -937,6 +937,20 @@ void server::on_cursor_button(struct wl_listener* listener, void* data) {
             }
         }
     }
+
+    if (event->button == BTN_MIDDLE) {
+        output* out;
+        wl_list_for_each(out, &s->outputs, link) {
+            // prevent dereferencing NULL on outputs that don't have a taskbar
+            if (!out->output_taskbar) {
+                continue;
+            }
+
+            if (out->output_taskbar->volume_at(s->cursor->x, s->cursor->y)) {
+                spawn(s->cfg.volume_middle_button);
+            }
+        }
+    }
 }
 
 // handle cursor scroll wheel / axis events
