@@ -102,6 +102,8 @@ end
 -- pin("firefox", "firefox")
 -- pin("org.gnome.Nautilus", "nautilus")
 -- pin("foot", "foot")
+-- pin("org.signal.Signal", "flatpak run org.signal.Signal")
+-- pin("com.spotify.Client", "flatpak run com.spotify.Client")
 
 -- taskbar
 -- taskbar_all_outputs = true
