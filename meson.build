@@ -4,6 +4,7 @@ project('steppewm', ['c', 'cpp'],
     'c_std=gnu23',
     'cpp_std=c++20',
     'warning_level=2',
+    'prefix=/usr',
   ],
 )
 
@@ -18,11 +19,21 @@ lua = dependency('lua5.4', 'lua-5.4', 'lua', version : '>=5.4')
 pixman = dependency('pixman-1')
 cairo = dependency('cairo')
 pulse = dependency('libpulse', required : false)
+sdbus = dependency('sdbus-c++', required : false)
+rsvg = dependency('librsvg-2.0', version : '>=2.46', required : false)
 
 deps = [wlroots, wayland, xkbcommon, libinput, lua, pixman, cairo]
 if pulse.found()
   deps += pulse
   add_project_arguments('-DHAVE_LIBPULSE', language : ['c', 'cpp'])
+endif
+if sdbus.found()
+  deps += sdbus
+  add_project_arguments('-DHAVE_SDBUS', language : ['c', 'cpp'])
+endif
+if rsvg.found()
+  deps += rsvg
+  add_project_arguments('-DHAVE_LIBRSVG', language : ['c', 'cpp'])
 endif
 
 wl_protocols = dependency('wayland-protocols')
@@ -61,6 +72,7 @@ sources = files(
   'src/lock.cxx',
   'src/osd.cxx',
   'src/volume.cxx',
+  'src/tray.cxx',
 )
 
 executable('steppewm',
@@ -68,4 +80,8 @@ executable('steppewm',
   protocol_headers,
   dependencies : deps,
   install : true,
+)
+
+install_data('steppewm.desktop',
+             install_dir : get_option('datadir') / 'wayland-sessions',
 )

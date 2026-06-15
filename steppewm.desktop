@@ -1,0 +1,6 @@
+[Desktop Entry]
+Name=steppewm
+Comment=a minimal stacking wayland compositor
+Exec=steppewm
+Type=Application
+DesktopNames=steppewm

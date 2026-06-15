@@ -159,6 +159,7 @@ class server {
     wlr_scene_rect* snap_indicator;
 
     void* vol_mon;
+    void* tray;
     osd* osd_overlay;
 
     int brightness_watch_fd;

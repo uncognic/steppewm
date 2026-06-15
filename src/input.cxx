@@ -31,6 +31,7 @@
 #include "server.hxx"
 #include "switcher.hxx"
 #include "taskbar.hxx"
+#include "tray.hxx"
 #include "view.hxx"
 
 using namespace steppewm;
@@ -869,6 +870,35 @@ void server::on_cursor_button(struct wl_listener* listener, void* data) {
         dview->focus(dview->toplevel->base->surface);
         dview->deco_handle_button(s, hnode, event->button);
         return;
+    }
+
+    // tray icon click
+    {
+        output* out;
+        wl_list_for_each(out, &s->outputs, link) {
+            if (!out->taskbar) {
+                continue;
+            }
+            int tray_idx = out->taskbar->tray_at(s->cursor->x, s->cursor->y);
+            if (tray_idx >= 0) {
+#ifdef HAVE_SDBUS
+                auto* tray = static_cast<tray_host*>(s->tray);
+                if (tray) {
+                    if (event->button == BTN_LEFT) {
+                        tray->activate(tray_idx, static_cast<int>(s->cursor->x),
+                                       static_cast<int>(s->cursor->y));
+                    } else if (event->button == BTN_MIDDLE) {
+                        tray->secondary_activate(tray_idx, static_cast<int>(s->cursor->x),
+                                                 static_cast<int>(s->cursor->y));
+                    } else if (event->button == BTN_RIGHT) {
+                        tray->context_menu(tray_idx, static_cast<int>(s->cursor->x),
+                                           static_cast<int>(s->cursor->y));
+                    }
+                }
+#endif
+                return;
+            }
+        }
     }
 
     // if a taskbar item was clicked

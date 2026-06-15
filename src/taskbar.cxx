@@ -56,6 +56,7 @@
 
 #include "osd.hxx"
 #include "output.hxx"
+#include "tray.hxx"
 #include "view.hxx"
 #include "volume.hxx"
 
@@ -678,6 +679,167 @@ void taskbar::render_idle_indicator() {
     wlr_scene_node_set_position(&idle_ind_->node, ix, pad);
 }
 
+void taskbar::render_tray() {
+#ifdef HAVE_SDBUS
+    auto* tray = static_cast<tray_host*>(srv_->tray);
+
+    // guard
+    if (!tray || width_ <= 0 || height_ <= 0) {
+        for (auto* buf : tray_bufs_) {
+            wlr_scene_node_set_enabled(&buf->node, false);
+        }
+        tray_total_w_ = 0;
+        return;
+    }
+
+    auto& items = tray->items();
+
+    // if an icon was added, create it
+    while (tray_bufs_.size() < items.size()) {
+        tray_bufs_.push_back(wlr_scene_buffer_create(tree_, nullptr));
+        tray_buf_state_.push_back({});
+    }
+
+    // if an icon was removed, remove it
+    while (tray_bufs_.size() > items.size()) {
+        wlr_scene_node_destroy(&tray_bufs_.back()->node);
+        tray_bufs_.pop_back();
+        tray_buf_state_.pop_back();
+    }
+
+    // if the list of items is empty, ealy exit
+    if (items.empty()) {
+        tray_total_w_ = 0;
+        return;
+    }
+
+    config* cfg = &srv_->cfg;
+    const int pad = cfg->taskbar_button_pad;
+    int icon_size = height_ - 2 * pad;
+    if (icon_size < 1) {
+        icon_size = 1;
+    }
+
+    int base_x = width_ - clock_w_ - pad - layout_ind_w_ - pad;
+    if (battery_w_ > 0) {
+        base_x -= battery_w_ + pad;
+    }
+    if (brightness_w_ > 0) {
+        base_x -= brightness_w_ + pad;
+    }
+    if (volume_w_ > 0) {
+        base_x -= volume_w_ + pad;
+    }
+    if (idle_ind_w_ > 0) {
+        base_x -= idle_ind_w_ + pad;
+    }
+
+    const int n = static_cast<int>(items.size());
+    tray_total_w_ = n * (icon_size + pad);
+    tray_x_ = x_ + base_x - tray_total_w_;
+
+    // draw each tray icon into each buffer
+    for (int i = 0; i < n; i++) {
+        const int ix = base_x - (n - i) * (icon_size + pad);
+        auto& item = items[i];
+
+        // avoid redrawing for no reason
+        bool needs_redraw = tray_buf_state_[i].item != item.get() ||
+                            tray_buf_state_[i].gen != item->icon_gen ||
+                            tray_buf_state_[i].size != icon_size;
+
+        if (needs_redraw) {
+            paint::Canvas canvas(icon_size, icon_size);
+
+            // draw into the canvas
+            if (canvas.valid()) {
+                cairo_t* cr = canvas.cr();
+
+                const float* bg = cfg->color_task_normal;
+                cairo_set_source_rgba(cr, bg[0], bg[1], bg[2], bg[3]);
+                cairo_paint(cr);
+
+                // if the icon is valid
+                if (!item->icon_pixels.empty() && item->icon_width > 0 && item->icon_height > 0) {
+                    constexpr int margin = 2;
+                    const int draw_size = icon_size - 2 * margin;
+                    if (draw_size > 0) {
+                        cairo_surface_t* icon_surface = cairo_image_surface_create_for_data(
+                            reinterpret_cast<unsigned char*>(item->icon_pixels.data()),
+                            CAIRO_FORMAT_ARGB32, item->icon_width, item->icon_height,
+                            item->icon_width * 4);
+
+                        const double scale = static_cast<double>(draw_size) /
+                                             std::max(item->icon_width, item->icon_height);
+
+                        const int offset_x =
+                            margin + (draw_size - static_cast<int>(item->icon_width * scale)) / 2;
+                        const int offset_y =
+                            margin + (draw_size - static_cast<int>(item->icon_height * scale)) / 2;
+
+                        cairo_save(cr);
+                        cairo_translate(cr, offset_x, offset_y);
+                        cairo_scale(cr, scale, scale);
+                        cairo_set_source_surface(cr, icon_surface, 0, 0);
+                        cairo_paint(cr);
+                        cairo_restore(cr);
+                        cairo_surface_destroy(icon_surface);
+                    }
+                }
+
+                canvas.commit(tray_bufs_[i]);
+                tray_buf_state_[i] = {item.get(), item->icon_gen, icon_size};
+            }
+        }
+
+        wlr_scene_node_set_position(&tray_bufs_[i]->node, ix, pad);
+        wlr_scene_node_set_enabled(&tray_bufs_[i]->node, true);
+    }
+#else
+    tray_total_w_ = 0;
+    tray_x_ = 0;
+#endif
+}
+
+// is the tray at the x and y coord?
+int taskbar::tray_at(const double x, const double y) const {
+#ifdef HAVE_SDBUS
+    if (tray_total_w_ <= 0 || width_ <= 0) {
+        return -1;
+    }
+    if (y < y_ || y >= y_ + height_) {
+        return -1;
+    }
+
+    const int pad = srv_->cfg.taskbar_button_pad;
+    const int icon_size = height_ - 2 * pad;
+    if (icon_size < 1) {
+        return -1;
+    }
+
+    const int local_x = static_cast<int>(x - tray_x_);
+    if (local_x < 0 || local_x >= tray_total_w_) {
+        return -1;
+    }
+
+    const int idx = local_x / (icon_size + pad);
+    if (local_x - idx * (icon_size + pad) >= icon_size) {
+        return -1;
+    }
+
+    auto* tray = static_cast<tray_host*>(srv_->tray);
+    if (!tray || idx < 0 || idx >= static_cast<int>(tray->items().size())) {
+        return -1;
+    }
+
+    return idx;
+#else
+    (void) x;
+    (void) y;
+    return -1;
+#endif
+}
+
 // build the short layout code for the active keyboard group
 void taskbar::layout_code(char* out, size_t len) {
     struct wlr_keyboard* kbd = wlr_seat_get_keyboard(srv_->seat);
@@ -809,6 +971,7 @@ void taskbar::layout() {
     render_brightness();
     render_volume();
     render_idle_indicator();
+    render_tray();
 
     config* cfg = &srv_->cfg;
     const int pad = cfg->taskbar_button_pad;
@@ -870,7 +1033,10 @@ void taskbar::layout() {
     if (idle_ind_w_ > 0) {
         right_limit -= idle_ind_w_ + pad;
     }
-    int task_row_width = right_limit - pad - task_row_left;
+    if (tray_total_w_ > 0) {
+        right_limit -= tray_total_w_;
+    }
+    const int task_row_width = right_limit - pad - task_row_left;
 
     // divide by number of visible buttons to get width
     int button_w = (task_row_width - visible_count * pad) / visible_count;
@@ -934,10 +1100,14 @@ taskbar::taskbar(server* s, struct wlr_output* wlr_output) {
     wlr_output_ = wlr_output;
     height_ = s->cfg.taskbar_h;
     tree_ = wlr_scene_tree_create(&s->scene->tree);
+    tree_destroy_.connect(&tree_->node.events.destroy, [this](void*) {
+        tree_destroy_.disconnect();
+        tree_ = nullptr;
+    });
     background_ = wlr_scene_rect_create(tree_, 0, height_, s->cfg.color_taskbar_bg);
 
-    for (int i = 0; i < num_workspaces; i++) {
-        ws_labels_[i] = wlr_scene_buffer_create(tree_, nullptr);
+    for (auto& ws_label : ws_labels_) {
+        ws_label = wlr_scene_buffer_create(tree_, nullptr);
     }
 
     // status indicators
@@ -964,6 +1134,9 @@ taskbar::~taskbar() {
     }
     if (urgent_timer_) {
         wl_event_source_remove(urgent_timer_);
+    }
+    if (tree_) {
+        wlr_scene_node_destroy(&tree_->node);
     }
 }
 

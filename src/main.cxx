@@ -29,6 +29,7 @@
 #include "output.hxx"
 #include "server.hxx"
 #include "taskbar.hxx"
+#include "tray.hxx"
 #include "view.hxx"
 #include "volume.hxx"
 
@@ -258,6 +259,12 @@ void server::run(server* s) {
     s->vol_mon = nullptr;
 #endif
 
+#ifdef HAVE_SDBUS
+    s->tray = tray_host::create(s);
+#else
+    s->tray = nullptr;
+#endif
+
     taskbar::init_monitors(s);
     s->osd_overlay = new osd(s);
 
@@ -271,6 +278,9 @@ void server::run(server* s) {
 void server::fini(server* s) {
     delete s->osd_overlay;
     taskbar::fini_monitors(s);
+#ifdef HAVE_SDBUS
+    delete static_cast<tray_host*>(s->tray);
+#endif
 #ifdef HAVE_LIBPULSE
     delete static_cast<volume_monitor*>(s->vol_mon);
 #endif

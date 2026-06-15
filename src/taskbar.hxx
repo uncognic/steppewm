@@ -16,6 +16,7 @@
 #pragma once
 
 #include <cstddef>
+#include <cstdint>
 #include <memory>
 #include <vector>
 
@@ -62,6 +63,7 @@ class taskbar {
     view* view_at(double x, double y);
     int workspace_at(double x, double y);
     [[nodiscard]] bool idle_inhibit_at(double x, double y) const;
+    [[nodiscard]] int tray_at(double x, double y) const;
     static void refresh_taskbars(server* s);
     static void init_monitors(server* s);
     static void fini_monitors(const server* s);
@@ -77,6 +79,7 @@ class taskbar {
     void render_volume();
     void render_idle_indicator();
     void render_layout_indicator();
+    void render_tray();
     void layout_code(char* out, size_t len);
     [[nodiscard]] view* focused_view() const;
     static int clock_tick(void* data);
@@ -86,6 +89,7 @@ class taskbar {
     server* srv_;
     struct wlr_output* wlr_output_;
     struct wlr_scene_tree* tree_;
+    Listener tree_destroy_;
     struct wlr_scene_rect* background_;
     struct wlr_scene_buffer* clock_;
     struct wl_event_source* clock_timer_;
@@ -104,6 +108,17 @@ class taskbar {
     struct wlr_scene_buffer* ws_labels_[num_workspaces]{};
     int ws_button_w_ = 0;
     std::vector<std::unique_ptr<task_button>> buttons_;
+    // what each tray_bufs_ slot was rendered from, to avoid rerendering what we don't need to
+    class tray_buf_state {
+      public:
+        const void* item = nullptr;
+        uint64_t gen = 0;
+        int size = 0;
+    };
+    std::vector<wlr_scene_buffer*> tray_bufs_;
+    std::vector<tray_buf_state> tray_buf_state_;
+    int tray_total_w_ = 0;
+    int tray_x_ = 0;
     int clock_w_ = 0;
     int button_w_ = 0;
     int x_ = 0, y_ = 0, width_ = 0, height_ = 0;
