@@ -301,6 +301,29 @@ void server::fini(server* s) {
 int main(int argc, char* argv[]) {
     wlr_log_init(WLR_DEBUG, nullptr);
 
+#ifdef HAVE_LIBPULSE
+    wlr_log(WLR_INFO, "steppewm binary compiled with libpulse");
+#endif
+
+#ifdef HAVE_SDBUS
+    wlr_log(WLR_INFO, "steppewm binary compiled with sdbus");
+#endif
+
+#ifdef HAVE_LIBRSVG
+    wlr_log(WLR_INFO, "steppewm binary compiled with librsvg");
+#endif
+
+#ifdef __OpenBSD__
+    wlr_log(WLR_INFO, "steppewm on OpenBSD");
+#endif
+
+#ifdef __linux__
+    wlr_log(WLR_INFO, "steppewm on Linux");
+#endif
+
+#if defined(__FreeBSD__) || defined(__DragonFly__)
+    wlr_log(WLR_INFO, "steppewm on FreeBSD/DragonFlyBSD");
+#endif
     const char* cli_config_path = nullptr;
 
     int opt;
