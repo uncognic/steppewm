@@ -415,6 +415,9 @@ void view::handle_unmap(view* v) {
         v->srv->grab_mode = cursor_mode::passthrough;
         v->srv->grab_restore_pending = false;
     }
+    if (v->srv->titlebar_last_click_view == v) {
+        v->srv->titlebar_last_click_view = nullptr;
+    }
 
     // unfocus keyboard if is focused currently
     if (v->srv->seat->keyboard_state.focused_surface == v->toplevel->base->surface) {
@@ -478,6 +481,9 @@ void view::handle_destroy(view* v) {
         v->srv->grabbed_view = nullptr;
         v->srv->grab_mode = cursor_mode::passthrough;
         v->srv->grab_restore_pending = false;
+    }
+    if (v->srv->titlebar_last_click_view == v) {
+        v->srv->titlebar_last_click_view = nullptr;
     }
 
     // clear kb focus

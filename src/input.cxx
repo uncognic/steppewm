@@ -867,7 +867,7 @@ void server::on_cursor_button(struct wl_listener* listener, void* data) {
     view* dview = view::deco_at(s, s->cursor->x, s->cursor->y, &hnode);
     if (dview) {
         dview->focus(dview->toplevel->base->surface);
-        dview->deco_handle_button(s, hnode, event->button);
+        dview->deco_handle_button(s, hnode, event->button, event->time_msec);
         return;
     }
 

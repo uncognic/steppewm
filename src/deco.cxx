@@ -276,7 +276,8 @@ view* view::deco_at(const server* s, const double lx, const double ly,
     return nullptr;
 }
 
-bool view::deco_handle_button(server* s, const struct wlr_scene_node* node, const uint32_t button) {
+bool view::deco_handle_button(server* s, const struct wlr_scene_node* node, const uint32_t button,
+                              const uint32_t time_msec) {
     if (decoration_mode != deco_mode::SERVER) {
         return false;
     }
@@ -305,9 +306,20 @@ bool view::deco_handle_button(server* s, const struct wlr_scene_node* node, cons
         }
         return true;
     }
-    // handle resizing
     if (node == &window_decoration.titlebar->node) {
-        server::cursor_begin_interactive(this, cursor_mode::move, 0);
+        // if it was a double click
+        if (button == BTN_LEFT && s->titlebar_last_click_view == this &&
+            time_msec - s->titlebar_last_click_time < 400) {
+            toggle_maximize();
+            s->titlebar_last_click_time = 0;
+            s->titlebar_last_click_view = nullptr;
+        } else { // otherwise reset the timer
+            if (button == BTN_LEFT) {
+                s->titlebar_last_click_time = time_msec;
+                s->titlebar_last_click_view = this;
+            }
+            server::cursor_begin_interactive(this, cursor_mode::move, 0);
+        }
         return true;
     }
     if (node == &window_decoration.corner_tl->node) {

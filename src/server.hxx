@@ -156,6 +156,9 @@ class server {
     bool grab_restore_pending;
     double grab_start_x, grab_start_y;
 
+    uint32_t titlebar_last_click_time;
+    view* titlebar_last_click_view;
+
     wlr_scene_rect* snap_indicator;
 
     void* vol_mon;
