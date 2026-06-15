@@ -139,9 +139,6 @@ tray_host* tray_host::create(server* s) {
 }
 
 tray_host::~tray_host() {
-    items_.clear();
-    watcher_obj_.reset();
-    dbus_proxy_.reset();
     if (dbus_timer_) {
         wl_event_source_remove(dbus_timer_);
     }
@@ -151,6 +148,13 @@ tray_host::~tray_host() {
     if (dbus_source_) {
         wl_event_source_remove(dbus_source_);
     }
+    if (conn_) {
+        while (conn_->processPendingEvent()) {
+        }
+    }
+    items_.clear();
+    watcher_obj_.reset();
+    dbus_proxy_.reset();
     conn_.reset();
 }
 

@@ -280,9 +280,11 @@ void server::fini(server* s) {
     taskbar::fini_monitors(s);
 #ifdef HAVE_SDBUS
     delete static_cast<tray_host*>(s->tray);
+    s->tray = nullptr;
 #endif
 #ifdef HAVE_LIBPULSE
     delete static_cast<volume_monitor*>(s->vol_mon);
+    s->vol_mon = nullptr;
 #endif
     wl_display_destroy_clients(s->display);
     wlr_scene_node_destroy(&s->scene->tree.node);

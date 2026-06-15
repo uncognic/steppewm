@@ -74,11 +74,15 @@ volume_monitor* volume_monitor::create(server* s) {
 }
 
 volume_monitor::~volume_monitor() {
+    if (mainloop_ && context_) {
+        pa_threaded_mainloop_lock(mainloop_);
+        pa_context_disconnect(context_);
+        pa_threaded_mainloop_unlock(mainloop_);
+    }
     if (mainloop_) {
         pa_threaded_mainloop_stop(mainloop_);
     }
     if (context_) {
-        pa_context_disconnect(context_);
         pa_context_unref(context_);
     }
     if (mainloop_) {
