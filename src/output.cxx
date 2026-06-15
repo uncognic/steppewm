@@ -411,6 +411,14 @@ void output::ensure_taskbars(const server* s) {
     }
 }
 
+int output::taskbar_height(server* s, const struct wlr_output* wlr_out) {
+    output* out = find_for_wlr_output(s, wlr_out);
+    if (out && out->output_taskbar) {
+        return s->cfg.taskbar_h;
+    }
+    return 0;
+}
+
 void output::broadcast_output_config(server* s) {
     wlr_output_configuration_v1* config = wlr_output_configuration_v1_create();
 

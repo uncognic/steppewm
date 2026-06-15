@@ -200,7 +200,7 @@ void view::snap_to(const snap_edge edge) {
 
     const auto ox = decoration_mode == deco_mode::SERVER ? s->cfg.border_w : 0;
     const auto oy = decoration_mode == deco_mode::SERVER ? s->cfg.title_h : 0;
-    const auto usable_h = out.height - s->cfg.taskbar_h;
+    const auto usable_h = out.height - output::taskbar_height(s, wlr_out);
     const auto half_w = out.width / 2;
     const auto half_h = usable_h / 2;
 
@@ -331,7 +331,7 @@ void view::place(view* v) {
     // usable area is output box minus the taskbar at the bottom
     struct wlr_box area;
     wlr_output_layout_get_box(s->output_layout, wlr_out, &area);
-    area.height -= s->cfg.taskbar_h;
+    area.height -= output::taskbar_height(s, wlr_out);
     if (area.height < 0) {
         area.height = 0;
     }
@@ -560,7 +560,8 @@ void view::apply_state(view* v, bool maximized, bool fullscreen) {
             int oy = v->decoration_mode == deco_mode::SERVER ? s->cfg.title_h : 0;
             wlr_scene_node_set_position(&v->xdg_tree->node, ox, oy);
             wlr_xdg_toplevel_set_size(v->toplevel, out_box.width - 2 * ox,
-                                      out_box.height - oy - ox - s->cfg.taskbar_h);
+                                      out_box.height - oy - ox -
+                                          output::taskbar_height(s, wlr_out));
         }
 
         // restore state if we are exiting

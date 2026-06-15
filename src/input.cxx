@@ -568,7 +568,7 @@ static snap_detect detect_snap(server* s) {
         return r;
     }
 
-    const int usable_h = ob.height - s->cfg.taskbar_h;
+    const int usable_h = ob.height - output::taskbar_height(s, wlr_out);
     const int half_w = ob.width / 2;
     const int half_h = usable_h / 2;
 
