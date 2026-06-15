@@ -52,17 +52,17 @@ enum class cursor_mode {
 
 class server {
   public:
-    struct wl_display *display;
-    struct wlr_backend *backend;
-    struct wlr_session *session;
-    struct wlr_renderer *renderer;
-    struct wlr_allocator *allocator;
+    struct wl_display* display;
+    struct wlr_backend* backend;
+    struct wlr_session* session;
+    struct wlr_renderer* renderer;
+    struct wlr_allocator* allocator;
 
-    struct wlr_scene *scene;
-    struct wlr_scene_output_layout *scene_layout;
+    struct wlr_scene* scene;
+    struct wlr_scene_output_layout* scene_layout;
 
     // outputs
-    struct wlr_output_layout *output_layout;
+    struct wlr_output_layout* output_layout;
     struct wl_list outputs;
     struct wl_listener new_output;
     struct wl_listener output_layout_change;
@@ -75,7 +75,7 @@ class server {
     struct wl_listener set_gamma;
 
     // xdg shell
-    struct wlr_xdg_shell *xdg_shell;
+    struct wlr_xdg_shell* xdg_shell;
     struct wlr_xdg_activation_v1* xdg_activation;
     struct wl_listener new_xdg_toplevel;
     struct wl_listener new_xdg_popup;
@@ -86,12 +86,12 @@ class server {
     int current_workspace;
 
     // layer shell
-    struct wlr_layer_shell_v1 *layer_shell;
+    struct wlr_layer_shell_v1* layer_shell;
     struct wl_listener new_layer_surface;
     layer_surface* focused_layer;
 
     // decorations
-    struct wlr_xdg_decoration_manager_v1 *deco_manager;
+    struct wlr_xdg_decoration_manager_v1* deco_manager;
     struct wl_listener new_deco;
 
     // xdg-toplevel-icon protocol
@@ -102,9 +102,9 @@ class server {
     switcher* sw;
 
     // input
-    struct wlr_seat *seat;
-    struct wlr_cursor *cursor;
-    struct wlr_xcursor_manager *cursor_mgr;
+    struct wlr_seat* seat;
+    struct wlr_cursor* cursor;
+    struct wlr_xcursor_manager* cursor_mgr;
     struct wl_list keyboards;
     struct wl_list pointers;
     uint32_t layout_group;
@@ -158,6 +158,9 @@ class server {
 
     uint32_t titlebar_last_click_time;
     view* titlebar_last_click_view;
+
+    wlr_scene_node* hovered_deco_node; // the currently brightened decoration node
+    view* hovered_deco_view;           // the window that the deco is hovered
 
     wlr_scene_rect* snap_indicator;
 

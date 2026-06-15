@@ -60,6 +60,8 @@ class taskbar {
     void refresh();
     void update_geometry();
     void raise();
+    void hover_update(double x, double y);
+    void hover_clear();
     view* view_at(double x, double y);
     int pin_at(double x, double y) const;
     int workspace_at(double x, double y) const;
@@ -139,6 +141,8 @@ class taskbar {
     int button_w_ = 0;
     int x_ = 0, y_ = 0, width_ = 0, height_ = 0;
     bool urgent_flash_on_ = true;
+    int hovered_slot_idx_ = -1;
+    int hovered_ws_idx_ = -1;
 };
 
 } // namespace steppewm

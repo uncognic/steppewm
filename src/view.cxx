@@ -418,6 +418,10 @@ void view::handle_unmap(view* v) {
     if (v->srv->titlebar_last_click_view == v) {
         v->srv->titlebar_last_click_view = nullptr;
     }
+    if (v->srv->hovered_deco_view == v) {
+        v->srv->hovered_deco_view = nullptr;
+        v->srv->hovered_deco_node = nullptr;
+    }
 
     // unfocus keyboard if is focused currently
     if (v->srv->seat->keyboard_state.focused_surface == v->toplevel->base->surface) {
@@ -660,6 +664,8 @@ void view::unmaximize_to_cursor(double cursor_x, double cursor_y) {
 }
 
 void view::reconfigure_all(server* s) {
+    s->hovered_deco_view = nullptr;
+    s->hovered_deco_node = nullptr;
     struct wlr_surface* focused = s->seat->keyboard_state.focused_surface;
     view* v;
     wl_list_for_each(v, &s->views, link) {
@@ -1000,6 +1006,8 @@ void view::focus(struct wlr_surface* surface) {
     wl_list_remove(&link);
     wl_list_insert(&s->views, &link);
     wlr_xdg_toplevel_set_activated(toplevel, true);
+    s->hovered_deco_view = nullptr;
+    s->hovered_deco_node = nullptr;
     deco_set_focus(true);
 
     // notify the seat that the keyboard now focuses this view

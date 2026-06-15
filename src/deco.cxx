@@ -195,6 +195,13 @@ void view::deco_destroy() {
     window_decoration.corner_br = nullptr;
 }
 
+static void lighten_color(const float in[4], float out[4], float amount = 0.25f) {
+    for (int i = 0; i < 3; i++) {
+        out[i] = in[i] + (1.0f - in[i]) * amount;
+    }
+    out[3] = in[3];
+}
+
 void view::deco_set_focus(const bool focused) const {
     if (decoration_mode != deco_mode::SERVER || !window_decoration.titlebar) {
         return;
@@ -208,6 +215,42 @@ void view::deco_set_focus(const bool focused) const {
                              focused ? cfg->color_button : cfg->color_button_inactive);
     wlr_scene_rect_set_color(window_decoration.minimize,
                              focused ? cfg->color_button : cfg->color_button_inactive);
+}
+
+void view::deco_set_hover(const struct wlr_scene_node* node, const bool hovered) const {
+    if (decoration_mode != deco_mode::SERVER || !window_decoration.titlebar) {
+        return;
+    }
+    const config* cfg = &srv->cfg;
+    const bool focused = srv->seat->keyboard_state.focused_surface == toplevel->base->surface;
+
+    // set the color based on if it's active or not
+    auto apply = [&](wlr_scene_rect* rect, const float* active, const float* inactive) {
+        const float* base = focused ? active : inactive;
+        if (hovered) {
+            float bright[4];
+            lighten_color(base, bright);
+            wlr_scene_rect_set_color(rect, bright);
+        } else {
+            wlr_scene_rect_set_color(rect, base);
+        }
+    };
+
+    if (node == &window_decoration.close_button->node) {
+        apply(window_decoration.close_button, cfg->color_close_active, cfg->color_close_inactive);
+    } else if (node == &window_decoration.maximize->node) {
+        apply(window_decoration.maximize, cfg->color_button, cfg->color_button_inactive);
+    } else if (node == &window_decoration.minimize->node) {
+        apply(window_decoration.minimize, cfg->color_button, cfg->color_button_inactive);
+    }
+}
+
+bool view::deco_is_button(const struct wlr_scene_node* node) const {
+    if (decoration_mode != deco_mode::SERVER || !window_decoration.titlebar) {
+        return false;
+    }
+    return node == &window_decoration.close_button->node ||
+           node == &window_decoration.maximize->node || node == &window_decoration.minimize->node;
 }
 
 const char* view::deco_cursor_name(const struct wlr_scene_node* node) const {

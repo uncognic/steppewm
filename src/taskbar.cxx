@@ -62,6 +62,13 @@
 
 using namespace steppewm;
 
+static void lighten_color(const float in[4], float out[4], float amount = 0.25f) {
+    for (int i = 0; i < 3; i++) {
+        out[i] = in[i] + (1.0f - in[i]) * amount;
+    }
+    out[3] = in[3];
+}
+
 static cairo_surface_t* try_icon_name(const char* name, const int target_size) {
     static const int sizes[] = {512, 256, 128, 96, 72, 64, 48, 36, 32, 24, 22, 16};
     char path[512];
@@ -1086,7 +1093,13 @@ void taskbar::layout() {
         wlr_scene_node_set_position(&ws_labels_[i]->node, cursor_x, pad);
         char num[4];
         snprintf(num, sizeof(num), "%d", i + 1);
-        float* bg = (i == current) ? cfg->color_task_active : cfg->color_task_normal;
+        float* base_bg = (i == current) ? cfg->color_task_active : cfg->color_task_normal;
+        float hover_bg[4];
+        float* bg = base_bg;
+        if (i == hovered_ws_idx_) {
+            lighten_color(base_bg, hover_bg);
+            bg = hover_bg;
+        }
         render_button(ws_labels_[i], num, nullptr, false, ws_button_w, button_h, bg,
                       cfg->color_task_text);
         cursor_x += ws_button_w + pad;
@@ -1235,7 +1248,9 @@ void taskbar::layout() {
     // draw each slot
     int cx = task_row_left;
     bool has_visible_urgent = false;
-    for (auto& ds : slots_) {
+    for (int si = 0; si < static_cast<int>(slots_.size()); si++) {
+        auto& ds = slots_[si];
+        const bool slot_hovered = si == hovered_slot_idx_;
         // if it is an open window (matched pin or unpinned window)
         if (ds.btn) {
             ds.x = cx;
@@ -1243,18 +1258,25 @@ void taskbar::layout() {
             wlr_scene_node_set_enabled(&ds.btn->label->node, true);
             wlr_scene_node_set_position(&ds.btn->label->node, cx, pad);
 
-            float* bg;
+            float* base_bg;
             if (ds.btn->v == fv) {
-                bg = cfg->color_task_active;
+                base_bg = cfg->color_task_active;
             } else if (ds.btn->v->urgent) {
                 has_visible_urgent = true;
-                bg = urgent_flash_on_ ? cfg->color_task_urgent
-                                      : (ds.btn->v->minimized ? cfg->color_task_minimized
-                                                              : cfg->color_task_normal);
+                base_bg = urgent_flash_on_ ? cfg->color_task_urgent
+                                           : (ds.btn->v->minimized ? cfg->color_task_minimized
+                                                                   : cfg->color_task_normal);
             } else if (ds.btn->v->minimized) {
-                bg = cfg->color_task_minimized;
+                base_bg = cfg->color_task_minimized;
             } else {
-                bg = cfg->color_task_normal;
+                base_bg = cfg->color_task_normal;
+            }
+
+            float hover_bg[4];
+            float* bg = base_bg;
+            if (slot_hovered) {
+                lighten_color(base_bg, hover_bg);
+                bg = hover_bg;
             }
 
             const char* title = ds.btn->v->toplevel->title ? ds.btn->v->toplevel->title : "";
@@ -1271,7 +1293,13 @@ void taskbar::layout() {
             paint::Canvas canvas(pin_button_w, button_h);
             if (canvas.valid()) {
                 cairo_t* cr = canvas.cr();
-                float* bg = cfg->color_task_normal;
+                float* base_bg = cfg->color_task_normal;
+                float pin_hover_bg[4];
+                float* bg = base_bg;
+                if (slot_hovered) {
+                    lighten_color(base_bg, pin_hover_bg);
+                    bg = pin_hover_bg;
+                }
                 cairo_set_source_rgba(cr, bg[0], bg[1], bg[2], bg[3]);
                 cairo_paint(cr);
 
@@ -1428,6 +1456,52 @@ void taskbar::update_geometry() {
 // raise the taskbar's scene tree above the windows below it
 void taskbar::raise() {
     wlr_scene_node_raise_to_top(&tree_->node);
+}
+
+void taskbar::hover_update(const double x, const double y) {
+    // ignore invisible taskbars
+    if (width_ <= 0) {
+        hover_clear();
+        return;
+    }
+
+    // check if window is in taskbar
+    if (y < y_ || y >= y_ + height_ || x < x_ || x >= x_ + width_) {
+        hover_clear();
+        return;
+    }
+
+    // check if it is over a workspace
+    const int new_ws = workspace_at(x, y);
+
+    // find hovered task slot
+    int new_slot = -1;
+    if (new_ws < 0) {
+        const int local_x = static_cast<int>(x - x_);
+        for (int i = 0; i < static_cast<int>(slots_.size()); i++) {
+            if (local_x >= slots_[i].x && local_x < slots_[i].x + slots_[i].w) {
+                new_slot = i;
+                break;
+            }
+        }
+    }
+
+    // early exit if same slot as before
+    if (new_ws == hovered_ws_idx_ && new_slot == hovered_slot_idx_) {
+        return;
+    }
+    hovered_ws_idx_ = new_ws;
+    hovered_slot_idx_ = new_slot;
+    layout();
+}
+
+void taskbar::hover_clear() {
+    if (hovered_ws_idx_ < 0 && hovered_slot_idx_ < 0) {
+        return;
+    }
+    hovered_ws_idx_ = -1;
+    hovered_slot_idx_ = -1;
+    layout();
 }
 
 // return corresponding steppewm_view depending on which taskbar button is at the xy position

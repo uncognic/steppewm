@@ -685,6 +685,31 @@ void server::process_cursor_resize(server* s) {
     wlr_xdg_toplevel_set_size(v->toplevel, new_right - new_left, new_bottom - new_top);
 }
 
+static void update_hover(server* s, wlr_scene_node* deco_node, view* deco_view) {
+    // if the target changed
+    if (s->hovered_deco_node != deco_node || s->hovered_deco_view != deco_view) {
+        // remove the old decoration hover
+        if (s->hovered_deco_view && s->hovered_deco_node) {
+            s->hovered_deco_view->deco_set_hover(s->hovered_deco_node, false);
+        }
+
+        // set the new hover
+        if (deco_view && deco_node) {
+            deco_view->deco_set_hover(deco_node, true);
+        }
+        s->hovered_deco_node = deco_node;
+        s->hovered_deco_view = deco_view;
+    }
+
+    // update taskbar hover state
+    output* out;
+    wl_list_for_each(out, &s->outputs, link) {
+        if (out->output_taskbar) {
+            out->output_taskbar->hover_update(s->cursor->x, s->cursor->y);
+        }
+    }
+}
+
 // called on cursor motion events
 void server::process_cursor_motion(server* s, uint32_t time_msec) {
     wlr_scene_node_set_position(&s->drag_icon_tree->node, static_cast<int>(s->cursor->x),
@@ -719,6 +744,9 @@ void server::process_cursor_motion(server* s, uint32_t time_msec) {
     // input region, but slurp does
     view::at(s, s->cursor->x, s->cursor->y, &surface, &sx, &sy);
 
+    struct wlr_scene_node* hover_node = nullptr;
+    view* hover_view = nullptr;
+
     struct wlr_seat* seat = s->seat;
     if (surface) {
         // deliver pointer events to whatever surface is under the cursor
@@ -733,9 +761,18 @@ void server::process_cursor_motion(server* s, uint32_t time_msec) {
         if (deco_cursor) {
             cursor_name = deco_cursor;
         }
+
+        if (dview && dview->deco_is_button(hnode)) {
+            hover_view = dview;
+            hover_node = hnode;
+            cursor_name = "pointer";
+        }
+
         wlr_cursor_set_xcursor(s->cursor, s->cursor_mgr, cursor_name);
         wlr_seat_pointer_clear_focus(seat);
     }
+
+    update_hover(s, hover_node, hover_view);
 
     pointer_constraint::update(s);
 }
