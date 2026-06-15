@@ -163,9 +163,12 @@ void volume_monitor::on_sink_info(pa_context*, const void* info, int eol, void* 
 
     pa_volume_t avg = pa_cvolume_avg(&si->volume);
     int pct = static_cast<int>((avg * 100 + PA_VOLUME_NORM / 2) / PA_VOLUME_NORM);
-    vm->volume_.store(pct);
-    vm->muted_.store(si->mute != 0);
-    vm->notify();
+    bool muted = si->mute != 0;
+    int old_pct = vm->volume_.exchange(pct);
+    bool old_muted = vm->muted_.exchange(muted);
+    if (pct != old_pct || muted != old_muted) {
+        vm->notify();
+    }
 }
 
 // default sink may have changed
