@@ -18,6 +18,7 @@
 
 #include <ctype.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <time.h>
 
@@ -25,7 +26,11 @@
 #include <vector>
 
 #include <climits>
+#include <dirent.h>
 #include <unistd.h>
+#ifdef HAVE_LIBRSVG
+#include <librsvg/rsvg.h>
+#endif
 #ifdef __linux__
 #include <sys/inotify.h>
 #endif
@@ -68,29 +73,85 @@ static void lighten_color(const float in[4], float out[4], float amount = 0.25f)
     }
     out[3] = in[3];
 }
+constexpr int MAX_DATA_DIRS = 32;
 
+static struct {
+    char storage[4096];
+    char home_buf[512];
+    const char* dirs[MAX_DATA_DIRS];
+    int count;
+    bool initialized;
+} g_data_dirs;
+
+// build a list of XDG dirs
+static void ensure_data_dirs() {
+    if (g_data_dirs.initialized) {
+        return;
+    }
+    g_data_dirs.initialized = true;
+    int n = 0;
+
+    const char* data_home = getenv("XDG_DATA_HOME");
+    if (data_home && data_home[0]) {
+        strncpy(g_data_dirs.home_buf, data_home, sizeof(g_data_dirs.home_buf) - 1);
+        g_data_dirs.home_buf[sizeof(g_data_dirs.home_buf) - 1] = '\0';
+        g_data_dirs.dirs[n++] = g_data_dirs.home_buf;
+    } else {
+        const char* home = getenv("HOME");
+        if (home) {
+            snprintf(g_data_dirs.home_buf, sizeof(g_data_dirs.home_buf), "%s/.local/share", home);
+            g_data_dirs.dirs[n++] = g_data_dirs.home_buf;
+        }
+    }
+
+    const char* data_dirs = getenv("XDG_DATA_DIRS");
+
+    // fallback
+    if (!data_dirs || !data_dirs[0]) {
+        data_dirs = "/usr/local/share:/usr/share";
+    }
+    strncpy(g_data_dirs.storage, data_dirs, sizeof(g_data_dirs.storage) - 1);
+    g_data_dirs.storage[sizeof(g_data_dirs.storage) - 1] = '\0';
+
+    char* saveptr = nullptr;
+    // split the env on colons
+    char* tok = strtok_r(g_data_dirs.storage, ":", &saveptr);
+    while (tok && n < MAX_DATA_DIRS) {
+        g_data_dirs.dirs[n++] = tok;
+        tok = strtok_r(nullptr, ":", &saveptr);
+    }
+
+    g_data_dirs.count = n;
+}
+
+// search XDG data dirs for an icon
 static cairo_surface_t* try_icon_name(const char* name, const int target_size) {
     static const int sizes[] = {512, 256, 128, 96, 72, 64, 48, 36, 32, 24, 22, 16};
     char path[512];
+    ensure_data_dirs();
 
-    // find the best match
     int best_size = 0;
     int best_diff = INT_MAX;
-    for (const int s : sizes) {
-        snprintf(path, sizeof(path), "/usr/share/icons/hicolor/%dx%d/apps/%s.png", s, s, name);
-        if (access(path, R_OK) == 0) {
-            const int diff = abs(s - target_size);
-            if (diff < best_diff) {
-                best_diff = diff;
-                best_size = s;
+    int best_dir = -1;
+
+    for (int di = 0; di < g_data_dirs.count; di++) {
+        for (const int s : sizes) {
+            snprintf(path, sizeof(path), "%s/icons/hicolor/%dx%d/apps/%s.png", g_data_dirs.dirs[di],
+                     s, s, name);
+            if (access(path, R_OK) == 0) {
+                const int diff = abs(s - target_size);
+                if (diff < best_diff) {
+                    best_diff = diff;
+                    best_size = s;
+                    best_dir = di;
+                }
             }
         }
     }
 
-    // return the best size if we got one
-    if (best_size > 0) {
-        snprintf(path, sizeof(path), "/usr/share/icons/hicolor/%dx%d/apps/%s.png", best_size,
-                 best_size, name);
+    if (best_size > 0 && best_dir >= 0) {
+        snprintf(path, sizeof(path), "%s/icons/hicolor/%dx%d/apps/%s.png",
+                 g_data_dirs.dirs[best_dir], best_size, best_size, name);
         cairo_surface_t* surf = cairo_image_surface_create_from_png(path);
         if (cairo_surface_status(surf) == CAIRO_STATUS_SUCCESS) {
             return surf;
@@ -98,14 +159,39 @@ static cairo_surface_t* try_icon_name(const char* name, const int target_size) {
         cairo_surface_destroy(surf);
     }
 
-    // try pixmaps
-    snprintf(path, sizeof(path), "/usr/share/pixmaps/%s.png", name);
-    if (access(path, R_OK) == 0) {
-        cairo_surface_t* surf = cairo_image_surface_create_from_png(path);
-        if (cairo_surface_status(surf) == CAIRO_STATUS_SUCCESS) {
-            return surf;
+#ifdef HAVE_LIBRSVG
+    for (int di = 0; di < g_data_dirs.count; di++) {
+        snprintf(path, sizeof(path), "%s/icons/hicolor/scalable/apps/%s.svg", g_data_dirs.dirs[di],
+                 name);
+        if (access(path, R_OK) == 0) {
+            GError* err = nullptr;
+            RsvgHandle* handle = rsvg_handle_new_from_file(path, &err);
+            if (handle) {
+                cairo_surface_t* surf =
+                    cairo_image_surface_create(CAIRO_FORMAT_ARGB32, target_size, target_size);
+                cairo_t* cr = cairo_create(surf);
+                RsvgRectangle viewport = {0, 0, (double) target_size, (double) target_size};
+                rsvg_handle_render_document(handle, cr, &viewport, nullptr);
+                cairo_destroy(cr);
+                g_object_unref(handle);
+                return surf;
+            }
+            if (err) {
+                g_error_free(err);
+            }
         }
-        cairo_surface_destroy(surf);
+    }
+#endif
+
+    for (int di = 0; di < g_data_dirs.count; di++) {
+        snprintf(path, sizeof(path), "%s/pixmaps/%s.png", g_data_dirs.dirs[di], name);
+        if (access(path, R_OK) == 0) {
+            cairo_surface_t* surf = cairo_image_surface_create_from_png(path);
+            if (cairo_surface_status(surf) == CAIRO_STATUS_SUCCESS) {
+                return surf;
+            }
+            cairo_surface_destroy(surf);
+        }
     }
 
     return nullptr;
@@ -117,11 +203,11 @@ static cairo_surface_t* load_app_icon(const char* app_id, int target_size) {
         return surf;
     }
 
-    // look up the Icon= field from .desktop files
+    ensure_data_dirs();
     char path[512];
-    const char* dirs[] = {"/usr/share/applications", "/usr/local/share/applications"};
-    for (const char* dir : dirs) {
-        snprintf(path, sizeof(path), "%s/%s.desktop", dir, app_id);
+
+    for (int di = 0; di < g_data_dirs.count; di++) {
+        snprintf(path, sizeof(path), "%s/applications/%s.desktop", g_data_dirs.dirs[di], app_id);
         FILE* f = fopen(path, "r");
         if (!f) {
             continue;
@@ -155,6 +241,71 @@ static cairo_surface_t* load_app_icon(const char* app_id, int target_size) {
                 }
             }
         }
+    }
+
+    // lookup .desktop files for StartupWMClass that match app_id in config
+    for (int dir_index = 0; dir_index < g_data_dirs.count; dir_index++) {
+        char dirpath[512];
+        snprintf(dirpath, sizeof(dirpath), "%s/applications", g_data_dirs.dirs[dir_index]);
+        DIR* d = opendir(dirpath);
+        if (!d) {
+            continue;
+        }
+
+        struct dirent* ent;
+        while ((ent = readdir(d))) {
+            const size_t nlen = strlen(ent->d_name);
+            if (nlen < 9 || strcmp(ent->d_name + nlen - 8, ".desktop") != 0) {
+                continue;
+            }
+
+            snprintf(path, sizeof(path), "%s/%s", dirpath, ent->d_name);
+            FILE* f = fopen(path, "r");
+            if (!f) {
+                continue;
+            }
+
+            char line[512];
+            char icon_name[256] = "";
+            bool wm_match = false;
+            while (fgets(line, sizeof(line), f)) {
+                if (strncmp(line, "StartupWMClass=", 15) == 0) {
+                    char* nl = strchr(line + 15, '\n');
+                    if (nl) {
+                        *nl = '\0';
+                    }
+                    if (strcasecmp(line + 15, app_id) == 0) {
+                        wm_match = true;
+                    }
+                } else if (strncmp(line, "Icon=", 5) == 0 && !icon_name[0]) {
+                    char* nl = strchr(line + 5, '\n');
+                    if (nl) {
+                        *nl = '\0';
+                    }
+                    strncpy(icon_name, line + 5, sizeof(icon_name) - 1);
+                    icon_name[sizeof(icon_name) - 1] = '\0';
+                }
+            }
+            fclose(f);
+
+            if (wm_match && icon_name[0]) {
+                if (icon_name[0] == '/') {
+                    surf = cairo_image_surface_create_from_png(icon_name);
+                    if (cairo_surface_status(surf) == CAIRO_STATUS_SUCCESS) {
+                        closedir(d);
+                        return surf;
+                    }
+                    cairo_surface_destroy(surf);
+                } else {
+                    surf = try_icon_name(icon_name, target_size);
+                    if (surf) {
+                        closedir(d);
+                        return surf;
+                    }
+                }
+            }
+        }
+        closedir(d);
     }
 
     return nullptr;
@@ -1162,7 +1313,6 @@ void taskbar::layout() {
             }
             const char* app_id = buttons_[bi]->v->toplevel->app_id;
 
-            // if button app_id matches pin app_id
             if (app_id && strcmp(app_id, cfg->pins[pin_index].app_id) == 0) {
                 matched_view = buttons_[bi]->v;
                 matched_btn = buttons_[bi].get();
