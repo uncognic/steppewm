@@ -367,7 +367,7 @@ void config::set_defaults() {
 
     taskbar_h = 24;
     taskbar_all_outputs = false;
-    taskbar_button_w = 200;
+    taskbar_button_w = 150;
     taskbar_button_pad = 2;
 
     strncpy(battery_path, "auto", sizeof(battery_path));
