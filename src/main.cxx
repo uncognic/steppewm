@@ -17,6 +17,7 @@
 
 #include <cstdio>
 #include <cstdlib>
+#include <cstring>
 #include <sys/stat.h>
 #include <unistd.h>
 
@@ -234,10 +235,53 @@ static void setup_portals() {
     wlr_log(WLR_INFO, "wrote portal config: %s", path);
 }
 
+// use existing bus address if there is one
+static void fix_dbus_address() {
+    const char* runtime_dir = getenv("XDG_RUNTIME_DIR");
+    if (!runtime_dir) {
+        return;
+    }
+
+    char bus_path[256];
+    snprintf(bus_path, sizeof(bus_path), "%s/bus", runtime_dir);
+    if (access(bus_path, F_OK) != 0) {
+        return;
+    }
+
+    char addr[300];
+    snprintf(addr, sizeof(addr), "unix:path=%s", bus_path);
+    setenv("DBUS_SESSION_BUS_ADDRESS", addr, 1);
+    wlr_log(WLR_INFO, "dbus: using %s", addr);
+}
+
+static void start_keyring() {
+    FILE* fp =
+        popen("gnome-keyring-daemon --start --components=secrets,ssh,pkcs11 2>/dev/null", "r");
+    if (!fp) {
+        return;
+    }
+
+    char line[256];
+    while (fgets(line, sizeof(line), fp)) {
+        char* nl = strchr(line, '\n');
+        if (nl) {
+            *nl = '\0';
+        }
+        char* eq = strchr(line, '=');
+        if (!eq) {
+            continue;
+        }
+        *eq = '\0';
+        setenv(line, eq + 1, 1);
+        wlr_log(WLR_INFO, "keyring: %s=%s", line, eq + 1);
+    }
+    pclose(fp);
+}
+
 static void update_dbus_environment() {
     if (pid_t pid = fork(); pid == 0) {
-        execlp("dbus-update-activation-environment", "dbus-update-activation-environment",
-               "WAYLAND_DISPLAY", "XDG_CURRENT_DESKTOP", "DISPLAY", static_cast<char*>(nullptr));
+        execlp("dbus-update-activation-environment", "dbus-update-activation-environment", "--all",
+               static_cast<char*>(nullptr));
         _exit(1);
     }
 }
@@ -265,7 +309,9 @@ void server::run(server* s) {
         start_xwayland();
     }
 
+    fix_dbus_address();
     setup_portals();
+    start_keyring();
     update_dbus_environment();
 
 #ifdef HAVE_LIBPULSE
