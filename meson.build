@@ -46,6 +46,7 @@ protocols = [
   wl_protocol_dir / 'unstable/pointer-constraints/pointer-constraints-unstable-v1.xml',
   'protocol/wlr-layer-shell-unstable-v1.xml',
   'protocol/wlr-output-power-management-unstable-v1.xml',
+  wl_protocol_dir / 'staging/tearing-control/tearing-control-v1.xml',
 ]
 
 protocol_headers = []

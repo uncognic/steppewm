@@ -31,14 +31,31 @@ using namespace steppewm;
 void output::on_frame(struct wl_listener* listener, void* data) {
     (void) data;
     output* out = wl_container_of(listener, out, frame);
-    struct wlr_scene_output* scene_output =
-        wlr_scene_get_scene_output(out->srv->scene, out->wlr_output);
+    server* s = out->srv;
+    struct wlr_scene_output* scene_output = wlr_scene_get_scene_output(s->scene, out->wlr_output);
     if (!scene_output) {
-        // output is disabled by config and has no scene output
         return;
     }
 
-    wlr_scene_output_commit(scene_output, nullptr);
+    wlr_output_state state = {};
+    wlr_output_state_init(&state);
+    if (!wlr_scene_output_build_state(scene_output, &state, nullptr)) {
+        wlr_output_state_finish(&state);
+        return;
+    }
+
+    wlr_surface* focused = s->seat->keyboard_state.focused_surface;
+    if (focused &&
+        wlr_tearing_control_manager_v1_surface_hint_from_surface(s->tearing_control_mgr, focused) ==
+            WP_TEARING_CONTROL_V1_PRESENTATION_HINT_ASYNC) {
+        state.tearing_page_flip = true;
+    }
+
+    if (!wlr_output_commit_state(out->wlr_output, &state) && state.tearing_page_flip) {
+        state.tearing_page_flip = false;
+        wlr_output_commit_state(out->wlr_output, &state);
+    }
+    wlr_output_state_finish(&state);
 
     struct timespec now{};
     clock_gettime(CLOCK_MONOTONIC, &now);

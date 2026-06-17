@@ -85,6 +85,9 @@ bool server::init(server* s) {
     // wp_single_pixel_buffer protocol
     wlr_single_pixel_buffer_manager_v1_create(s->display);
 
+    // wp_tearing_control protocol
+    s->tearing_control_mgr = wlr_tearing_control_manager_v1_create(s->display, 1);
+
     // wp_linux_drm_syncobj protocol
     if (s->renderer->features.timeline && s->backend->features.timeline) {
         int drm_fd = wlr_renderer_get_drm_fd(s->renderer);
