@@ -27,6 +27,7 @@
 
 #include "input.hxx"
 #include "lock.hxx"
+#include "osd.hxx"
 #include "output.hxx"
 #include "server.hxx"
 #include "switcher.hxx"
@@ -156,9 +157,34 @@ void keyboard::handle_modifiers(keyboard* kbd) {
     switcher::handle_modifiers(kbd->srv, wlr_keyboard_get_modifiers(kbd->wlr_kb));
 
     uint32_t group = kbd->wlr_kb->modifiers.group;
+
+    // if the group isn't the same as before, that means the key combo for switch was hit
     if (group != kbd->srv->layout_group) {
         kbd->srv->layout_group = group;
         refresh_taskbars(kbd->srv);
+
+        if (kbd->srv->osd_overlay) {
+            // parse layout name from something like us,ru,ua
+            const char* tok = kbd->srv->cfg.xkb_layout;
+            for (uint32_t i = 0; i < group && tok && *tok; i++) {
+                const char* comma = strchr(tok, ',');
+                tok = comma ? comma + 1 : nullptr;
+            }
+            char text[32];
+            size_t n = 0;
+            if (tok) {
+                while (tok[n] && tok[n] != ',' && n + 1 < sizeof(text)) {
+                    text[n] = static_cast<char>(toupper(static_cast<unsigned char>(tok[n])));
+                    n++;
+                }
+            }
+            if (n == 0) {
+                snprintf(text, sizeof(text), "US");
+            } else {
+                text[n] = '\0';
+            }
+            kbd->srv->osd_overlay->show(text);
+        }
     }
 }
 
