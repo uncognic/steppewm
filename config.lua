@@ -49,6 +49,7 @@ for i = 1, 9 do
     bind("Super+Shift", tostring(i), "move_to_workspace", tostring(i))
 end
 
+-- exec("swayidle -w timeout 60 'wlopm --off \\*' resume 'wlopm --on \\*' timeout 63 'swaylock -f -c 000000' before-sleep 'swaylock -f -c 000000'")
 -- exec("swaybg -i /path/to/wallpaper -m fill")
 -- exec("nm-applet")
 -- exec('blueman-applet')
