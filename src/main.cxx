@@ -92,6 +92,14 @@ bool server::init(server* s) {
     wlr_virtual_keyboard_manager_v1_create(s->display);
     wlr_virtual_pointer_manager_v1_create(s->display);
 
+    // keyboard shortcuts inhibit protocol
+    s->shortcuts_inhibit_mgr = wlr_keyboard_shortcuts_inhibit_v1_create(s->display);
+    s->new_shortcuts_inhibitor.notify = [](struct wl_listener*, void* data) {
+        auto* inhibitor = static_cast<struct wlr_keyboard_shortcuts_inhibitor_v1*>(data);
+        wlr_keyboard_shortcuts_inhibitor_v1_activate(inhibitor);
+    };
+    wl_signal_add(&s->shortcuts_inhibit_mgr->events.new_inhibitor, &s->new_shortcuts_inhibitor);
+
     // wp_linux_drm_syncobj protocol
     if (s->renderer->features.timeline && s->backend->features.timeline) {
         int drm_fd = wlr_renderer_get_drm_fd(s->renderer);

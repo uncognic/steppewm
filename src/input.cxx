@@ -234,8 +234,22 @@ void keyboard::handle_key(keyboard* kbd, void* data) {
             }
         }
     }
-    // no keybinds while the session is locked
-    if (!handled && !s->locked && event->state == WL_KEYBOARD_KEY_STATE_PRESSED) {
+    // check if keyboard shortcuts are inhibited for the focused surface
+    bool shortcuts_inhibited = false;
+    {
+        wlr_keyboard_shortcuts_inhibitor_v1* inhibitor;
+        wl_list_for_each(inhibitor, &s->shortcuts_inhibit_mgr->inhibitors, link) {
+            if (inhibitor->active &&
+                inhibitor->surface == s->seat->keyboard_state.focused_surface) {
+                shortcuts_inhibited = true;
+                break;
+            }
+        }
+    }
+
+    // no keybinds while the session is locked or shortcuts are inhibited
+    if (!handled && !s->locked && !shortcuts_inhibited &&
+        event->state == WL_KEYBOARD_KEY_STATE_PRESSED) {
         for (int i = 0; i < nsyms; i++) {
             handled = server::handle_keybinding(s, modifiers, syms[i]) || handled;
         }

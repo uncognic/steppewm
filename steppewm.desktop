@@ -1,6 +1,6 @@
 [Desktop Entry]
 Name=steppewm
 Comment=a minimal stacking wayland compositor
-Exec=dbus-run-session steppewm
+Exec=steppewm
 Type=Application
 DesktopNames=steppewm

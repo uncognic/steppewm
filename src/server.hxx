@@ -104,6 +104,9 @@ class server {
 
     struct wlr_tearing_control_manager_v1* tearing_control_mgr;
 
+    struct wlr_keyboard_shortcuts_inhibit_manager_v1* shortcuts_inhibit_mgr;
+    struct wl_listener new_shortcuts_inhibitor;
+
     // non-null only when visible
     switcher* sw;
 
