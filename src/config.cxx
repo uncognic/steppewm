@@ -108,6 +108,57 @@ int config::lua_bind(lua_State* L) {
     return 0;
 }
 
+int config::lua_bindswitch(lua_State* L) {
+    lua_getfield(L, LUA_REGISTRYINDEX, "steppewm_cfg");
+    auto* cfg = static_cast<config*>(lua_touserdata(L, -1));
+    lua_pop(L, 1);
+
+    if (cfg->nswitchbinds >= CFG_MAX_SWITCHBINDS) {
+        return luaL_error(L, "too many bindswitch() calls (max %d)", CFG_MAX_SWITCHBINDS);
+    }
+
+    const char* switch_str = luaL_checkstring(L, 1);
+    const char* action = luaL_checkstring(L, 2);
+
+    switch_type type;
+    switch_state state;
+
+    if (strncasecmp(switch_str, "lid:", 4) == 0) {
+        type = switch_type::lid;
+        const char* s = switch_str + 4;
+        if (strcasecmp(s, "on") == 0) {
+            state = switch_state::on;
+        } else if (strcasecmp(s, "off") == 0) {
+            state = switch_state::off;
+        } else {
+            return luaL_error(L, "unknown switch state '%s' (want on/off)", s);
+        }
+    } else if (strncasecmp(switch_str, "tablet:", 7) == 0) {
+        type = switch_type::tablet_mode;
+        const char* s = switch_str + 7;
+        if (strcasecmp(s, "on") == 0) {
+            state = switch_state::on;
+        } else if (strcasecmp(s, "off") == 0) {
+            state = switch_state::off;
+        } else {
+            return luaL_error(L, "unknown switch state '%s' (want on/off)", s);
+        }
+    } else {
+        return luaL_error(L, "unknown switch '%s' (want lid:on/off or tablet:on/off)", switch_str);
+    }
+
+    switchbind* b = &cfg->switchbinds[cfg->nswitchbinds++];
+    b->type = type;
+    b->state = state;
+    strncpy(b->action, action, sizeof(b->action) - 1);
+
+    if (lua_gettop(L) >= 3 && lua_isstring(L, 3)) {
+        strncpy(b->arg, lua_tostring(L, 3), sizeof(b->arg) - 1);
+    }
+
+    return 0;
+}
+
 int config::parse_transform(const char* str) {
     if (strcasecmp(str, "normal") == 0 || strcmp(str, "0") == 0) {
         return WL_OUTPUT_TRANSFORM_NORMAL;
@@ -297,6 +348,7 @@ void config::read_string(lua_State* L, const char* name, char* out, const size_t
 
 void config::set_defaults() {
     nbinds = 0;
+    nswitchbinds = 0;
     noutput_cfgs = 0;
     npins = 0;
 
@@ -457,6 +509,9 @@ bool config::load(const char* path) {
 
     lua_pushcfunction(L, lua_bind);
     lua_setglobal(L, "bind");
+
+    lua_pushcfunction(L, lua_bindswitch);
+    lua_setglobal(L, "bindswitch");
 
     lua_pushcfunction(L, lua_output);
     lua_setglobal(L, "output");

@@ -141,6 +141,7 @@ bool server::init(server* s) {
 
     wl_list_init(&s->keyboards);
     wl_list_init(&s->pointers);
+    wl_list_init(&s->switches);
     s->new_input.notify = on_new_input;
     wl_signal_add(&s->backend->events.new_input, &s->new_input);
 

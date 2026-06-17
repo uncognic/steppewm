@@ -31,6 +31,7 @@ bind("Super", "Right", "snap_right")
 bind("Super+Shift", "Left", "snap_top_left")
 bind("Super+Shift", "Right", "snap_top_right")
 bind("Super", "p", "pin")
+bindswitch("lid:on", "spawn", "systemctl suspend")
 
 -- media
 bind("", "XF86AudioMute", "spawn", "pactl set-sink-mute @DEFAULT_SINK@ toggle")

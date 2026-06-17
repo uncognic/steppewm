@@ -117,6 +117,7 @@ class server {
     struct wlr_xcursor_manager* cursor_mgr;
     struct wl_list keyboards;
     struct wl_list pointers;
+    struct wl_list switches;
     uint32_t layout_group;
 
     struct wl_listener new_input;
@@ -194,12 +195,12 @@ class server {
     static bool handle_keybinding(server* s, uint32_t mods, xkb_keysym_t sym);
 
     static void spawn(const char* cmd);
+    static void dispatch_action(server* s, const char* action, const char* arg, uint32_t mods);
 
   private:
     static void start_xwayland();
     static int find_free_x_display();
     static view* focused_view(server* s);
-    static void dispatch_action(server* s, const char* action, const char* arg, uint32_t mods);
     static void on_new_input(struct wl_listener* listener, void* data);
     static void on_cursor_motion(struct wl_listener* listener, void* data);
     static void on_cursor_motion_absolute(struct wl_listener* listener, void* data);

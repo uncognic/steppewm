@@ -387,6 +387,51 @@ void pointer::create(server* s, struct wlr_input_device* device) {
     wl_list_insert(&s->pointers, &ptr->link);
 }
 
+void switch_device::handle_toggle(switch_device* sw, void* data) {
+    const auto* event = static_cast<struct wlr_switch_toggle_event*>(data);
+    server* s = sw->srv;
+
+    switch_type type;
+    switch_state state;
+
+    switch (event->switch_type) {
+        case WLR_SWITCH_TYPE_LID:
+            type = switch_type::lid;
+            break;
+        case WLR_SWITCH_TYPE_TABLET_MODE:
+            type = switch_type::tablet_mode;
+            break;
+        default:
+            return;
+    }
+    state = event->switch_state == WLR_SWITCH_STATE_ON ? switch_state::on : switch_state::off;
+
+    for (int i = 0; i < s->cfg.nswitchbinds; i++) {
+        switchbind* b = &s->cfg.switchbinds[i];
+        if (b->type == type && b->state == state) {
+            server::dispatch_action(s, b->action, b->arg, 0);
+        }
+    }
+}
+
+void switch_device::handle_destroy(switch_device* sw) {
+    wl_list_remove(&sw->link);
+    delete sw;
+}
+
+void switch_device::create(server* s, struct wlr_input_device* device) {
+    struct wlr_switch* wlr_sw = wlr_switch_from_input_device(device);
+
+    auto* sw = new switch_device();
+    sw->srv = s;
+    sw->wlr_sw = wlr_sw;
+
+    sw->toggle.connect(&wlr_sw->events.toggle, [sw](void* data) { handle_toggle(sw, data); });
+    sw->destroy.connect(&device->events.destroy, [sw](void*) { handle_destroy(sw); });
+
+    wl_list_insert(&s->switches, &sw->link);
+}
+
 // create new input
 void server::on_new_input(struct wl_listener* listener, void* data) {
     server* s = wl_container_of(listener, s, new_input);
@@ -398,6 +443,9 @@ void server::on_new_input(struct wl_listener* listener, void* data) {
             break;
         case WLR_INPUT_DEVICE_POINTER:
             pointer::create(s, device);
+            break;
+        case WLR_INPUT_DEVICE_SWITCH:
+            switch_device::create(s, device);
             break;
         default:
             break;

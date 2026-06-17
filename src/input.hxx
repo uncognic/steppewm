@@ -23,6 +23,7 @@
 
 struct wlr_keyboard;
 struct wlr_input_device;
+struct wlr_switch;
 struct wlr_pointer_constraint_v1;
 struct wlr_idle_inhibitor_v1;
 
@@ -64,6 +65,23 @@ class pointer {
 
   private:
     static void handle_destroy(pointer* ptr);
+};
+
+class switch_device {
+  public:
+    server* srv;
+    wlr_switch* wlr_sw;
+
+    wl_list link;
+
+    Listener toggle;
+    Listener destroy;
+
+    static void create(server* s, struct wlr_input_device* device);
+
+  private:
+    static void handle_toggle(switch_device* sw, void* data);
+    static void handle_destroy(switch_device* sw);
 };
 
 class pointer_constraint {

@@ -20,6 +20,7 @@
 #include <xkbcommon/xkbcommon.h>
 
 constexpr int CFG_MAX_BINDS = 128;
+constexpr int CFG_MAX_SWITCHBINDS = 16;
 constexpr int CFG_MAX_ARG = 512;
 constexpr int CFG_MAX_EXECS = 64;
 constexpr int CFG_MAX_CMD = 512;
@@ -38,6 +39,17 @@ class keybind {
   public:
     uint32_t modifiers;
     xkb_keysym_t sym;
+    char action[32];
+    char arg[CFG_MAX_ARG];
+};
+
+enum class switch_type : uint8_t { lid, tablet_mode };
+enum class switch_state : uint8_t { on, off };
+
+class switchbind {
+  public:
+    switch_type type;
+    switch_state state;
     char action[32];
     char arg[CFG_MAX_ARG];
 };
@@ -65,6 +77,9 @@ class config {
   public:
     keybind binds[CFG_MAX_BINDS];
     int nbinds;
+
+    switchbind switchbinds[CFG_MAX_SWITCHBINDS];
+    int nswitchbinds;
 
     char execs[CFG_MAX_EXECS][CFG_MAX_CMD];
     int nexecs;
@@ -143,6 +158,7 @@ class config {
     static int parse_transform(const char* str);
     static int lua_exec(struct lua_State* L);
     static int lua_bind(struct lua_State* L);
+    static int lua_bindswitch(struct lua_State* L);
     static int lua_output(struct lua_State* L);
     static int lua_pin(struct lua_State* L);
     static void read_color(struct lua_State* L, const char* name, float out[4]);
