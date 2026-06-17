@@ -67,6 +67,12 @@
 
 using namespace steppewm;
 
+task_button::~task_button() {
+    if (cached_icon) {
+        cairo_surface_destroy(cached_icon);
+    }
+}
+
 static void lighten_color(const float in[4], float out[4], float amount = 0.25f) {
     for (int i = 0; i < 3; i++) {
         out[i] = in[i] + (1.0f - in[i]) * amount;
@@ -328,8 +334,8 @@ wlr_xdg_toplevel_icon_v1_buffer* taskbar::pick_icon_buffer(wlr_xdg_toplevel_icon
 
 // render button into cairo then draw it
 void taskbar::render_button(struct wlr_scene_buffer* scene_buf, const char* text,
-                            struct wlr_xdg_toplevel_icon_v1* icon, bool pinned, int w, int h,
-                            float bg[4], float fg[4]) {
+                            struct wlr_xdg_toplevel_icon_v1* icon, cairo_surface_t* fallback_icon,
+                            bool pinned, int w, int h, float bg[4], float fg[4]) {
     paint::Canvas canvas(w, h);
     if (!canvas.valid()) {
         return;
@@ -351,35 +357,54 @@ void taskbar::render_button(struct wlr_scene_buffer* scene_buf, const char* text
                 if (wlr_buffer_begin_data_ptr_access(ibuf->buffer, WLR_BUFFER_DATA_PTR_ACCESS_READ,
                                                      &data, &format, &stride)) {
                     cairo_format_t cairo_fmt;
+                    bool fmt_ok = false;
                     if (format == DRM_FORMAT_ARGB8888) {
                         cairo_fmt = CAIRO_FORMAT_ARGB32;
+                        fmt_ok = true;
                     } else if (format == DRM_FORMAT_XRGB8888) {
                         cairo_fmt = CAIRO_FORMAT_RGB24;
-                    } else {
-                        wlr_buffer_end_data_ptr_access(ibuf->buffer);
-                        goto draw_text;
+                        fmt_ok = true;
                     }
 
-                    cairo_surface_t* icon_surface = cairo_image_surface_create_for_data(
-                        static_cast<unsigned char*>(data), cairo_fmt, ibuf->buffer->width,
-                        ibuf->buffer->height, static_cast<int>(stride));
-                    const double scale = static_cast<double>(icon_size) / ibuf->buffer->width;
-                    cairo_save(cr);
-                    cairo_translate(cr, 2, 2);
-                    cairo_scale(cr, scale, scale);
-                    cairo_set_source_surface(cr, icon_surface, 0, 0);
-                    cairo_paint(cr);
-                    cairo_restore(cr);
+                    if (fmt_ok) {
+                        cairo_surface_t* icon_surface = cairo_image_surface_create_for_data(
+                            static_cast<unsigned char*>(data), cairo_fmt, ibuf->buffer->width,
+                            ibuf->buffer->height, static_cast<int>(stride));
+                        const double scale = static_cast<double>(icon_size) / ibuf->buffer->width;
+                        cairo_save(cr);
+                        cairo_translate(cr, 2, 2);
+                        cairo_scale(cr, scale, scale);
+                        cairo_set_source_surface(cr, icon_surface, 0, 0);
+                        cairo_paint(cr);
+                        cairo_restore(cr);
 
-                    cairo_surface_destroy(icon_surface);
+                        cairo_surface_destroy(icon_surface);
+                        text_left = icon_size + 4;
+                    }
                     wlr_buffer_end_data_ptr_access(ibuf->buffer);
-                    text_left = icon_size + 4;
                 }
             }
         }
     }
 
-draw_text:
+    if (text_left == 0 && fallback_icon) {
+        const int icon_size = h - 4;
+        if (icon_size > 0) {
+            const double scale = static_cast<double>(icon_size) /
+                                 std::max(cairo_image_surface_get_width(fallback_icon),
+                                          cairo_image_surface_get_height(fallback_icon));
+            const int iw = static_cast<int>(cairo_image_surface_get_width(fallback_icon) * scale);
+            const int ih = static_cast<int>(cairo_image_surface_get_height(fallback_icon) * scale);
+            cairo_save(cr);
+            cairo_translate(cr, 2 + (icon_size - iw) / 2.0, 2 + (icon_size - ih) / 2.0);
+            cairo_scale(cr, scale, scale);
+            cairo_set_source_surface(cr, fallback_icon, 0, 0);
+            cairo_paint(cr);
+            cairo_restore(cr);
+            text_left = icon_size + 4;
+        }
+    }
+
     if (text && text[0]) {
         cairo_select_font_face(cr, "sans-serif", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
         cairo_set_font_size(cr, h * 0.55);
@@ -1257,7 +1282,7 @@ void taskbar::layout() {
             lighten_color(base_bg, hover_bg);
             bg = hover_bg;
         }
-        render_button(ws_labels_[i], num, nullptr, false, ws_button_w, button_h, bg,
+        render_button(ws_labels_[i], num, nullptr, nullptr, false, ws_button_w, button_h, bg,
                       cfg->color_task_text);
         cursor_x += ws_button_w + pad;
     }
@@ -1436,8 +1461,8 @@ void taskbar::layout() {
             }
 
             const char* title = ds.btn->v->toplevel->title ? ds.btn->v->toplevel->title : "";
-            render_button(ds.btn->label, title, ds.btn->v->icon, ds.btn->v->pinned, button_w,
-                          button_h, bg, cfg->color_task_text);
+            render_button(ds.btn->label, title, ds.btn->v->icon, ds.btn->cached_icon,
+                          ds.btn->v->pinned, button_w, button_h, bg, cfg->color_task_text);
             cx += button_w + pad;
         } else if (ds.pin_idx >= 0) { // launcher with no running app
             ds.x = cx;
@@ -1565,6 +1590,14 @@ void taskbar::view_added(view* v) {
     auto btn = std::make_unique<task_button>();
     btn->v = v;
     btn->label = wlr_scene_buffer_create(tree_, nullptr);
+
+    const char* app_id = v->toplevel->app_id;
+    if (app_id && app_id[0]) {
+        const int target = height_ - 2 * srv_->cfg.taskbar_button_pad;
+        if (target > 0) {
+            btn->cached_icon = load_app_icon(app_id, target);
+        }
+    }
 
     // redraw the taskbar whenever this window's title changes
     btn->title_changed.connect(&v->toplevel->events.set_title, [this](void*) { layout(); });

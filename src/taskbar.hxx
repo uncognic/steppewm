@@ -42,8 +42,10 @@ class bat_info {
 
 class task_button {
   public:
+    ~task_button();
     view* v{};
     struct wlr_scene_buffer* label{};
+    struct _cairo_surface* cached_icon{};
     Listener title_changed;
 };
 
@@ -76,7 +78,8 @@ class taskbar {
   private:
     void layout();
     static void render_button(struct wlr_scene_buffer* scene_buf, const char* text,
-                              struct wlr_xdg_toplevel_icon_v1* icon, bool pinned, int w, int h,
+                              struct wlr_xdg_toplevel_icon_v1* icon,
+                              struct _cairo_surface* fallback_icon, bool pinned, int w, int h,
                               float bg[4], float fg[4]);
     void render_clock();
     void render_battery();
