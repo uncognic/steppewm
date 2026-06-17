@@ -112,6 +112,15 @@ class view {
     Listener request_fullscreen;
     Listener request_minimize;
     Listener title_changed;
+    Listener app_id_changed;
+
+    struct wlr_foreign_toplevel_handle_v1* foreign_handle;
+    struct wlr_ext_foreign_toplevel_handle_v1* foreign_ext_handle;
+    Listener ft_request_maximize;
+    Listener ft_request_minimize;
+    Listener ft_request_activate;
+    Listener ft_request_fullscreen;
+    Listener ft_request_close;
 
     // window operations
     void focus(struct wlr_surface* surface);

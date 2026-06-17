@@ -67,6 +67,9 @@ void view::focus_next(server* s, const view* skip) {
 void view::minimize(bool min) {
     minimized = min;
     update_visibility();
+    if (foreign_handle) {
+        wlr_foreign_toplevel_handle_v1_set_minimized(foreign_handle, min);
+    }
     taskbar::refresh_taskbars(srv);
 }
 
@@ -405,6 +408,51 @@ void view::handle_map(view* v) {
             out->output_taskbar->view_added(v);
         }
     }
+    // foreign-toplevel management handle
+    v->foreign_handle = wlr_foreign_toplevel_handle_v1_create(v->srv->foreign_toplevel_mgr);
+    if (v->foreign_handle) {
+        wlr_foreign_toplevel_handle_v1_set_title(v->foreign_handle, v->toplevel->title);
+        wlr_foreign_toplevel_handle_v1_set_app_id(v->foreign_handle, v->toplevel->app_id);
+
+        v->ft_request_maximize.connect(
+            &v->foreign_handle->events.request_maximize, [v](void* data) {
+                auto* e = static_cast<wlr_foreign_toplevel_handle_v1_maximized_event*>(data);
+                apply_state(v, e->maximized, v->fullscreen);
+            });
+        v->ft_request_minimize.connect(
+            &v->foreign_handle->events.request_minimize, [v](void* data) {
+                auto* e = static_cast<wlr_foreign_toplevel_handle_v1_minimized_event*>(data);
+                if (e->minimized) {
+                    v->minimize(true);
+                    view::focus_next(v->srv, v);
+                } else {
+                    v->minimize(false);
+                    v->focus(v->toplevel->base->surface);
+                }
+            });
+        v->ft_request_activate.connect(&v->foreign_handle->events.request_activate, [v](void*) {
+            if (v->workspace != v->srv->current_workspace) {
+                workspace_switch(v->srv, v->workspace);
+            }
+            v->focus(v->toplevel->base->surface);
+        });
+        v->ft_request_fullscreen.connect(
+            &v->foreign_handle->events.request_fullscreen, [v](void* data) {
+                auto* e = static_cast<wlr_foreign_toplevel_handle_v1_fullscreen_event*>(data);
+                apply_state(v, v->maximized, e->fullscreen);
+            });
+        v->ft_request_close.connect(&v->foreign_handle->events.request_close,
+                                    [v](void*) { wlr_xdg_toplevel_send_close(v->toplevel); });
+    }
+
+    // ext-foreign-toplevel-list handle
+    const wlr_ext_foreign_toplevel_handle_v1_state ext = {
+        .title = v->toplevel->title,
+        .app_id = v->toplevel->app_id,
+    };
+    v->foreign_ext_handle =
+        wlr_ext_foreign_toplevel_handle_v1_create(v->srv->foreign_toplevel_list, &ext);
+
     v->focus(v->toplevel->base->surface);
 }
 
@@ -431,6 +479,21 @@ void view::handle_unmap(view* v) {
     // unfocus pointer if is focused currently
     if (v->srv->seat->pointer_state.focused_surface == v->toplevel->base->surface) {
         wlr_seat_pointer_clear_focus(v->srv->seat);
+    }
+
+    // destroy foreign toplevel handles
+    v->ft_request_maximize.disconnect();
+    v->ft_request_minimize.disconnect();
+    v->ft_request_activate.disconnect();
+    v->ft_request_fullscreen.disconnect();
+    v->ft_request_close.disconnect();
+    if (v->foreign_handle) {
+        wlr_foreign_toplevel_handle_v1_destroy(v->foreign_handle);
+        v->foreign_handle = nullptr;
+    }
+    if (v->foreign_ext_handle) {
+        wlr_ext_foreign_toplevel_handle_v1_destroy(v->foreign_ext_handle);
+        v->foreign_ext_handle = nullptr;
     }
 
     // set properties
@@ -498,6 +561,21 @@ void view::handle_destroy(view* v) {
     // clear cursor focus
     if (v->srv->seat->pointer_state.focused_surface == v->toplevel->base->surface) {
         wlr_seat_pointer_clear_focus(v->srv->seat);
+    }
+
+    // destroy foreign toplevel handles
+    v->ft_request_maximize.disconnect();
+    v->ft_request_minimize.disconnect();
+    v->ft_request_activate.disconnect();
+    v->ft_request_fullscreen.disconnect();
+    v->ft_request_close.disconnect();
+    if (v->foreign_handle) {
+        wlr_foreign_toplevel_handle_v1_destroy(v->foreign_handle);
+        v->foreign_handle = nullptr;
+    }
+    if (v->foreign_ext_handle) {
+        wlr_ext_foreign_toplevel_handle_v1_destroy(v->foreign_ext_handle);
+        v->foreign_ext_handle = nullptr;
     }
 
     // set properties
@@ -590,6 +668,10 @@ void view::apply_state(view* v, bool maximized, bool fullscreen) {
     wlr_xdg_toplevel_set_maximized(v->toplevel, maximized);
     wlr_xdg_toplevel_set_fullscreen(v->toplevel, fullscreen);
     wlr_xdg_toplevel_set_tiled(v->toplevel, 0);
+    if (v->foreign_handle) {
+        wlr_foreign_toplevel_handle_v1_set_maximized(v->foreign_handle, maximized);
+        wlr_foreign_toplevel_handle_v1_set_fullscreen(v->foreign_handle, fullscreen);
+    }
 
     // hide decorations and lift the window over the taskbar while fullscreen
     v->deco_set_visible(!fullscreen);
@@ -696,6 +778,10 @@ void view::init(server* s) {
     s->new_deco.notify = view::deco_new;
     wl_signal_add(&s->deco_manager->events.new_toplevel_decoration, &s->new_deco);
 
+    // foreign-toplevel protocols
+    s->foreign_toplevel_mgr = wlr_foreign_toplevel_manager_v1_create(s->display);
+    s->foreign_toplevel_list = wlr_ext_foreign_toplevel_list_v1_create(s->display, 1);
+
     // xdg-toplevel-icon protocol
     s->icon_mgr = wlr_xdg_toplevel_icon_manager_v1_create(s->display, 1);
     int icon_sizes[] = {16, 24, 32, 48};
@@ -719,6 +805,8 @@ void view::on_new(struct wl_listener* listener, void* data) {
     v->pinned = false;
     v->snapped = snap_edge::NONE;
     v->icon = nullptr;
+    v->foreign_handle = nullptr;
+    v->foreign_ext_handle = nullptr;
 
     // whole scene for the window (title bar, border, surface)
     v->scene_tree = wlr_scene_tree_create(&s->scene->tree);
@@ -747,7 +835,31 @@ void view::on_new(struct wl_listener* listener, void* data) {
                                   [v](void*) { handle_request_fullscreen(v); });
     v->request_minimize.connect(&toplevel->events.request_minimize,
                                 [v](void*) { handle_request_minimize(v); });
-    v->title_changed.connect(&toplevel->events.set_title, [v](void*) { v->deco_update(); });
+    v->title_changed.connect(&toplevel->events.set_title, [v](void*) {
+        v->deco_update();
+        if (v->foreign_handle) {
+            wlr_foreign_toplevel_handle_v1_set_title(v->foreign_handle, v->toplevel->title);
+        }
+        if (v->foreign_ext_handle) {
+            const wlr_ext_foreign_toplevel_handle_v1_state ext = {
+                .title = v->toplevel->title,
+                .app_id = v->toplevel->app_id,
+            };
+            wlr_ext_foreign_toplevel_handle_v1_update_state(v->foreign_ext_handle, &ext);
+        }
+    });
+    v->app_id_changed.connect(&toplevel->events.set_app_id, [v](void*) {
+        if (v->foreign_handle) {
+            wlr_foreign_toplevel_handle_v1_set_app_id(v->foreign_handle, v->toplevel->app_id);
+        }
+        if (v->foreign_ext_handle) {
+            const wlr_ext_foreign_toplevel_handle_v1_state ext = {
+                .title = v->toplevel->title,
+                .app_id = v->toplevel->app_id,
+            };
+            wlr_ext_foreign_toplevel_handle_v1_update_state(v->foreign_ext_handle, &ext);
+        }
+    });
 }
 
 void view::handle_set_icon(struct wl_listener* listener, void* data) {
@@ -992,11 +1104,13 @@ void view::focus(struct wlr_surface* surface) {
         struct wlr_xdg_surface* xdg = wlr_xdg_surface_try_from_wlr_surface(prev);
         if (xdg && xdg->role == WLR_XDG_SURFACE_ROLE_TOPLEVEL) {
             wlr_xdg_toplevel_set_activated(xdg->toplevel, false);
-            view* prev_view = static_cast<view*>(xdg->toplevel->base->data);
+            auto prev_view = static_cast<view*>(xdg->toplevel->base->data);
 
-            // unfocus it
             if (prev_view) {
                 prev_view->deco_set_focus(false);
+                if (prev_view->foreign_handle) {
+                    wlr_foreign_toplevel_handle_v1_set_activated(prev_view->foreign_handle, false);
+                }
             }
         }
     }
@@ -1006,6 +1120,9 @@ void view::focus(struct wlr_surface* surface) {
     wl_list_remove(&link);
     wl_list_insert(&s->views, &link);
     wlr_xdg_toplevel_set_activated(toplevel, true);
+    if (foreign_handle) {
+        wlr_foreign_toplevel_handle_v1_set_activated(foreign_handle, true);
+    }
     s->hovered_deco_view = nullptr;
     s->hovered_deco_node = nullptr;
     deco_set_focus(true);

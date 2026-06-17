@@ -98,6 +98,10 @@ class server {
     struct wlr_xdg_toplevel_icon_manager_v1* icon_mgr;
     struct wl_listener set_icon;
 
+    // foreign-toplevel protocols
+    struct wlr_foreign_toplevel_manager_v1* foreign_toplevel_mgr;
+    struct wlr_ext_foreign_toplevel_list_v1* foreign_toplevel_list;
+
     // non-null only when visible
     switcher* sw;
 
