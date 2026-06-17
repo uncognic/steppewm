@@ -1257,7 +1257,7 @@ void taskbar::layout() {
     }
 
     // first task button starts just past the indicators
-    const int task_row_left = cursor_x;
+    const int task_row_left = cursor_x + 6;
 
     // sync pin label scene buffers and icon cache to match config
     bool pins_changed = static_cast<int>(pin_labels_.size()) != npins;
