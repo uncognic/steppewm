@@ -31,6 +31,9 @@ using namespace steppewm;
 void output::on_frame(struct wl_listener* listener, void* data) {
     (void) data;
     output* out = wl_container_of(listener, out, frame);
+    if (out->dpms_off) {
+        return;
+    }
     server* s = out->srv;
     struct wlr_scene_output* scene_output = wlr_scene_get_scene_output(s->scene, out->wlr_output);
     if (!scene_output) {
@@ -335,12 +338,18 @@ void output::on_set_gamma(struct wl_listener* listener, void* data) {
 }
 
 void output::on_power_set_mode(struct wl_listener* listener, void* data) {
-    (void) listener;
+    server* s = wl_container_of(listener, s, output_power_set_mode);
     const auto* event = static_cast<struct wlr_output_power_v1_set_mode_event*>(data);
+    const bool on = event->mode == ZWLR_OUTPUT_POWER_V1_MODE_ON;
+
+    output* out = find_for_wlr_output(s, event->output);
+    if (out) {
+        out->dpms_off = !on;
+    }
 
     wlr_output_state state{};
     wlr_output_state_init(&state);
-    wlr_output_state_set_enabled(&state, event->mode == ZWLR_OUTPUT_POWER_V1_MODE_ON);
+    wlr_output_state_set_enabled(&state, on);
     wlr_output_commit_state(event->output, &state);
     wlr_output_state_finish(&state);
 }
@@ -355,6 +364,7 @@ void output::on_new(struct wl_listener* listener, void* data) {
     auto* out = new output();
     out->srv = s;
     out->wlr_output = wlr_output;
+    out->dpms_off = false;
     wl_list_init(&out->layer_surfaces);
 
     out->frame.notify = on_frame;

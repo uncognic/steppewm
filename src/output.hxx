@@ -34,6 +34,7 @@ class output {
     server* srv;
     struct wlr_output *wlr_output;
     struct wlr_scene_output *scene_output;
+    bool dpms_off;
 
     taskbar* output_taskbar;
 
