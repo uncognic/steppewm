@@ -84,6 +84,7 @@ class server {
     int cascade_n;
     int cascade_x;
     int current_workspace;
+    int max_visible_workspace{1};
 
     // layer shell
     struct wlr_layer_shell_v1* layer_shell;

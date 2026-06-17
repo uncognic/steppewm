@@ -1238,9 +1238,15 @@ void taskbar::layout() {
     const int ws_button_w = button_h;
     ws_button_w_ = ws_button_w;
     int cursor_x = pad;
+    const int visible_ws = srv_->max_visible_workspace + 1;
 
     // draw each button
     for (int i = 0; i < num_workspaces; i++) {
+        if (i >= visible_ws) {
+            wlr_scene_node_set_enabled(&ws_labels_[i]->node, false);
+            continue;
+        }
+        wlr_scene_node_set_enabled(&ws_labels_[i]->node, true);
         wlr_scene_node_set_position(&ws_labels_[i]->node, cursor_x, pad);
         char num[4];
         snprintf(num, sizeof(num), "%d", i + 1);
@@ -1719,7 +1725,8 @@ int taskbar::workspace_at(double x, double y) const {
     }
 
     int idx = (local_x - pad) / (ws_button_w + pad);
-    if (idx < 0 || idx >= num_workspaces) {
+    const int visible_ws = srv_->max_visible_workspace + 1;
+    if (idx < 0 || idx >= visible_ws) {
         return -1;
     }
     // reject clicks in the gap between indicators

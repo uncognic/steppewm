@@ -87,6 +87,9 @@ void view::workspace_switch(server* s, int workspace) {
         return;
     }
     s->current_workspace = workspace;
+    if (workspace > s->max_visible_workspace) {
+        s->max_visible_workspace = workspace;
+    }
 
     switcher::cancel(s);
 
@@ -121,6 +124,9 @@ void view::move_to_workspace(int ws) {
     }
     pinned = false;
     workspace = ws;
+    if (ws > srv->max_visible_workspace) {
+        srv->max_visible_workspace = ws;
+    }
     update_visibility();
 
     // the window left the current workspace

@@ -109,7 +109,7 @@ end
 -- pin("firefox", "firefox")
 -- pin("org.gnome.Nautilus", "nautilus")
 -- pin("foot", "foot")
--- pin("signal", "flatpak run org.signal.Signal")
+-- pin("org.signal.Signal", "flatpak run org.signal.Signal") -- signal's app_id for some reason is the full one but yeah
 -- pin("spotify", "flatpak run com.spotify.Client")
 
 -- taskbar
