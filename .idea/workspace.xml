@@ -30,15 +30,9 @@
     </configurations>
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="fe9dad27-3720-49d7-9f5f-f6f2962f1612" name="Changes" comment="use .cc">
-      <change beforePath="$PROJECT_DIR$/.idea/.gitignore" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/codeStyles/Project.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/codeStyles/codeStyleConfig.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/dictionaries/project.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/editor.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/editor.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/meson.build" beforeDir="false" />
+    <list default="true" id="fe9dad27-3720-49d7-9f5f-f6f2962f1612" name="Changes" comment="actions">
+      <change beforePath="$PROJECT_DIR$/.github/workflows/build.yml" beforeDir="false" afterPath="$PROJECT_DIR$/.github/workflows/build.yml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -246,23 +240,7 @@
       <workItem from="1781813398117" duration="5000" />
       <workItem from="1781813441486" duration="40000" />
       <workItem from="1781813497173" duration="230000" />
-      <workItem from="1781814334106" duration="854000" />
-    </task>
-    <task id="LOCAL-00044" summary="idle-notify-v1">
-      <option name="closed" value="true" />
-      <created>1780787046012</created>
-      <option name="number" value="00044" />
-      <option name="presentableId" value="LOCAL-00044" />
-      <option name="project" value="LOCAL" />
-      <updated>1780787046012</updated>
-    </task>
-    <task id="LOCAL-00045" summary="idle-inhibit-v1">
-      <option name="closed" value="true" />
-      <created>1780797997194</created>
-      <option name="number" value="00045" />
-      <option name="presentableId" value="LOCAL-00045" />
-      <option name="project" value="LOCAL" />
-      <updated>1780797997194</updated>
+      <workItem from="1781814334106" duration="1825000" />
     </task>
     <task id="LOCAL-00046" summary="move pointer_constraint and idle_inhibitor to classes">
       <option name="closed" value="true" />
@@ -640,7 +618,23 @@
       <option name="project" value="LOCAL" />
       <updated>1781813267465</updated>
     </task>
-    <option name="localTasksCounter" value="93" />
+    <task id="LOCAL-00093" summary="CMake">
+      <option name="closed" value="true" />
+      <created>1781815210383</created>
+      <option name="number" value="00093" />
+      <option name="presentableId" value="LOCAL-00093" />
+      <option name="project" value="LOCAL" />
+      <updated>1781815210383</updated>
+    </task>
+    <task id="LOCAL-00094" summary="actions">
+      <option name="closed" value="true" />
+      <created>1781815498978</created>
+      <option name="number" value="00094" />
+      <option name="presentableId" value="LOCAL-00094" />
+      <option name="project" value="LOCAL" />
+      <updated>1781815498978</updated>
+    </task>
+    <option name="localTasksCounter" value="95" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -664,8 +658,6 @@
     </option>
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="remove wayland signals before destroying dbus" />
-    <MESSAGE value="fix popup clicking&#10;&#10;focus() early returns when the passed surface is the same as the keyboard focus. passing 'surface', the popup, does not early return since the keyboard focus is the toplevel window that made the popup. it tries to focus the popup, closing it before a click can be made. instead, pass v-&gt;toplevel-&gt;base-&gt;surface which is the toplevel window that made the popup, and it will see it is already focused and will early exit" />
     <MESSAGE value="fix gap where taskbar would be on secondary monitors when taskbars on all monitors are off&#10;&#10;even when the taskbar is off on non primary monitors, the code reserves the height set in the config. use a helper to check if output-&gt;output_taskbar is valid and return the height." />
     <MESSAGE value="add double clicking the titlebar to toggle maximize" />
     <MESSAGE value="add flatpak example pin to config" />
@@ -689,7 +681,9 @@
     <MESSAGE value="add README" />
     <MESSAGE value="tray" />
     <MESSAGE value="use .cc" />
-    <option name="LAST_COMMIT_MESSAGE" value="use .cc" />
+    <MESSAGE value="CMake" />
+    <MESSAGE value="actions" />
+    <option name="LAST_COMMIT_MESSAGE" value="actions" />
     <option name="REFORMAT_BEFORE_PROJECT_COMMIT" value="true" />
   </component>
 </project>
