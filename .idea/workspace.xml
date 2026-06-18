@@ -1,0 +1,695 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="SELECTIVE" />
+  </component>
+  <component name="BackendCodeEditorMiscSettings">
+    <option name="/Default/Environment/Hierarchy/GeneratedFilesCacheKey/Timestamp/@EntryValue" value="8" type="long" />
+    <option name="/Default/Housekeeping/FeatureSuggestion/FeatureSuggestionManager/DisabledSuggesters/=SwitchToGoToActionSuggester/@EntryIndexedValue" value="true" type="bool" />
+    <option name="/Default/Housekeeping/LiveTemplatesHousekeeping/HotspotSessionHintIsShown/@EntryValue" value="true" type="bool" />
+  </component>
+  <component name="CMakePresetLoader">{
+  &quot;useNewFormat&quot;: true
+}</component>
+  <component name="CMakeProjectFlavorService">
+    <option name="flavorId" value="CMakePlainProjectFlavor" />
+  </component>
+  <component name="CMakeReloadState">
+    <option name="reloaded" value="true" />
+  </component>
+  <component name="CMakeRunConfigurationManager">
+    <generated>
+      <config projectName="steppewm" targetName="all" />
+      <config projectName="steppewm" targetName="steppewm" />
+      <config projectName="steppewm" targetName="protocols" />
+    </generated>
+  </component>
+  <component name="CMakeSettings">
+    <configurations>
+      <configuration PROFILE_NAME="Debug" ENABLED="true" GENERATION_DIR="build" CONFIG_NAME="Debug" />
+    </configurations>
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="fe9dad27-3720-49d7-9f5f-f6f2962f1612" name="Changes" comment="use .cc">
+      <change beforePath="$PROJECT_DIR$/.idea/.gitignore" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/codeStyles/Project.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/codeStyles/codeStyleConfig.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/dictionaries/project.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/editor.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/editor.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/meson.build" beforeDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="ClangdSettings">
+    <option name="formatViaClangd" value="false" />
+  </component>
+  <component name="ExecutionTargetManager" SELECTED_TARGET="CMakeBuildProfile:Debug" />
+  <component name="ExternalProjectsData">
+    <projectState path="$PROJECT_DIR$">
+      <ProjectState />
+    </projectState>
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="HighlightingSettingsPerFile">
+    <setting file="file:///usr/include/cairo/cairo.h" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file:///usr/include/wayland-server-core.h" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file:///usr/include/wayland-util.h" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file:///usr/include/wlroots-0.19/wlr/types/wlr_output_power_management_v1.h" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file:///usr/include/wlroots-0.19/wlr/types/wlr_scene.h" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file:///usr/include/wlroots-0.19/wlr/types/wlr_session_lock_v1.h" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file:///usr/include/wlroots-0.19/wlr/types/wlr_viewporter.h" root0="FORCE_HIGHLIGHTING" />
+  </component>
+  <component name="MacroExpansionManager">
+    <option name="directoryName" value="NAAxoYOw" />
+  </component>
+  <component name="MesonLocalSettings">
+    <option name="availableProjects">
+      <map>
+        <entry>
+          <key>
+            <ExternalProjectPojo>
+              <option name="name" value="steppewm" />
+              <option name="path" value="$PROJECT_DIR$" />
+            </ExternalProjectPojo>
+          </key>
+          <value>
+            <list>
+              <ExternalProjectPojo>
+                <option name="name" value="steppewm" />
+                <option name="path" value="$PROJECT_DIR$" />
+              </ExternalProjectPojo>
+            </list>
+          </value>
+        </entry>
+      </map>
+    </option>
+    <option name="projectSyncType">
+      <map>
+        <entry key="$PROJECT_DIR$" value="RE_IMPORT" />
+      </map>
+    </option>
+  </component>
+  <component name="ProblemsViewState">
+    <option name="selectedTabId" value="CurrentFile" />
+  </component>
+  <component name="ProjectApplicationVersion">
+    <option name="ide" value="CLion" />
+    <option name="majorVersion" value="2026" />
+    <option name="minorVersion" value="1.2" />
+    <option name="productBranch" value="Classic" />
+  </component>
+  <component name="ProjectColorInfo">{
+  &quot;associatedIndex&quot;: 4,
+  &quot;fromUser&quot;: false
+}</component>
+  <component name="ProjectId" id="3EJvJ2dIHcovYPGwMUJlCiKpMti" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
+    &quot;Native Application.steppewm.executor&quot;: &quot;Debug&quot;,
+    &quot;RunOnceActivity.RadMigrateCodeStyle&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.cidr.known.project.marker&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.readMode.enableVisualFormatting&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.typescript.service.memoryLimit.init&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.west.config.association.type.startup.service&quot;: &quot;true&quot;,
+    &quot;SHARE_PROJECT_CONFIGURATION_FILES&quot;: &quot;true&quot;,
+    &quot;cf.advertisement.text.overridden&quot;: &quot;true&quot;,
+    &quot;cf.first.check.clang-format&quot;: &quot;false&quot;,
+    &quot;cidr.known.project.marker&quot;: &quot;true&quot;,
+    &quot;codeWithMe.voiceChat.enabledByDefault&quot;: &quot;false&quot;,
+    &quot;com.intellij.codeInspection.ui.actions.InspectionResultsExportActionProvider.location&quot;: &quot;/home/user/git/personal/steppewm&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;main&quot;,
+    &quot;git.auto.fetch.suggestion.counter&quot;: &quot;1&quot;,
+    &quot;last_opened_file_path&quot;: &quot;/home/user/git/personal/steppewm&quot;,
+    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
+    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
+    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
+    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
+    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
+    &quot;org.rust.first.attach.projects&quot;: &quot;true&quot;,
+    &quot;run.code.analysis.last.selected.profile&quot;: &quot;pProject Default&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;CMakeSettings&quot;,
+    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
+  }
+}</component>
+  <component name="RunAnythingCache">
+    <option name="myCommands">
+      <command value="sudo" />
+    </option>
+  </component>
+  <component name="RunManager" selected="Native Application.steppewm">
+    <configuration default="true" type="CLionExternalRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true">
+      <method v="2">
+        <option name="CLION.EXTERNAL.BUILD" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="all" type="CLionNativeAppRunConfigurationType" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="steppewm" TARGET_NAME="all" CONFIG_NAME="Default" version="1">
+      <method v="2">
+        <option name="CLION.COMPOUND.BUILD" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="steppewm" type="CLionNativeAppRunConfigurationType" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="steppewm" TARGET_NAME="steppewm" CONFIG_NAME="Default" version="1" RUN_TARGET_PROJECT_NAME="steppewm" RUN_TARGET_NAME="steppewm">
+      <method v="2">
+        <option name="CLION.COMPOUND.BUILD" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="protocols" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="steppewm" TARGET_NAME="protocols" CONFIG_NAME="Debug">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <list>
+      <item itemvalue="CMake Application.protocols" />
+      <item itemvalue="Native Application.all" />
+      <item itemvalue="Native Application.steppewm" />
+    </list>
+  </component>
+  <component name="RustProjectSettings">
+    <option name="toolchainHomeDirectory" value="$USER_HOME$/.cargo/bin" />
+  </component>
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="fe9dad27-3720-49d7-9f5f-f6f2962f1612" name="Changes" comment="" />
+      <created>1779909411606</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1779909411606</updated>
+      <workItem from="1779909412655" duration="2814000" />
+      <workItem from="1779921209766" duration="5621000" />
+      <workItem from="1779935739611" duration="2769000" />
+      <workItem from="1780118056951" duration="3416000" />
+      <workItem from="1780170047905" duration="5040000" />
+      <workItem from="1780190531436" duration="24983000" />
+      <workItem from="1780326077483" duration="7039000" />
+      <workItem from="1780358901077" duration="3842000" />
+      <workItem from="1780371357530" duration="708000" />
+      <workItem from="1780454769281" duration="3976000" />
+      <workItem from="1780544724508" duration="1395000" />
+      <workItem from="1780608900033" duration="776000" />
+      <workItem from="1780621185426" duration="15651000" />
+      <workItem from="1780769270908" duration="15366000" />
+      <workItem from="1780843379435" duration="12220000" />
+      <workItem from="1780871409769" duration="1211000" />
+      <workItem from="1780955611400" duration="116000" />
+      <workItem from="1780955818324" duration="6973000" />
+      <workItem from="1781052396766" duration="4275000" />
+      <workItem from="1781116062122" duration="5061000" />
+      <workItem from="1781222320038" duration="4088000" />
+      <workItem from="1781306850232" duration="13826000" />
+      <workItem from="1781375727896" duration="56000" />
+      <workItem from="1781376264959" duration="6025000" />
+      <workItem from="1781406006857" duration="3729000" />
+      <workItem from="1781453970434" duration="36000" />
+      <workItem from="1781454026084" duration="225000" />
+      <workItem from="1781455314373" duration="1340000" />
+      <workItem from="1781459675396" duration="179000" />
+      <workItem from="1781459866985" duration="9269000" />
+      <workItem from="1781482555908" duration="5589000" />
+      <workItem from="1781494233143" duration="269000" />
+      <workItem from="1781545614432" duration="2202000" />
+      <workItem from="1781550924136" duration="36000" />
+      <workItem from="1781550978072" duration="43000" />
+      <workItem from="1781551117295" duration="133000" />
+      <workItem from="1781552045640" duration="1522000" />
+      <workItem from="1781554804941" duration="111000" />
+      <workItem from="1781554943567" duration="1783000" />
+      <workItem from="1781559644625" duration="226000" />
+      <workItem from="1781559967735" duration="186000" />
+      <workItem from="1781560299491" duration="33000" />
+      <workItem from="1781561448691" duration="3594000" />
+      <workItem from="1781580059202" duration="1587000" />
+      <workItem from="1781665597967" duration="3319000" />
+      <workItem from="1781717750749" duration="384000" />
+      <workItem from="1781718432320" duration="159000" />
+      <workItem from="1781718624348" duration="861000" />
+      <workItem from="1781734017183" duration="553000" />
+      <workItem from="1781734749863" duration="881000" />
+      <workItem from="1781735914654" duration="969000" />
+      <workItem from="1781736942639" duration="876000" />
+      <workItem from="1781738442616" duration="790000" />
+      <workItem from="1781746479119" duration="1512000" />
+      <workItem from="1781754924548" duration="3748000" />
+      <workItem from="1781813398117" duration="5000" />
+      <workItem from="1781813441486" duration="40000" />
+      <workItem from="1781813497173" duration="230000" />
+      <workItem from="1781814334106" duration="854000" />
+    </task>
+    <task id="LOCAL-00044" summary="idle-notify-v1">
+      <option name="closed" value="true" />
+      <created>1780787046012</created>
+      <option name="number" value="00044" />
+      <option name="presentableId" value="LOCAL-00044" />
+      <option name="project" value="LOCAL" />
+      <updated>1780787046012</updated>
+    </task>
+    <task id="LOCAL-00045" summary="idle-inhibit-v1">
+      <option name="closed" value="true" />
+      <created>1780797997194</created>
+      <option name="number" value="00045" />
+      <option name="presentableId" value="LOCAL-00045" />
+      <option name="project" value="LOCAL" />
+      <updated>1780797997194</updated>
+    </task>
+    <task id="LOCAL-00046" summary="move pointer_constraint and idle_inhibitor to classes">
+      <option name="closed" value="true" />
+      <created>1780801973928</created>
+      <option name="number" value="00046" />
+      <option name="presentableId" value="LOCAL-00046" />
+      <option name="project" value="LOCAL" />
+      <updated>1780801973928</updated>
+    </task>
+    <task id="LOCAL-00047" summary="wlr-output-power-management-v1">
+      <option name="closed" value="true" />
+      <created>1780843869617</created>
+      <option name="number" value="00047" />
+      <option name="presentableId" value="LOCAL-00047" />
+      <option name="project" value="LOCAL" />
+      <updated>1780843869617</updated>
+    </task>
+    <task id="LOCAL-00048" summary="ext-session-lock-v1">
+      <option name="closed" value="true" />
+      <created>1780858593447</created>
+      <option name="number" value="00048" />
+      <option name="presentableId" value="LOCAL-00048" />
+      <option name="project" value="LOCAL" />
+      <updated>1780858593447</updated>
+    </task>
+    <task id="LOCAL-00049" summary="wlr_gamma_control_v1">
+      <option name="closed" value="true" />
+      <created>1780867039560</created>
+      <option name="number" value="00049" />
+      <option name="presentableId" value="LOCAL-00049" />
+      <option name="project" value="LOCAL" />
+      <updated>1780867039560</updated>
+    </task>
+    <task id="LOCAL-00050" summary="drag and drop">
+      <option name="closed" value="true" />
+      <created>1780956065010</created>
+      <option name="number" value="00050" />
+      <option name="presentableId" value="LOCAL-00050" />
+      <option name="project" value="LOCAL" />
+      <updated>1780956065010</updated>
+    </task>
+    <task id="LOCAL-00051" summary="xdg-activation">
+      <option name="closed" value="true" />
+      <created>1780967735599</created>
+      <option name="number" value="00051" />
+      <option name="presentableId" value="LOCAL-00051" />
+      <option name="project" value="LOCAL" />
+      <updated>1780967735599</updated>
+    </task>
+    <task id="LOCAL-00052" summary="fix crash with Chromium&#10;&#10;wlroots asserts if a client tries requesting for a change before its first commit">
+      <option name="closed" value="true" />
+      <created>1780970181050</created>
+      <option name="number" value="00052" />
+      <option name="presentableId" value="LOCAL-00052" />
+      <option name="project" value="LOCAL" />
+      <updated>1780970181050</updated>
+    </task>
+    <task id="LOCAL-00053" summary="move methods to classes">
+      <option name="closed" value="true" />
+      <created>1781052834060</created>
+      <option name="number" value="00053" />
+      <option name="presentableId" value="LOCAL-00053" />
+      <option name="project" value="LOCAL" />
+      <updated>1781052834061</updated>
+    </task>
+    <task id="LOCAL-00054" summary="wlr-data-control">
+      <option name="closed" value="true" />
+      <created>1781059626881</created>
+      <option name="number" value="00054" />
+      <option name="presentableId" value="LOCAL-00054" />
+      <option name="project" value="LOCAL" />
+      <updated>1781059626881</updated>
+    </task>
+    <task id="LOCAL-00055" summary="define environment, xwayland-satellite now works">
+      <option name="closed" value="true" />
+      <created>1781060648952</created>
+      <option name="number" value="00055" />
+      <option name="presentableId" value="LOCAL-00055" />
+      <option name="project" value="LOCAL" />
+      <updated>1781060648952</updated>
+    </task>
+    <task id="LOCAL-00056" summary="small refactorings">
+      <option name="closed" value="true" />
+      <created>1781061368037</created>
+      <option name="number" value="00056" />
+      <option name="presentableId" value="LOCAL-00056" />
+      <option name="project" value="LOCAL" />
+      <updated>1781061368037</updated>
+    </task>
+    <task id="LOCAL-00057" summary="render icons in taskbar">
+      <option name="closed" value="true" />
+      <created>1781117310520</created>
+      <option name="number" value="00057" />
+      <option name="presentableId" value="LOCAL-00057" />
+      <option name="project" value="LOCAL" />
+      <updated>1781117310521</updated>
+    </task>
+    <task id="LOCAL-00058" summary="add snapping">
+      <option name="closed" value="true" />
+      <created>1781119986080</created>
+      <option name="number" value="00058" />
+      <option name="presentableId" value="LOCAL-00058" />
+      <option name="project" value="LOCAL" />
+      <updated>1781119986080</updated>
+    </task>
+    <task id="LOCAL-00059" summary="wlr-output-management">
+      <option name="closed" value="true" />
+      <created>1781121496246</created>
+      <option name="number" value="00059" />
+      <option name="presentableId" value="LOCAL-00059" />
+      <option name="project" value="LOCAL" />
+      <updated>1781121496246</updated>
+    </task>
+    <task id="LOCAL-00060" summary="xdg-desktop-portal">
+      <option name="closed" value="true" />
+      <created>1781225634852</created>
+      <option name="number" value="00060" />
+      <option name="presentableId" value="LOCAL-00060" />
+      <option name="project" value="LOCAL" />
+      <updated>1781225634852</updated>
+    </task>
+    <task id="LOCAL-00061" summary="add more binds">
+      <option name="closed" value="true" />
+      <created>1781226200690</created>
+      <option name="number" value="00061" />
+      <option name="presentableId" value="LOCAL-00061" />
+      <option name="project" value="LOCAL" />
+      <updated>1781226200690</updated>
+    </task>
+    <task id="LOCAL-00062" summary="add window pinning">
+      <option name="closed" value="true" />
+      <created>1781307212526</created>
+      <option name="number" value="00062" />
+      <option name="presentableId" value="LOCAL-00062" />
+      <option name="project" value="LOCAL" />
+      <updated>1781307212526</updated>
+    </task>
+    <task id="LOCAL-00063" summary="add idle inhibitor button to taskbar">
+      <option name="closed" value="true" />
+      <created>1781377221846</created>
+      <option name="number" value="00063" />
+      <option name="presentableId" value="LOCAL-00063" />
+      <option name="project" value="LOCAL" />
+      <updated>1781377221847</updated>
+    </task>
+    <task id="LOCAL-00064" summary="add OSD">
+      <option name="closed" value="true" />
+      <created>1781406413654</created>
+      <option name="number" value="00064" />
+      <option name="presentableId" value="LOCAL-00064" />
+      <option name="project" value="LOCAL" />
+      <updated>1781406413655</updated>
+    </task>
+    <task id="LOCAL-00065" summary="i don't like dbus">
+      <option name="closed" value="true" />
+      <created>1781492700395</created>
+      <option name="number" value="00065" />
+      <option name="presentableId" value="LOCAL-00065" />
+      <option name="project" value="LOCAL" />
+      <updated>1781492700396</updated>
+    </task>
+    <task id="LOCAL-00066" summary="only show OSD when volume actually changed">
+      <option name="closed" value="true" />
+      <created>1781494284200</created>
+      <option name="number" value="00066" />
+      <option name="presentableId" value="LOCAL-00066" />
+      <option name="project" value="LOCAL" />
+      <updated>1781494284201</updated>
+    </task>
+    <task id="LOCAL-00067" summary="add pinning apps to taskbar">
+      <option name="closed" value="true" />
+      <created>1781547461574</created>
+      <option name="number" value="00067" />
+      <option name="presentableId" value="LOCAL-00067" />
+      <option name="project" value="LOCAL" />
+      <updated>1781547461574</updated>
+    </task>
+    <task id="LOCAL-00068" summary="remove wayland signals before destroying dbus">
+      <option name="closed" value="true" />
+      <created>1781551234977</created>
+      <option name="number" value="00068" />
+      <option name="presentableId" value="LOCAL-00068" />
+      <option name="project" value="LOCAL" />
+      <updated>1781551234978</updated>
+    </task>
+    <task id="LOCAL-00069" summary="fix popup clicking&#10;&#10;focus() early returns when the passed surface is the same as the keyboard focus. passing 'surface', the popup, does not early return since the keyboard focus is the toplevel window that made the popup. it tries to focus the popup, closing it before a click can be made. instead, pass v-&gt;toplevel-&gt;base-&gt;surface which is the toplevel window that made the popup, and it will see it is already focused and will early exit">
+      <option name="closed" value="true" />
+      <created>1781552996124</created>
+      <option name="number" value="00069" />
+      <option name="presentableId" value="LOCAL-00069" />
+      <option name="project" value="LOCAL" />
+      <updated>1781552996125</updated>
+    </task>
+    <task id="LOCAL-00070" summary="fix gap where taskbar would be on secondary monitors when taskbars on all monitors are off&#10;&#10;even when the taskbar is off on non primary monitors, the code reserves the height set in the config. use a helper to check if output-&gt;output_taskbar is valid and return the height.">
+      <option name="closed" value="true" />
+      <created>1781553402276</created>
+      <option name="number" value="00070" />
+      <option name="presentableId" value="LOCAL-00070" />
+      <option name="project" value="LOCAL" />
+      <updated>1781553402276</updated>
+    </task>
+    <task id="LOCAL-00071" summary="add double clicking the titlebar to toggle maximize">
+      <option name="closed" value="true" />
+      <created>1781554997437</created>
+      <option name="number" value="00071" />
+      <option name="presentableId" value="LOCAL-00071" />
+      <option name="project" value="LOCAL" />
+      <updated>1781554997437</updated>
+    </task>
+    <task id="LOCAL-00072" summary="add flatpak example pin to config">
+      <option name="closed" value="true" />
+      <created>1781559334285</created>
+      <option name="number" value="00072" />
+      <option name="presentableId" value="LOCAL-00072" />
+      <option name="project" value="LOCAL" />
+      <updated>1781559334285</updated>
+    </task>
+    <task id="LOCAL-00073" summary="add info prints in main.cxx">
+      <option name="closed" value="true" />
+      <created>1781559848076</created>
+      <option name="number" value="00073" />
+      <option name="presentableId" value="LOCAL-00073" />
+      <option name="project" value="LOCAL" />
+      <updated>1781559848077</updated>
+    </task>
+    <task id="LOCAL-00074" summary="add taskbar indicator scroll actions">
+      <option name="closed" value="true" />
+      <created>1781560009671</created>
+      <option name="number" value="00074" />
+      <option name="presentableId" value="LOCAL-00074" />
+      <option name="project" value="LOCAL" />
+      <updated>1781560009671</updated>
+    </task>
+    <task id="LOCAL-00075" summary="add volume_middle_button action">
+      <option name="closed" value="true" />
+      <created>1781560313138</created>
+      <option name="number" value="00075" />
+      <option name="presentableId" value="LOCAL-00075" />
+      <option name="project" value="LOCAL" />
+      <updated>1781560313138</updated>
+    </task>
+    <task id="LOCAL-00076" summary="add hover button effects">
+      <option name="closed" value="true" />
+      <created>1781565866244</created>
+      <option name="number" value="00076" />
+      <option name="presentableId" value="LOCAL-00076" />
+      <option name="project" value="LOCAL" />
+      <updated>1781565866245</updated>
+    </task>
+    <task id="LOCAL-00077" summary="fix flatpak app icon lookup">
+      <option name="closed" value="true" />
+      <created>1781581631274</created>
+      <option name="number" value="00077" />
+      <option name="presentableId" value="LOCAL-00077" />
+      <option name="project" value="LOCAL" />
+      <updated>1781581631274</updated>
+    </task>
+    <task id="LOCAL-00078" summary="show OSD when layout changed">
+      <option name="closed" value="true" />
+      <created>1781666016410</created>
+      <option name="number" value="00078" />
+      <option name="presentableId" value="LOCAL-00078" />
+      <option name="project" value="LOCAL" />
+      <updated>1781666016410</updated>
+    </task>
+    <task id="LOCAL-00079" summary="add slight gap between task buttons and workspace buttons">
+      <option name="closed" value="true" />
+      <created>1781666107048</created>
+      <option name="number" value="00079" />
+      <option name="presentableId" value="LOCAL-00079" />
+      <option name="project" value="LOCAL" />
+      <updated>1781666107048</updated>
+    </task>
+    <task id="LOCAL-00080" summary="add wlr_foreign_toplevel_management">
+      <option name="closed" value="true" />
+      <created>1781666637260</created>
+      <option name="number" value="00080" />
+      <option name="presentableId" value="LOCAL-00080" />
+      <option name="project" value="LOCAL" />
+      <updated>1781666637260</updated>
+    </task>
+    <task id="LOCAL-00081" summary="add wlr_tearing_control">
+      <option name="closed" value="true" />
+      <created>1781667039875</created>
+      <option name="number" value="00081" />
+      <option name="presentableId" value="LOCAL-00081" />
+      <option name="project" value="LOCAL" />
+      <updated>1781667039875</updated>
+    </task>
+    <task id="LOCAL-00082" summary="wlr_virtual_*">
+      <option name="closed" value="true" />
+      <created>1781667605793</created>
+      <option name="number" value="00082" />
+      <option name="presentableId" value="LOCAL-00082" />
+      <option name="project" value="LOCAL" />
+      <updated>1781667605793</updated>
+    </task>
+    <task id="LOCAL-00083" summary="add shortcut inhibit protocol">
+      <option name="closed" value="true" />
+      <created>1781717786655</created>
+      <option name="number" value="00083" />
+      <option name="presentableId" value="LOCAL-00083" />
+      <option name="project" value="LOCAL" />
+      <updated>1781717786655</updated>
+    </task>
+    <task id="LOCAL-00084" summary="dbus">
+      <option name="closed" value="true" />
+      <created>1781718644550</created>
+      <option name="number" value="00084" />
+      <option name="presentableId" value="LOCAL-00084" />
+      <option name="project" value="LOCAL" />
+      <updated>1781718644551</updated>
+    </task>
+    <task id="LOCAL-00085" summary="track dpms state">
+      <option name="closed" value="true" />
+      <created>1781735936026</created>
+      <option name="number" value="00085" />
+      <option name="presentableId" value="LOCAL-00085" />
+      <option name="project" value="LOCAL" />
+      <updated>1781735936027</updated>
+    </task>
+    <task id="LOCAL-00086" summary="update default config">
+      <option name="closed" value="true" />
+      <created>1781735943660</created>
+      <option name="number" value="00086" />
+      <option name="presentableId" value="LOCAL-00086" />
+      <option name="project" value="LOCAL" />
+      <updated>1781735943660</updated>
+    </task>
+    <task id="LOCAL-00087" summary="add bindswitch() to config">
+      <option name="closed" value="true" />
+      <created>1781736975380</created>
+      <option name="number" value="00087" />
+      <option name="presentableId" value="LOCAL-00087" />
+      <option name="project" value="LOCAL" />
+      <updated>1781736975380</updated>
+    </task>
+    <task id="LOCAL-00088" summary="use xdg theme icons for taskbar window buttons">
+      <option name="closed" value="true" />
+      <created>1781738603392</created>
+      <option name="number" value="00088" />
+      <option name="presentableId" value="LOCAL-00088" />
+      <option name="project" value="LOCAL" />
+      <updated>1781738603393</updated>
+    </task>
+    <task id="LOCAL-00089" summary="add fullscreen shortcut">
+      <option name="closed" value="true" />
+      <created>1781746790903</created>
+      <option name="number" value="00089" />
+      <option name="presentableId" value="LOCAL-00089" />
+      <option name="project" value="LOCAL" />
+      <updated>1781746790903</updated>
+    </task>
+    <task id="LOCAL-00090" summary="add README">
+      <option name="closed" value="true" />
+      <created>1781747199507</created>
+      <option name="number" value="00090" />
+      <option name="presentableId" value="LOCAL-00090" />
+      <option name="project" value="LOCAL" />
+      <updated>1781747199507</updated>
+    </task>
+    <task id="LOCAL-00091" summary="tray">
+      <option name="closed" value="true" />
+      <created>1781812788889</created>
+      <option name="number" value="00091" />
+      <option name="presentableId" value="LOCAL-00091" />
+      <option name="project" value="LOCAL" />
+      <updated>1781812788889</updated>
+    </task>
+    <task id="LOCAL-00092" summary="use .cc">
+      <option name="closed" value="true" />
+      <created>1781813267465</created>
+      <option name="number" value="00092" />
+      <option name="presentableId" value="LOCAL-00092" />
+      <option name="project" value="LOCAL" />
+      <updated>1781813267465</updated>
+    </task>
+    <option name="localTasksCounter" value="93" />
+    <servers />
+  </component>
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="version" value="3" />
+  </component>
+  <component name="VCPKGProject">
+    <isAutomaticCheckingOnLaunch value="false" />
+    <isAutomaticFoundErrors value="true" />
+    <isAutomaticReloadCMake value="true" />
+    <isAutomaticBootstrapAfterUpdate value="false" />
+  </component>
+  <component name="Vcs.Log.Tabs.Properties">
+    <option name="TAB_STATES">
+      <map>
+        <entry key="MAIN">
+          <value>
+            <State />
+          </value>
+        </entry>
+      </map>
+    </option>
+  </component>
+  <component name="VcsManagerConfiguration">
+    <MESSAGE value="remove wayland signals before destroying dbus" />
+    <MESSAGE value="fix popup clicking&#10;&#10;focus() early returns when the passed surface is the same as the keyboard focus. passing 'surface', the popup, does not early return since the keyboard focus is the toplevel window that made the popup. it tries to focus the popup, closing it before a click can be made. instead, pass v-&gt;toplevel-&gt;base-&gt;surface which is the toplevel window that made the popup, and it will see it is already focused and will early exit" />
+    <MESSAGE value="fix gap where taskbar would be on secondary monitors when taskbars on all monitors are off&#10;&#10;even when the taskbar is off on non primary monitors, the code reserves the height set in the config. use a helper to check if output-&gt;output_taskbar is valid and return the height." />
+    <MESSAGE value="add double clicking the titlebar to toggle maximize" />
+    <MESSAGE value="add flatpak example pin to config" />
+    <MESSAGE value="add info prints in main.cxx" />
+    <MESSAGE value="add taskbar indicator scroll actions" />
+    <MESSAGE value="add volume_middle_button action" />
+    <MESSAGE value="add hover button effects" />
+    <MESSAGE value="fix flatpak app icon lookup" />
+    <MESSAGE value="show OSD when layout changed" />
+    <MESSAGE value="add slight gap between task buttons and workspace buttons" />
+    <MESSAGE value="add wlr_foreign_toplevel_management" />
+    <MESSAGE value="add wlr_tearing_control" />
+    <MESSAGE value="wlr_virtual_*" />
+    <MESSAGE value="add shortcut inhibit protocol" />
+    <MESSAGE value="dbus" />
+    <MESSAGE value="track dpms state" />
+    <MESSAGE value="update default config" />
+    <MESSAGE value="add bindswitch() to config" />
+    <MESSAGE value="use xdg theme icons for taskbar window buttons" />
+    <MESSAGE value="add fullscreen shortcut" />
+    <MESSAGE value="add README" />
+    <MESSAGE value="tray" />
+    <MESSAGE value="use .cc" />
+    <option name="LAST_COMMIT_MESSAGE" value="use .cc" />
+    <option name="REFORMAT_BEFORE_PROJECT_COMMIT" value="true" />
+  </component>
+</project>

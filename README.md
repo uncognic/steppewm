@@ -21,6 +21,8 @@ A minimal stacking Wayland compositor using wlroots
 
 Required:
 
+- CMake
+- Make
 - wlroots 0.19
 - wayland
 - xkbcommon
@@ -38,9 +40,9 @@ Optional:
 ## Building
 
 ```
-meson setup build
-meson compile -C build
-meson install -C build
+% make configure
+% make build
+# make install
 ```
 
 ## Configuration
