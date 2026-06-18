@@ -59,3 +59,4 @@ The config I use personally is here: https://github.com/uncognic/dotfiles/blob/m
 - wlr-randr
 - wlrctl
 - wlopm
+- xwayland-satellite
