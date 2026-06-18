@@ -236,6 +236,19 @@ void keyboard::handle_key(keyboard* kbd, void* data) {
             }
         }
     }
+#ifdef HAVE_SDBUS
+    if (!handled && event->state == WL_KEYBOARD_KEY_STATE_PRESSED) {
+        auto* tray = static_cast<tray_host*>(s->tray);
+        if (tray && tray->menu_open()) {
+            for (int i = 0; i < nsyms; i++) {
+                if (syms[i] == XKB_KEY_Escape) {
+                    tray->close_menu();
+                    handled = true;
+                }
+            }
+        }
+    }
+#endif
     // check if keyboard shortcuts are inhibited for the focused surface
     bool shortcuts_inhibited = false;
     {
@@ -814,6 +827,15 @@ void server::process_cursor_motion(server* s, uint32_t time_msec) {
         return;
     }
 
+#ifdef HAVE_SDBUS
+    {
+        auto* tray = static_cast<tray_host*>(s->tray);
+        if (tray && tray->menu_open()) {
+            tray->menu_hover(s->cursor->x, s->cursor->y);
+        }
+    }
+#endif
+
     if (s->locked) {
         double sx, sy;
         struct wlr_surface* surface = nullptr;
@@ -950,6 +972,21 @@ void server::on_cursor_button(struct wl_listener* listener, void* data) {
         }
         return;
     }
+
+#ifdef HAVE_SDBUS
+    {
+        auto* tray = static_cast<tray_host*>(s->tray);
+        if (tray && tray->menu_open()) {
+            int mi = tray->menu_item_at(s->cursor->x, s->cursor->y);
+            if (mi >= 0 && event->button == BTN_LEFT) {
+                tray->menu_click(mi);
+            } else {
+                tray->close_menu();
+            }
+            return;
+        }
+    }
+#endif
 
     if (s->locked) {
         return;

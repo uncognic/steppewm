@@ -31,8 +31,10 @@
 
 #include "wlr.hxx"
 
+#include "config.hxx"
 #include "listener.hxx"
 #include "output.hxx"
+#include "paint.hxx"
 #include "server.hxx"
 #include "taskbar.hxx"
 #include "tray.hxx"
@@ -148,6 +150,7 @@ tray_host::~tray_host() {
     if (dbus_source_) {
         wl_event_source_remove(dbus_source_);
     }
+    close_menu();
     if (conn_) {
         while (conn_->processPendingEvent()) {
         }
@@ -246,6 +249,7 @@ void tray_host::handle_register(const std::string& service, const std::string& s
             });
 
         fetch_icon(item.get());
+        fetch_menu_path(item.get());
     } catch (const sdbus::Error& e) {
         wlr_log(WLR_ERROR, "tray: proxy for %s failed: %s", bus_name.c_str(), e.what());
         return;
@@ -262,6 +266,9 @@ void tray_host::handle_register(const std::string& service, const std::string& s
 }
 
 void tray_host::handle_unregister(const std::string& bus_name) {
+    if (menu_item_ && menu_item_->bus_name == bus_name) {
+        close_menu();
+    }
     bool changed = false;
     for (auto it = items_.begin(); it != items_.end();) {
         if ((*it)->bus_name == bus_name) {
@@ -587,17 +594,334 @@ void tray_host::secondary_activate(const int index, const int x, const int y) co
     }
 }
 
-void tray_host::context_menu(const int index, const int x, const int y) const {
+// sni items have a "Menu" porperty with a dbus obj to a com.canonical.dbusmenu
+void tray_host::fetch_menu_path(tray_item* item) {
+    item->proxy->getPropertyAsync("Menu")
+        .onInterface(sdbus::InterfaceName{"org.kde.StatusNotifierItem"})
+        .uponReplyInvoke([item](std::optional<sdbus::Error> err, const sdbus::Variant& value) {
+            if (err) {
+                return;
+            }
+            try {
+                item->menu_path = value.get<sdbus::ObjectPath>();
+            } catch (const sdbus::Error&) {
+            }
+        });
+}
+
+// com.canonical.dbusmenu GetLayout returns a recursive struct
+using DbusmenuLayout =
+    sdbus::Struct<int32_t, std::map<std::string, sdbus::Variant>, std::vector<sdbus::Variant>>;
+
+// dbusmenu labels use _, _Quit -> Quit
+static std::string strip_mnemonics(const std::string& label) {
+    std::string out;
+    out.reserve(label.size());
+    for (size_t i = 0; i < label.size(); i++) {
+        if (label[i] == '_' && i + 1 < label.size()) {
+            i++;
+            out += label[i];
+        } else {
+            out += label[i];
+        }
+    }
+    return out;
+}
+
+// flatten the root's immediate children into menu_entry structs
+static void parse_layout(const DbusmenuLayout& layout, std::vector<menu_entry>& out) {
+    auto& children = std::get<2>(layout);
+    for (auto& child_var : children) {
+        DbusmenuLayout child;
+        try {
+            child = child_var.get<DbusmenuLayout>();
+        } catch (const sdbus::Error&) {
+            continue;
+        }
+        auto& props = std::get<1>(child);
+        menu_entry entry;
+        entry.id = std::get<0>(child);
+
+        auto get_str = [&](const char* key) -> std::string {
+            auto it = props.find(key);
+            if (it == props.end()) {
+                return {};
+            }
+            try {
+                return it->second.get<std::string>();
+            } catch (...) {
+                return {};
+            }
+        };
+        auto get_bool = [&](const char* key, bool def) -> bool {
+            auto it = props.find(key);
+            if (it == props.end()) {
+                return def;
+            }
+            try {
+                return it->second.get<bool>();
+            } catch (...) {
+                return def;
+            }
+        };
+        auto get_int = [&](const char* key, int32_t def) -> int32_t {
+            auto it = props.find(key);
+            if (it == props.end()) {
+                return def;
+            }
+            try {
+                return it->second.get<int32_t>();
+            } catch (...) {
+                return def;
+            }
+        };
+
+        std::string type = get_str("type");
+        entry.separator = (type == "separator");
+        entry.label = strip_mnemonics(get_str("label"));
+        entry.enabled = get_bool("enabled", true);
+        entry.visible = get_bool("visible", true);
+        entry.toggle_type = get_str("toggle-type");
+        entry.toggle_state = get_int("toggle-state", -1);
+
+        if (entry.visible) {
+            out.push_back(std::move(entry));
+        }
+    }
+}
+
+// implement com.canonical.dbusmenu:
+// fetch the menu layout over dbus, render it ourselves, and send click events back
+void tray_host::context_menu(const int index, const int x, const int y) {
     if (index < 0 || index >= static_cast<int>(items_.size())) {
         return;
     }
+
+    auto* item = items_[index].get();
+
+    if (menu_open() && menu_item_ == item) {
+        close_menu();
+        return;
+    }
+    close_menu();
+
+    // fallback for apps that don't expose a dbusmenu object
+    if (item->menu_path.empty()) {
+        try {
+            item->proxy->callMethod("ContextMenu")
+                .onInterface(sdbus::InterfaceName{"org.kde.StatusNotifierItem"})
+                .withArguments(static_cast<int32_t>(x), static_cast<int32_t>(y))
+                .dontExpectReply();
+        } catch (const sdbus::Error&) {
+        }
+        return;
+    }
+
     try {
-        items_[index]
-            ->proxy->callMethod("ContextMenu")
-            .onInterface(sdbus::InterfaceName{"org.kde.StatusNotifierItem"})
-            .withArguments(static_cast<int32_t>(x), static_cast<int32_t>(y))
-            .dontExpectReply();
+        menu_proxy_ = sdbus::createProxy(*conn_, sdbus::ServiceName{item->bus_name},
+                                         sdbus::ObjectPath{item->menu_path});
+
+        // AboutToShow tells the app to populate the menu
+        bool needs_update = false;
+        menu_proxy_->callMethod("AboutToShow")
+            .onInterface(sdbus::InterfaceName{"com.canonical.dbusmenu"})
+            .withArguments(int32_t(0))
+            .storeResultsTo(needs_update);
     } catch (const sdbus::Error&) {
+    }
+
+    // fetch the menu tree
+    // depth 1 = root's immediate children only
+    try {
+        uint32_t revision = 0;
+        DbusmenuLayout layout;
+        menu_proxy_->callMethod("GetLayout")
+            .onInterface(sdbus::InterfaceName{"com.canonical.dbusmenu"})
+            .withArguments(int32_t(0), int32_t(1), std::vector<std::string>{})
+            .storeResultsTo(revision, layout);
+
+        menu_entries_.clear();
+        parse_layout(layout, menu_entries_);
+    } catch (const sdbus::Error& e) {
+        wlr_log(WLR_ERROR, "tray: GetLayout failed for %s: %s", item->bus_name.c_str(), e.what());
+        menu_proxy_.reset();
+        return;
+    }
+
+    if (menu_entries_.empty()) {
+        menu_proxy_.reset();
+        return;
+    }
+
+    menu_item_ = item;
+    menu_hovered_ = -1;
+
+    menu_tree_ = wlr_scene_tree_create(&srv_->scene->tree);
+    menu_buf_ = wlr_scene_buffer_create(menu_tree_, nullptr);
+
+    render_menu();
+
+    menu_x_ = x - menu_w_ / 2;
+    menu_y_ = y - menu_h_;
+
+    wlr_scene_node_set_position(&menu_tree_->node, menu_x_, menu_y_);
+    wlr_scene_node_raise_to_top(&menu_tree_->node);
+}
+
+void tray_host::render_menu() {
+    const config* cfg = &srv_->cfg;
+    const double font_size = cfg->taskbar_h * 0.55;
+    const int pad_x = 12;
+    const int pad_y = 4;
+    const int sep_h = 7;
+
+    int max_text_w = 0;
+    for (auto& e : menu_entries_) {
+        if (e.separator) {
+            continue;
+        }
+        std::string display = e.label;
+        if (!e.toggle_type.empty() && e.toggle_state == 1) {
+            display = "\xe2\x9c\x93 " + display;
+        }
+        auto ext = paint::text_extents(display.c_str(), font_size);
+        int w = static_cast<int>(ext.x_advance + 0.5);
+        if (w > max_text_w) {
+            max_text_w = w;
+        }
+    }
+
+    menu_w_ = max_text_w + 2 * pad_x;
+    if (menu_w_ < 100) {
+        menu_w_ = 100;
+    }
+
+    menu_item_h_ = static_cast<int>(font_size + 2 * pad_y);
+    menu_h_ = 0;
+    for (auto& e : menu_entries_) {
+        menu_h_ += e.separator ? sep_h : menu_item_h_;
+    }
+
+    paint::Canvas canvas(menu_w_, menu_h_);
+    if (!canvas.valid()) {
+        return;
+    }
+    cairo_t* cr = canvas.cr();
+
+    const float* bg = cfg->color_taskbar_bg;
+    cairo_set_source_rgba(cr, bg[0], bg[1], bg[2], 1.0);
+    cairo_paint(cr);
+
+    cairo_select_font_face(cr, "sans-serif", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
+    cairo_set_font_size(cr, font_size);
+
+    int cur_y = 0;
+    for (int i = 0; i < static_cast<int>(menu_entries_.size()); i++) {
+        auto& e = menu_entries_[i];
+
+        if (e.separator) {
+            const float* fg = cfg->color_task_text;
+            cairo_set_source_rgba(cr, fg[0], fg[1], fg[2], 0.3);
+            cairo_rectangle(cr, pad_x, cur_y + sep_h / 2.0, menu_w_ - 2 * pad_x, 1);
+            cairo_fill(cr);
+            cur_y += sep_h;
+            continue;
+        }
+
+        if (i == menu_hovered_ && e.enabled) {
+            const float* ac = cfg->color_task_active;
+            cairo_set_source_rgba(cr, ac[0], ac[1], ac[2], ac[3]);
+            cairo_rectangle(cr, 0, cur_y, menu_w_, menu_item_h_);
+            cairo_fill(cr);
+        }
+
+        const float* fg = cfg->color_task_text;
+        double alpha = e.enabled ? 1.0 : 0.4;
+        cairo_set_source_rgba(cr, fg[0], fg[1], fg[2], alpha);
+
+        std::string display = e.label;
+        if (!e.toggle_type.empty() && e.toggle_state == 1) {
+            display = "\xe2\x9c\x93 " + display;
+        }
+
+        cairo_move_to(cr, pad_x, cur_y + menu_item_h_ - pad_y - 2);
+        cairo_show_text(cr, display.c_str());
+
+        cur_y += menu_item_h_;
+    }
+
+    canvas.commit(menu_buf_);
+}
+
+void tray_host::close_menu() {
+    if (menu_tree_) {
+        wlr_scene_node_destroy(&menu_tree_->node);
+        menu_tree_ = nullptr;
+        menu_buf_ = nullptr;
+    }
+    menu_item_ = nullptr;
+    menu_proxy_.reset();
+    menu_entries_.clear();
+    menu_hovered_ = -1;
+}
+
+int tray_host::menu_item_at(const double x, const double y) const {
+    if (!menu_tree_) {
+        return -1;
+    }
+    double lx = x - menu_x_;
+    double ly = y - menu_y_;
+    if (lx < 0 || lx >= menu_w_ || ly < 0 || ly >= menu_h_) {
+        return -1;
+    }
+
+    const int sep_h = 7;
+    int cur_y = 0;
+    for (int i = 0; i < static_cast<int>(menu_entries_.size()); i++) {
+        int item_h = menu_entries_[i].separator ? sep_h : menu_item_h_;
+        if (ly >= cur_y && ly < cur_y + item_h) {
+            if (menu_entries_[i].separator || !menu_entries_[i].enabled) {
+                return -1;
+            }
+            return i;
+        }
+        cur_y += item_h;
+    }
+    return -1;
+}
+
+void tray_host::menu_click(const int item_index) {
+    if (item_index < 0 || item_index >= static_cast<int>(menu_entries_.size())) {
+        close_menu();
+        return;
+    }
+    auto& entry = menu_entries_[item_index];
+    if (!entry.enabled || entry.separator) {
+        return;
+    }
+
+    // send the "clicked" event back to the app via dbusmenu
+    try {
+        menu_proxy_->callMethod("Event")
+            .onInterface(sdbus::InterfaceName{"com.canonical.dbusmenu"})
+            .withArguments(entry.id, std::string{"clicked"},
+                           sdbus::Variant{static_cast<int32_t>(0)}, static_cast<uint32_t>(0))
+            .dontExpectReply();
+    } catch (const sdbus::Error& e) {
+        wlr_log(WLR_ERROR, "tray: menu Event failed: %s", e.what());
+    }
+
+    close_menu();
+}
+
+void tray_host::menu_hover(const double x, const double y) {
+    if (!menu_tree_) {
+        return;
+    }
+    if (int idx = menu_item_at(x, y); idx != menu_hovered_) {
+        menu_hovered_ = idx;
+        render_menu();
+        wlr_scene_node_raise_to_top(&menu_tree_->node);
     }
 }
 
