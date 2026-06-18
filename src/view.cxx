@@ -718,6 +718,10 @@ void view::toggle_maximize() {
     apply_state(this, !maximized, fullscreen);
 }
 
+void view::toggle_fullscreen() {
+    apply_state(this, maximized, !fullscreen);
+}
+
 // restore a maximized/snapped view under the cursor so it can be dragged
 void view::unmaximize_to_cursor(double cursor_x, double cursor_y) {
     if (!maximized && !fullscreen && snapped == snap_edge::NONE) {

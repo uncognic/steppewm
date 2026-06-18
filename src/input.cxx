@@ -107,6 +107,8 @@ void server::dispatch_action(server* s, const char* action, const char* arg, uin
             view::focus_next(s, v);
         } else if (strcmp(action, "maximize") == 0) {
             v->toggle_maximize();
+        } else if (strcmp(action, "fullscreen") == 0) {
+            v->toggle_fullscreen();
         } else if (strcmp(action, "close") == 0) {
             wlr_xdg_toplevel_send_close(v->toplevel);
         } else if (strcmp(action, "snap_left") == 0) {

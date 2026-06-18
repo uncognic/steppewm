@@ -127,6 +127,7 @@ class view {
     void minimize(bool minimized);
     void set_urgent(bool urgent);
     void toggle_maximize();
+    void toggle_fullscreen();
     void unmaximize_to_cursor(double cursor_x, double cursor_y);
     void update_visibility() const;
     void move_to_workspace(int workspace);
