@@ -13,18 +13,18 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "wlr.hxx"
+#include "wlr.h"
 
 #include <cstdio>
 #include <cstdlib>
 
-#include "input.hxx"
-#include "lock.hxx"
-#include "output.hxx"
-#include "paint.hxx"
-#include "server.hxx"
-#include "switcher.hxx"
-#include "view.hxx"
+#include "input.h"
+#include "lock.h"
+#include "output.h"
+#include "paint.h"
+#include "server.h"
+#include "switcher.h"
+#include "view.h"
 
 using namespace steppewm;
 

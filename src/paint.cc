@@ -13,14 +13,14 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "wlr.hxx" // must be first
+#include "wlr.h" // must be first
 
 #include <cstdint>
 #include <cstdlib>
 
 #include <drm_fourcc.h>
 
-#include "paint.hxx"
+#include "paint.h"
 
 // cpu backed wlf buffer
 // cairo draws into this and the scene graph reads it

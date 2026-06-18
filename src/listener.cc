@@ -13,7 +13,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "listener.hxx"
+#include "listener.h"
 
 #include <utility>
 

@@ -13,7 +13,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "wlr.hxx" // must be first
+#include "wlr.h" // must be first
 
 #include <cstdio>
 #include <cstdlib>
@@ -21,18 +21,18 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
-#include "config.hxx"
-#include "input.hxx"
-#include "layer.hxx"
-#include "listener.hxx"
-#include "lock.hxx"
-#include "osd.hxx"
-#include "output.hxx"
-#include "server.hxx"
-#include "taskbar.hxx"
-#include "tray.hxx"
-#include "view.hxx"
-#include "volume.hxx"
+#include "config.h"
+#include "input.h"
+#include "layer.h"
+#include "listener.h"
+#include "lock.h"
+#include "osd.h"
+#include "output.h"
+#include "server.h"
+#include "taskbar.h"
+#include "tray.h"
+#include "view.h"
+#include "volume.h"
 
 using namespace steppewm;
 

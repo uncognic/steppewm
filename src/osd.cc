@@ -13,7 +13,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "wlr.hxx" // must be first
+#include "wlr.h" // must be first
 
 #include <cairo/cairo.h>
 
@@ -22,9 +22,9 @@
 #include <wlr/types/wlr_output_layout.h>
 #include <wlr/types/wlr_scene.h>
 
-#include "osd.hxx"
-#include "paint.hxx"
-#include "server.hxx"
+#include "osd.h"
+#include "paint.h"
+#include "server.h"
 
 using namespace steppewm;
 

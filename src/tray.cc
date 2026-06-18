@@ -29,16 +29,16 @@
 #include <librsvg/rsvg.h>
 #endif
 
-#include "wlr.hxx"
+#include "wlr.h"
 
-#include "config.hxx"
-#include "listener.hxx"
-#include "output.hxx"
-#include "paint.hxx"
-#include "server.hxx"
-#include "taskbar.hxx"
-#include "tray.hxx"
-#include "view.hxx"
+#include "config.h"
+#include "listener.h"
+#include "output.h"
+#include "paint.h"
+#include "server.h"
+#include "taskbar.h"
+#include "tray.h"
+#include "view.h"
 
 using namespace steppewm;
 

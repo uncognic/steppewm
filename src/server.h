@@ -15,7 +15,7 @@
 
 #pragma once
 
-#include "config.hxx"
+#include "config.h"
 
 #include <wayland-server-core.h>
 #include <wlr/backend.h>

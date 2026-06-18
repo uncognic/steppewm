@@ -13,7 +13,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "wlr.hxx" // must be first
+#include "wlr.h" // must be first
 
 #include <cstdlib>
 #include <cstring>
@@ -25,15 +25,15 @@
 #include <xkbcommon/xkbcommon-keysyms.h>
 #include <xkbcommon/xkbcommon.h>
 
-#include "input.hxx"
-#include "lock.hxx"
-#include "osd.hxx"
-#include "output.hxx"
-#include "server.hxx"
-#include "switcher.hxx"
-#include "taskbar.hxx"
-#include "tray.hxx"
-#include "view.hxx"
+#include "input.h"
+#include "lock.h"
+#include "osd.h"
+#include "output.h"
+#include "server.h"
+#include "switcher.h"
+#include "taskbar.h"
+#include "tray.h"
+#include "view.h"
 
 using namespace steppewm;
 

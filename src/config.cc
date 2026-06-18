@@ -13,7 +13,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "wlr.hxx" // must be first
+#include "wlr.h" // must be first
 
 #include <cstdio>
 #include <cstring>
@@ -31,12 +31,12 @@ extern "C" {
 #include <wayland-server-protocol.h>
 #include <xkbcommon/xkbcommon.h>
 
-#include "config.hxx"
-#include "input.hxx"
-#include "output.hxx"
-#include "server.hxx"
-#include "taskbar.hxx"
-#include "view.hxx"
+#include "config.h"
+#include "input.h"
+#include "output.h"
+#include "server.h"
+#include "taskbar.h"
+#include "view.h"
 
 using namespace steppewm;
 

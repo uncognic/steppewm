@@ -13,17 +13,17 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "wlr.hxx" // must be first
+#include "wlr.h" // must be first
 
 #include <cstdlib>
 #include <ctime>
 
-#include "layer.hxx"
-#include "lock.hxx"
-#include "output.hxx"
-#include "server.hxx"
-#include "taskbar.hxx"
-#include "view.hxx"
+#include "layer.h"
+#include "lock.h"
+#include "output.h"
+#include "server.h"
+#include "taskbar.h"
+#include "view.h"
 
 using namespace steppewm;
 

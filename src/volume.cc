@@ -22,14 +22,14 @@
 #include <pulse/pulseaudio.h>
 #include <wayland-server-core.h>
 
-#include "wlr.hxx" // must be first
+#include "wlr.h" // must be first
 
-#include "listener.hxx"
-#include "osd.hxx"
-#include "server.hxx"
-#include "taskbar.hxx"
-#include "view.hxx"
-#include "volume.hxx"
+#include "listener.h"
+#include "osd.h"
+#include "server.h"
+#include "taskbar.h"
+#include "view.h"
+#include "volume.h"
 
 using namespace steppewm;
 

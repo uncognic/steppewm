@@ -15,8 +15,8 @@
 
 #pragma once
 
-#include "listener.hxx"
-#include "server.hxx"
+#include "listener.h"
+#include "server.h"
 
 #include <wayland-server-core.h>
 

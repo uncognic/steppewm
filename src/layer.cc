@@ -13,12 +13,12 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "wlr.hxx" // must be first
+#include "wlr.h" // must be first
 
-#include "layer.hxx"
-#include "output.hxx"
-#include "server.hxx"
-#include "view.hxx"
+#include "layer.h"
+#include "output.h"
+#include "server.h"
+#include "view.h"
 
 using namespace steppewm;
 

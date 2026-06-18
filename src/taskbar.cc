@@ -14,7 +14,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "wlr.hxx" // must be first
+#include "wlr.h" // must be first
 
 #include <ctype.h>
 #include <stdio.h>
@@ -53,17 +53,17 @@
 #include <wlr/types/wlr_seat.h>
 #include <wlr/types/wlr_xdg_shell.h>
 
-#include "config.hxx"
-#include "listener.hxx"
-#include "paint.hxx"
-#include "server.hxx"
-#include "taskbar.hxx"
+#include "config.h"
+#include "listener.h"
+#include "paint.h"
+#include "server.h"
+#include "taskbar.h"
 
-#include "osd.hxx"
-#include "output.hxx"
-#include "tray.hxx"
-#include "view.hxx"
-#include "volume.hxx"
+#include "osd.h"
+#include "output.h"
+#include "tray.h"
+#include "view.h"
+#include "volume.h"
 
 using namespace steppewm;
 

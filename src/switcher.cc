@@ -13,17 +13,17 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "wlr.hxx"
+#include "wlr.h"
 
 #include <vector>
 
 #include <cairo/cairo.h>
 
-#include "output.hxx"
-#include "paint.hxx"
-#include "server.hxx"
-#include "switcher.hxx"
-#include "view.hxx"
+#include "output.h"
+#include "paint.h"
+#include "server.h"
+#include "switcher.h"
+#include "view.h"
 
 using namespace steppewm;
 
