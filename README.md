@@ -52,3 +52,10 @@ A custom path can be passed with `steppewm -c /path/to/config.lua`
 See the example config.lua for config options.
 
 The config I use personally is here: https://github.com/uncognic/dotfiles/blob/main/.config/steppewm/config.lua
+
+## Useful Stuff
+- swaybg
+- swayidle
+- wlr-randr
+- wlrctl
+- wlopm
