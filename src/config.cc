@@ -442,6 +442,7 @@ void config::set_defaults() {
 
     taskbar_h = 24;
     taskbar_all_outputs = false;
+    taskbar_all_workspaces = false;
     taskbar_button_w = 150;
     taskbar_button_pad = 2;
 
@@ -662,6 +663,7 @@ bool config::load(const char* path) {
     read_visual(L);
 
     read_bool(L, "taskbar_all_outputs", &taskbar_all_outputs);
+    read_bool(L, "taskbar_all_workspaces", &taskbar_all_workspaces);
     read_string(L, "battery_path", battery_path, sizeof(battery_path));
     read_string(L, "backlight_path", backlight_path, sizeof(backlight_path));
     read_string(L, "brightness_scroll_up", brightness_scroll_up, sizeof(brightness_scroll_up));

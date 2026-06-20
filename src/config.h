@@ -143,6 +143,7 @@ class config {
 
     int taskbar_h;
     bool taskbar_all_outputs;
+    bool taskbar_all_workspaces;
     float color_taskbar_bg[4];
     float color_taskbar_accent[4];
     float color_task_normal[4];

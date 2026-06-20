@@ -31,20 +31,8 @@
     </configurations>
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="fe9dad27-3720-49d7-9f5f-f6f2962f1612" name="Changes" comment="&quot;Theming&quot;">
+    <list default="true" id="fe9dad27-3720-49d7-9f5f-f6f2962f1612" name="Changes" comment="move LICENSE to COPYING">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/img.png" beforeDir="false" afterPath="$PROJECT_DIR$/img.png" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/config.cc" beforeDir="false" afterPath="$PROJECT_DIR$/src/config.cc" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/config.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/config.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/deco.cc" beforeDir="false" afterPath="$PROJECT_DIR$/src/deco.cc" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/taskbar.cc" beforeDir="false" afterPath="$PROJECT_DIR$/src/taskbar.cc" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/theme.cc" beforeDir="false" afterPath="$PROJECT_DIR$/src/theme.cc" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/theme.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/theme.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/tray.cc" beforeDir="false" afterPath="$PROJECT_DIR$/src/tray.cc" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/themes/icegil-korstro-Large/theme.lua" beforeDir="false" afterPath="$PROJECT_DIR$/themes/icegil-korstro-Large/theme.lua" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/themes/icegil-korstro-Medium/theme.lua" beforeDir="false" afterPath="$PROJECT_DIR$/themes/icegil-korstro-Medium/theme.lua" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/themes/icegil-korstro-Small/theme.lua" beforeDir="false" afterPath="$PROJECT_DIR$/themes/icegil-korstro-Small/theme.lua" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -257,23 +245,7 @@
       <workItem from="1781838508141" duration="2866000" />
       <workItem from="1781887443980" duration="2842000" />
       <workItem from="1781925043484" duration="7790000" />
-      <workItem from="1781934888235" duration="170000" />
-    </task>
-    <task id="LOCAL-00051" summary="xdg-activation">
-      <option name="closed" value="true" />
-      <created>1780967735599</created>
-      <option name="number" value="00051" />
-      <option name="presentableId" value="LOCAL-00051" />
-      <option name="project" value="LOCAL" />
-      <updated>1780967735599</updated>
-    </task>
-    <task id="LOCAL-00052" summary="fix crash with Chromium&#10;&#10;wlroots asserts if a client tries requesting for a change before its first commit">
-      <option name="closed" value="true" />
-      <created>1780970181050</created>
-      <option name="number" value="00052" />
-      <option name="presentableId" value="LOCAL-00052" />
-      <option name="project" value="LOCAL" />
-      <updated>1780970181050</updated>
+      <workItem from="1781934888235" duration="1634000" />
     </task>
     <task id="LOCAL-00053" summary="move methods to classes">
       <option name="closed" value="true" />
@@ -651,7 +623,23 @@
       <option name="project" value="LOCAL" />
       <updated>1781933323350</updated>
     </task>
-    <option name="localTasksCounter" value="100" />
+    <task id="LOCAL-00100" summary="make taskbar indicators use task button pixmaps when available">
+      <option name="closed" value="true" />
+      <created>1781935081684</created>
+      <option name="number" value="00100" />
+      <option name="presentableId" value="LOCAL-00100" />
+      <option name="project" value="LOCAL" />
+      <updated>1781935081685</updated>
+    </task>
+    <task id="LOCAL-00101" summary="move LICENSE to COPYING">
+      <option name="closed" value="true" />
+      <created>1781937528429</created>
+      <option name="number" value="00101" />
+      <option name="presentableId" value="LOCAL-00101" />
+      <option name="project" value="LOCAL" />
+      <updated>1781937528429</updated>
+    </task>
+    <option name="localTasksCounter" value="102" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -675,8 +663,6 @@
     </option>
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="add info prints in main.cxx" />
-    <MESSAGE value="add taskbar indicator scroll actions" />
     <MESSAGE value="add volume_middle_button action" />
     <MESSAGE value="add hover button effects" />
     <MESSAGE value="fix flatpak app icon lookup" />
@@ -700,7 +686,9 @@
     <MESSAGE value="release 0.1.0" />
     <MESSAGE value="release 0.1.0" />
     <MESSAGE value="&quot;Theming&quot;" />
-    <option name="LAST_COMMIT_MESSAGE" value="&quot;Theming&quot;" />
+    <MESSAGE value="make taskbar indicators use task button pixmaps when available" />
+    <MESSAGE value="move LICENSE to COPYING" />
+    <option name="LAST_COMMIT_MESSAGE" value="move LICENSE to COPYING" />
     <option name="REFORMAT_BEFORE_PROJECT_COMMIT" value="true" />
   </component>
 </project>

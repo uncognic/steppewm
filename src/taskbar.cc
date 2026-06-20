@@ -1381,7 +1381,7 @@ void taskbar::layout() {
             continue;
         }
         view* v = buttons_[button_index]->v;
-        if (!v->pinned && v->workspace != current) {
+        if (!srv_->cfg.taskbar_all_workspaces && !v->pinned && v->workspace != current) {
             continue;
         }
         slots_.push_back({v, buttons_[button_index].get(), -1, 0, 0});
