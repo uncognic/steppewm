@@ -37,6 +37,7 @@
 #include "paint.h"
 #include "server.h"
 #include "taskbar.h"
+#include "theme.h"
 #include "tray.h"
 #include "view.h"
 
@@ -829,8 +830,9 @@ void tray_host::render_menu() {
         }
 
         if (i == menu_hovered_ && e.enabled) {
-            const float* ac = cfg->color_task_active;
-            cairo_set_source_rgba(cr, ac[0], ac[1], ac[2], ac[3]);
+            float hover[4];
+            theme::lighten(bg, hover, 0.25f);
+            cairo_set_source_rgba(cr, hover[0], hover[1], hover[2], 1.0);
             cairo_rectangle(cr, 0, cur_y, menu_w_, menu_item_h_);
             cairo_fill(cr);
         }

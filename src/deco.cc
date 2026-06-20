@@ -104,11 +104,12 @@ void view::deco_render_all() const {
     deco_render_button(window_decoration.minimize, theme::BTN_MINIMIZE, focused, false);
 
     // borders
+    const float *border_color = focused ? cfg->color_border_active : cfg->color_border_inactive;
     if (cfg->border_w > 0 && sh > 0) {
         {
             paint::Canvas canvas(cfg->border_w, sh);
             if (canvas.valid()) {
-                srv->wm_theme.paint_border(canvas.cr(), cfg->border_w, sh, cfg->color_border,
+                srv->wm_theme.paint_border(canvas.cr(), cfg->border_w, sh, border_color,
                                            theme::EDGE_LEFT, cfg->border_style);
                 canvas.commit(window_decoration.border_left);
             }
@@ -116,7 +117,7 @@ void view::deco_render_all() const {
         {
             paint::Canvas canvas(cfg->border_w, sh);
             if (canvas.valid()) {
-                srv->wm_theme.paint_border(canvas.cr(), cfg->border_w, sh, cfg->color_border,
+                srv->wm_theme.paint_border(canvas.cr(), cfg->border_w, sh, border_color,
                                            theme::EDGE_RIGHT, cfg->border_style);
                 canvas.commit(window_decoration.border_right);
             }
@@ -125,7 +126,7 @@ void view::deco_render_all() const {
     if (cfg->border_w > 0 && tw > 0) {
         paint::Canvas canvas(tw, cfg->border_w);
         if (canvas.valid()) {
-            srv->wm_theme.paint_border(canvas.cr(), tw, cfg->border_w, cfg->color_border,
+            srv->wm_theme.paint_border(canvas.cr(), tw, cfg->border_w, border_color,
                                        theme::EDGE_BOTTOM, cfg->border_style);
             canvas.commit(window_decoration.border_bottom);
         }

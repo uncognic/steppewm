@@ -109,6 +109,8 @@ class config {
     float color_title_active[4];
     float color_title_inactive[4];
     float color_border[4];
+    float color_border_active[4];
+    float color_border_inactive[4];
     float color_close_active[4];
     float color_close_inactive[4];
     float color_button[4];
@@ -148,6 +150,8 @@ class config {
     float color_task_minimized[4];
     float color_task_urgent[4];
     float color_task_text[4];
+    float color_tray_bg[4];
+    float color_indicator_bg[4];
     int taskbar_button_w;
     int taskbar_button_pad;
 

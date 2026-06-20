@@ -476,12 +476,7 @@ void taskbar::render_clock() {
     }
     cairo_t* cr = canvas.cr();
 
-    {
-        cairo_set_source_rgba(cr, cfg->color_task_normal[0], cfg->color_task_normal[1],
-                              cfg->color_task_normal[2], cfg->color_task_normal[3]);
-        cairo_rectangle(cr, 0, 0, w, h);
-        cairo_fill(cr);
-    }
+    srv_->wm_theme.paint_indicator_bg(cr, w, h, cfg->color_indicator_bg);
 
     const float *fg = cfg->color_task_text;
     cairo_select_font_face(cr, cfg->font, CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
@@ -670,12 +665,7 @@ void taskbar::render_battery() {
     }
     cairo_t* cr = canvas.cr();
 
-    {
-        cairo_set_source_rgba(cr, cfg->color_task_normal[0], cfg->color_task_normal[1],
-                              cfg->color_task_normal[2], cfg->color_task_normal[3]);
-        cairo_rectangle(cr, 0, 0, w, h);
-        cairo_fill(cr);
-    }
+    srv_->wm_theme.paint_indicator_bg(cr, w, h, cfg->color_indicator_bg);
 
     const float* fg = cfg->color_task_text;
     cairo_select_font_face(cr, cfg->font, CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
@@ -806,12 +796,7 @@ void taskbar::render_brightness() {
     }
     cairo_t* cr = canvas.cr();
 
-    {
-        cairo_set_source_rgba(cr, cfg->color_task_normal[0], cfg->color_task_normal[1],
-                              cfg->color_task_normal[2], cfg->color_task_normal[3]);
-        cairo_rectangle(cr, 0, 0, w, h);
-        cairo_fill(cr);
-    }
+    srv_->wm_theme.paint_indicator_bg(cr, w, h, cfg->color_indicator_bg);
 
     const float* fg = cfg->color_task_text;
     cairo_select_font_face(cr, cfg->font, CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
@@ -873,12 +858,8 @@ void taskbar::render_volume() {
     if (!canvas.valid()) {
         return;
     }
-    cairo_t* cr = canvas.cr(); {
-        cairo_set_source_rgba(cr, cfg->color_task_normal[0], cfg->color_task_normal[1],
-                              cfg->color_task_normal[2], cfg->color_task_normal[3]);
-        cairo_rectangle(cr, 0, 0, w, h);
-        cairo_fill(cr);
-    }
+    cairo_t *cr = canvas.cr();
+    srv_->wm_theme.paint_indicator_bg(cr, w, h, cfg->color_indicator_bg);
 
     const float* fg = cfg->color_task_text;
     cairo_select_font_face(cr, cfg->font, CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
@@ -937,10 +918,13 @@ void taskbar::render_idle_indicator() {
     }
     cairo_t* cr = canvas.cr();
 
-    float *idle_bg = inhibited ? cfg->color_task_active : cfg->color_task_normal;
-    cairo_set_source_rgba(cr, idle_bg[0], idle_bg[1], idle_bg[2], idle_bg[3]);
-    cairo_rectangle(cr, 0, 0, w, h);
-    cairo_fill(cr);
+    if (inhibited) {
+        cairo_set_source_rgba(cr, cfg->color_task_active[0], cfg->color_task_active[1],
+                              cfg->color_task_active[2], cfg->color_task_active[3]);
+        cairo_paint(cr);
+    } else {
+        srv_->wm_theme.paint_indicator_bg(cr, w, h, cfg->color_indicator_bg);
+    }
 
     const float* fg = cfg->color_task_text;
     cairo_select_font_face(cr, cfg->font, CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
@@ -1045,9 +1029,7 @@ void taskbar::render_tray() {
             if (canvas.valid()) {
                 cairo_t* cr = canvas.cr();
 
-                cairo_set_source_rgba(cr, cfg->color_task_normal[0], cfg->color_task_normal[1],
-                                      cfg->color_task_normal[2], cfg->color_task_normal[3]);
-                cairo_paint(cr);
+                srv_->wm_theme.paint_tray_bg(cr, icon_size, icon_size, cfg->color_tray_bg);
 
                 // if the icon is valid
                 if (!item->icon_pixels.empty() && item->icon_width > 0 && item->icon_height > 0) {
@@ -1189,9 +1171,7 @@ void taskbar::render_layout_indicator() {
     }
     cairo_t* cr = canvas.cr();
 
-    cairo_set_source_rgba(cr, cfg->color_task_normal[0], cfg->color_task_normal[1],
-                          cfg->color_task_normal[2], cfg->color_task_normal[3]);
-    cairo_paint(cr);
+    srv_->wm_theme.paint_indicator_bg(cr, w, h, cfg->color_indicator_bg);
 
     float* fg = cfg->color_task_text;
     cairo_select_font_face(cr, cfg->font, CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);

@@ -66,6 +66,8 @@ void theme::unload() {
     free_surf(taskbutton_minimized_);
     free_surf(workspace_button_);
     free_surf(workspace_button_active_);
+    free_surf(tray_bg_pm_);
+    free_surf(indicator_bg_);
 }
 
 #ifdef HAVE_LIBRSVG
@@ -137,6 +139,8 @@ void theme::load(const char *theme_dir) {
     taskbutton_minimized_ = try_load(theme_dir, "taskbutton_minimized");
     workspace_button_ = try_load(theme_dir, "workspace");
     workspace_button_active_ = try_load(theme_dir, "workspace_active");
+    tray_bg_pm_ = try_load(theme_dir, "tray_bg");
+    indicator_bg_ = try_load(theme_dir, "indicator_bg");
 }
 
 void theme::tile_surface(cairo_t *cr, cairo_surface_t *surf, const int w, const int h) {
@@ -200,6 +204,26 @@ void theme::paint_task_button(cairo_t *cr, const int w, const int h, const bool 
 void theme::paint_workspace_button(cairo_t *cr, const int w, const int h, const bool active,
                                    const float *fallback) const {
     cairo_surface_t *pixmap = active ? workspace_button_active_ : workspace_button_;
+    if (pixmap) {
+        stretch_surface(cr, pixmap, w, h);
+    } else {
+        cairo_set_source_rgba(cr, fallback[0], fallback[1], fallback[2], fallback[3]);
+        cairo_paint(cr);
+    }
+}
+
+void theme::paint_tray_bg(cairo_t *cr, const int w, const int h, const float *fallback) const {
+    cairo_surface_t *pixmap = tray_bg_pm_ ? tray_bg_pm_ : taskbutton_;
+    if (pixmap) {
+        stretch_surface(cr, pixmap, w, h);
+    } else {
+        cairo_set_source_rgba(cr, fallback[0], fallback[1], fallback[2], fallback[3]);
+        cairo_paint(cr);
+    }
+}
+
+void theme::paint_indicator_bg(cairo_t *cr, const int w, const int h, const float *fallback) const {
+    cairo_surface_t *pixmap = indicator_bg_ ? indicator_bg_ : taskbutton_;
     if (pixmap) {
         stretch_surface(cr, pixmap, w, h);
     } else {

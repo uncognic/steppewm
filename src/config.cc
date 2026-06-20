@@ -379,6 +379,9 @@ void config::set_defaults() {
     color_border[2] = 0.20f;
     color_border[3] = 1.0f;
 
+    memcpy(color_border_active, color_border, sizeof(color_border_active));
+    memcpy(color_border_inactive, color_border, sizeof(color_border_inactive));
+
     color_close_active[0] = 0.85f;
     color_close_active[1] = 0.08f;
     color_close_active[2] = 0.08f;
@@ -516,12 +519,19 @@ void config::set_defaults() {
     color_task_text[1] = 0.88f;
     color_task_text[2] = 0.88f;
     color_task_text[3] = 1.0f;
+
+    memcpy(color_tray_bg, color_task_normal, sizeof(color_tray_bg));
+    memcpy(color_indicator_bg, color_task_normal, sizeof(color_indicator_bg));
 }
 
 void config::read_visual(lua_State *L) {
     read_color(L, "title_active", color_title_active);
     read_color(L, "title_inactive", color_title_inactive);
     read_color(L, "border_color", color_border);
+    memcpy(color_border_active, color_border, sizeof(color_border_active));
+    memcpy(color_border_inactive, color_border, sizeof(color_border_inactive));
+    read_color(L, "border_active", color_border_active);
+    read_color(L, "border_inactive", color_border_inactive);
     read_color(L, "close_active", color_close_active);
     read_color(L, "close_inactive", color_close_inactive);
     read_color(L, "button_color", color_button);
@@ -561,6 +571,10 @@ void config::read_visual(lua_State *L) {
     read_color(L, "task_minimized", color_task_minimized);
     read_color(L, "task_urgent", color_task_urgent);
     read_color(L, "task_text", color_task_text);
+    memcpy(color_tray_bg, color_task_normal, sizeof(color_tray_bg));
+    memcpy(color_indicator_bg, color_task_normal, sizeof(color_indicator_bg));
+    read_color(L, "tray_bg", color_tray_bg);
+    read_color(L, "indicator_bg", color_indicator_bg);
 }
 
 void config::load_theme_lua() {

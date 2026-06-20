@@ -75,6 +75,10 @@ namespace steppewm {
         void paint_workspace_button(cairo_t *cr, int w, int h, bool active,
                                     const float *fallback) const;
 
+        void paint_tray_bg(cairo_t *cr, int w, int h, const float *fallback) const;
+
+        void paint_indicator_bg(cairo_t *cr, int w, int h, const float *fallback) const;
+
         static void lighten(const float in[4], float out[4], float amount);
 
         static void darken(const float in[4], float out[4], float amount);
@@ -102,6 +106,8 @@ namespace steppewm {
         cairo_surface_t *taskbutton_minimized_ = nullptr;
         cairo_surface_t *workspace_button_ = nullptr;
         cairo_surface_t *workspace_button_active_ = nullptr;
+        cairo_surface_t *tray_bg_pm_ = nullptr;
+        cairo_surface_t *indicator_bg_ = nullptr;
 
         static cairo_surface_t *try_load(const char *dir, const char *stem);
 

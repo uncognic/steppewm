@@ -1,4 +1,4 @@
-![An image of steppewm running on Fedora 44](img.png)
+![An image of steppewm running on Fedora 44, with the icegil-korstro theme applied](img.png)
 # steppewm
 
 A minimal stacking Wayland compositor using wlroots
@@ -9,6 +9,7 @@ A minimal stacking Wayland compositor using wlroots
 - Workspaces
 - Taskbar
 - Alt-Tab window switcher
+- Theming
 - Window snapping
 - OSD for volume, brightness and keyboard layout change
 - Layer shell support

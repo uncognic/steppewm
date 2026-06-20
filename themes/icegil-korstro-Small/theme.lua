@@ -1,6 +1,7 @@
 -- Korstro base + IceGilDust buttons
 title_height = 18
-border_width = 1
+border_width = 3
+border_color = {0.00, 0.00, 0.00, 1.0}
 taskbar_bg = {0.00, 0.00, 0.00, 1.0}
 task_normal = {0.00, 0.00, 0.00, 1.0}
 task_active = {0.00, 0.00, 0.00, 1.0}
