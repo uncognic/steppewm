@@ -919,9 +919,7 @@ void taskbar::render_idle_indicator() {
     cairo_t* cr = canvas.cr();
 
     if (inhibited) {
-        cairo_set_source_rgba(cr, cfg->color_task_active[0], cfg->color_task_active[1],
-                              cfg->color_task_active[2], cfg->color_task_active[3]);
-        cairo_paint(cr);
+        srv_->wm_theme.paint_task_button(cr, w, h, true, false, cfg->color_task_active);
     } else {
         srv_->wm_theme.paint_indicator_bg(cr, w, h, cfg->color_indicator_bg);
     }
@@ -1504,9 +1502,7 @@ void taskbar::layout() {
                     lighten_color(base_bg, pin_hover_bg);
                     bg = pin_hover_bg;
                 }
-                cairo_set_source_rgba(cr, bg[0], bg[1], bg[2], bg[3]);
-                cairo_rectangle(cr, 0, 0, pin_button_w, button_h);
-                cairo_fill(cr);
+                srv_->wm_theme.paint_task_button(cr, pin_button_w, button_h, false, false, bg);
 
                 cairo_surface_t* icon_surf = ds.pin_idx < static_cast<int>(pin_icons_.size())
                                                  ? pin_icons_[ds.pin_idx]
