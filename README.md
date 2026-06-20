@@ -1,4 +1,6 @@
-![An image of steppewm running on Fedora 44, with the icegil-korstro theme applied](img.png)
+![SteppeWM running on Fedora 44 with the icegil-korstro theme applied](img.png)
+
+*SteppeWM running on Fedora 44 with the icegil-korstro theme applied*
 # steppewm
 
 A minimal stacking Wayland compositor using wlroots
