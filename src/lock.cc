@@ -63,7 +63,7 @@ void session_lock::broken_msg_draw(server* s, const struct wlr_box* box) {
     }
     cairo_t* cr = canvas.cr();
 
-    cairo_select_font_face(cr, "sans-serif", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
+    cairo_select_font_face(cr, s->cfg.font, CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
     cairo_set_font_size(cr, font_size);
     cairo_set_source_rgba(cr, 0.9, 0.9, 0.9, 1.0);
 

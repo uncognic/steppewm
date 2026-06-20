@@ -97,6 +97,7 @@ add_executable(steppewm
         src/taskbar.cc
         src/switcher.cc
         src/paint.cc
+        src/theme.cc
         src/layer.cc
         src/listener.cc
         src/lock.cc
@@ -111,3 +112,4 @@ target_link_libraries(steppewm PRIVATE ${DEPS})
 
 install(TARGETS steppewm RUNTIME DESTINATION bin)
 install(FILES steppewm.desktop DESTINATION share/wayland-sessions)
+install(DIRECTORY themes/ DESTINATION share/steppewm/themes)

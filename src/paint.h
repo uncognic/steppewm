@@ -30,21 +30,21 @@ class Canvas {
     Canvas(const Canvas &) = delete;
     Canvas &operator=(const Canvas &) = delete;
 
-    bool valid() const { return cr_ != nullptr; }
-    cairo_t *cr() const { return cr_; }
-    int width() const { return width_; }
-    int height() const { return height_; }
+    [[nodiscard]] bool valid() const { return cr_ != nullptr; }
+    [[nodiscard]] cairo_t *cr() const { return cr_; }
+    [[nodiscard]] int width() const { return width_; }
+    [[nodiscard]] int height() const { return height_; }
 
     void commit(struct wlr_scene_buffer *scene_buf);
 
   private:
     int width_ = 0;
     int height_ = 0;
-    struct cpu_buf *buf_ = nullptr;
+    cpu_buf *buf_ = nullptr;
     cairo_surface_t *surface_ = nullptr;
     cairo_t *cr_ = nullptr;
 };
 
-cairo_text_extents_t text_extents(const char *text, double font_size);
-
+cairo_text_extents_t text_extents(const char *text, double font_size,
+                                  const char *font = "sans-serif");
 } // namespace paint

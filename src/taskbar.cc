@@ -58,6 +58,7 @@
 #include "paint.h"
 #include "server.h"
 #include "taskbar.h"
+#include "theme.h"
 
 #include "osd.h"
 #include "output.h"
@@ -74,10 +75,7 @@ task_button::~task_button() {
 }
 
 static void lighten_color(const float in[4], float out[4], float amount = 0.25f) {
-    for (int i = 0; i < 3; i++) {
-        out[i] = in[i] + (1.0f - in[i]) * amount;
-    }
-    out[3] = in[3];
+    theme::lighten(in, out, amount);
 }
 constexpr int MAX_DATA_DIRS = 32;
 
@@ -335,15 +333,20 @@ wlr_xdg_toplevel_icon_v1_buffer* taskbar::pick_icon_buffer(wlr_xdg_toplevel_icon
 // render button into cairo then draw it
 void taskbar::render_button(struct wlr_scene_buffer* scene_buf, const char* text,
                             struct wlr_xdg_toplevel_icon_v1* icon, cairo_surface_t* fallback_icon,
-                            bool pinned, int w, int h, float bg[4], float fg[4]) {
+                            bool pinned, int w, int h, float bg[4], float fg[4], bool is_task,
+                            bool is_active, bool is_minimized) {
     paint::Canvas canvas(w, h);
     if (!canvas.valid()) {
         return;
     }
     cairo_t* cr = canvas.cr();
 
-    cairo_set_source_rgba(cr, bg[0], bg[1], bg[2], bg[3]);
-    cairo_paint(cr);
+    if (is_task) {
+        srv_->wm_theme.paint_task_button(cr, w, h, is_active, is_minimized, bg);
+    } else {
+        cairo_set_source_rgba(cr, bg[0], bg[1], bg[2], bg[3]);
+        cairo_paint(cr);
+    }
 
     int text_left = 0;
 
@@ -406,7 +409,7 @@ void taskbar::render_button(struct wlr_scene_buffer* scene_buf, const char* text
     }
 
     if (text && text[0]) {
-        cairo_select_font_face(cr, "sans-serif", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
+        cairo_select_font_face(cr, srv_->cfg.font, CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
         cairo_set_font_size(cr, h * 0.55);
         cairo_set_source_rgba(cr, fg[0], fg[1], fg[2], fg[3]);
 
@@ -457,10 +460,10 @@ void taskbar::render_clock() {
     strftime(text, sizeof(text), "%-d %b %Y %I:%M %p", &tm);
 
     // measure the text so we can size the buffer to fit
-    cairo_text_extents_t ext = paint::text_extents(text, font_size);
+    const cairo_text_extents_t ext = paint::text_extents(text, font_size, cfg->font);
 
-    int pad = cfg->taskbar_button_pad;
-    int w = (int) ext.width + h;
+    const int pad = cfg->taskbar_button_pad;
+    const int w = static_cast<int>(ext.width) + h;
     if (w <= 0) {
         return;
     }
@@ -473,16 +476,19 @@ void taskbar::render_clock() {
     }
     cairo_t* cr = canvas.cr();
 
-    float* bg = cfg->color_task_normal;
-    cairo_set_source_rgba(cr, bg[0], bg[1], bg[2], bg[3]);
-    cairo_paint(cr);
+    {
+        cairo_set_source_rgba(cr, cfg->color_task_normal[0], cfg->color_task_normal[1],
+                              cfg->color_task_normal[2], cfg->color_task_normal[3]);
+        cairo_rectangle(cr, 0, 0, w, h);
+        cairo_fill(cr);
+    }
 
-    float* fg = cfg->color_task_text;
-    cairo_select_font_face(cr, "sans-serif", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
+    const float *fg = cfg->color_task_text;
+    cairo_select_font_face(cr, cfg->font, CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
     cairo_set_font_size(cr, font_size);
     cairo_set_source_rgba(cr, fg[0], fg[1], fg[2], fg[3]);
-    double tx = (w - ext.width) / 2.0 - ext.x_bearing;
-    double ty = h / 2.0 - ext.y_bearing - ext.height / 2.0;
+    const double tx = (w - ext.width) / 2.0 - ext.x_bearing;
+    const double ty = h / 2.0 - ext.y_bearing - ext.height / 2.0;
     cairo_move_to(cr, tx, ty);
     cairo_show_text(cr, text);
 
@@ -651,7 +657,7 @@ void taskbar::render_battery() {
     }
     const double font_size = h * 0.55;
 
-    const cairo_text_extents_t ext = paint::text_extents(text, font_size);
+    const cairo_text_extents_t ext = paint::text_extents(text, font_size, cfg->font);
     const int w = static_cast<int>(ext.width) + h;
     if (w <= 0) {
         return;
@@ -664,12 +670,15 @@ void taskbar::render_battery() {
     }
     cairo_t* cr = canvas.cr();
 
-    const float* bg = cfg->color_task_normal;
-    cairo_set_source_rgba(cr, bg[0], bg[1], bg[2], bg[3]);
-    cairo_paint(cr);
+    {
+        cairo_set_source_rgba(cr, cfg->color_task_normal[0], cfg->color_task_normal[1],
+                              cfg->color_task_normal[2], cfg->color_task_normal[3]);
+        cairo_rectangle(cr, 0, 0, w, h);
+        cairo_fill(cr);
+    }
 
     const float* fg = cfg->color_task_text;
-    cairo_select_font_face(cr, "sans-serif", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
+    cairo_select_font_face(cr, cfg->font, CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
     cairo_set_font_size(cr, font_size);
     cairo_set_source_rgba(cr, fg[0], fg[1], fg[2], fg[3]);
     const double tx = (w - ext.width) / 2.0 - ext.x_bearing;
@@ -784,7 +793,7 @@ void taskbar::render_brightness() {
     }
     const double font_size = h * 0.55;
 
-    const cairo_text_extents_t ext = paint::text_extents(text, font_size);
+    const cairo_text_extents_t ext = paint::text_extents(text, font_size, cfg->font);
     const int w = static_cast<int>(ext.width) + h;
     if (w <= 0) {
         return;
@@ -797,12 +806,15 @@ void taskbar::render_brightness() {
     }
     cairo_t* cr = canvas.cr();
 
-    const float* bg = cfg->color_task_normal;
-    cairo_set_source_rgba(cr, bg[0], bg[1], bg[2], bg[3]);
-    cairo_paint(cr);
+    {
+        cairo_set_source_rgba(cr, cfg->color_task_normal[0], cfg->color_task_normal[1],
+                              cfg->color_task_normal[2], cfg->color_task_normal[3]);
+        cairo_rectangle(cr, 0, 0, w, h);
+        cairo_fill(cr);
+    }
 
     const float* fg = cfg->color_task_text;
-    cairo_select_font_face(cr, "sans-serif", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
+    cairo_select_font_face(cr, cfg->font, CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
     cairo_set_font_size(cr, font_size);
     cairo_set_source_rgba(cr, fg[0], fg[1], fg[2], fg[3]);
     const double tx = (w - ext.width) / 2.0 - ext.x_bearing;
@@ -850,7 +862,7 @@ void taskbar::render_volume() {
     }
     const double font_size = h * 0.55;
 
-    const cairo_text_extents_t ext = paint::text_extents(text, font_size);
+    const cairo_text_extents_t ext = paint::text_extents(text, font_size, cfg->font);
     const int w = static_cast<int>(ext.width) + h;
     if (w <= 0) {
         return;
@@ -861,14 +873,15 @@ void taskbar::render_volume() {
     if (!canvas.valid()) {
         return;
     }
-    cairo_t* cr = canvas.cr();
-
-    const float* bg = cfg->color_task_normal;
-    cairo_set_source_rgba(cr, bg[0], bg[1], bg[2], bg[3]);
-    cairo_paint(cr);
+    cairo_t* cr = canvas.cr(); {
+        cairo_set_source_rgba(cr, cfg->color_task_normal[0], cfg->color_task_normal[1],
+                              cfg->color_task_normal[2], cfg->color_task_normal[3]);
+        cairo_rectangle(cr, 0, 0, w, h);
+        cairo_fill(cr);
+    }
 
     const float* fg = cfg->color_task_text;
-    cairo_select_font_face(cr, "sans-serif", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
+    cairo_select_font_face(cr, cfg->font, CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
     cairo_set_font_size(cr, font_size);
     cairo_set_source_rgba(cr, fg[0], fg[1], fg[2], fg[3]);
     const double tx = (w - ext.width) / 2.0 - ext.x_bearing;
@@ -911,7 +924,7 @@ void taskbar::render_idle_indicator() {
     }
     const double font_size = h * 0.55;
 
-    const cairo_text_extents_t ext = paint::text_extents(text, font_size);
+    const cairo_text_extents_t ext = paint::text_extents(text, font_size, cfg->font);
     const int w = static_cast<int>(ext.width) + h;
     if (w <= 0) {
         return;
@@ -924,12 +937,13 @@ void taskbar::render_idle_indicator() {
     }
     cairo_t* cr = canvas.cr();
 
-    float* bg = inhibited ? cfg->color_task_active : cfg->color_task_normal;
-    cairo_set_source_rgba(cr, bg[0], bg[1], bg[2], bg[3]);
-    cairo_paint(cr);
+    float *idle_bg = inhibited ? cfg->color_task_active : cfg->color_task_normal;
+    cairo_set_source_rgba(cr, idle_bg[0], idle_bg[1], idle_bg[2], idle_bg[3]);
+    cairo_rectangle(cr, 0, 0, w, h);
+    cairo_fill(cr);
 
     const float* fg = cfg->color_task_text;
-    cairo_select_font_face(cr, "sans-serif", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
+    cairo_select_font_face(cr, cfg->font, CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
     cairo_set_font_size(cr, font_size);
     cairo_set_source_rgba(cr, fg[0], fg[1], fg[2], fg[3]);
     const double tx = (w - ext.width) / 2.0 - ext.x_bearing;
@@ -1031,8 +1045,8 @@ void taskbar::render_tray() {
             if (canvas.valid()) {
                 cairo_t* cr = canvas.cr();
 
-                const float* bg = cfg->color_task_normal;
-                cairo_set_source_rgba(cr, bg[0], bg[1], bg[2], bg[3]);
+                cairo_set_source_rgba(cr, cfg->color_task_normal[0], cfg->color_task_normal[1],
+                                      cfg->color_task_normal[2], cfg->color_task_normal[3]);
                 cairo_paint(cr);
 
                 // if the icon is valid
@@ -1160,7 +1174,7 @@ void taskbar::render_layout_indicator() {
     char text[32];
     layout_code(text, sizeof(text));
 
-    cairo_text_extents_t ext = paint::text_extents(text, font_size);
+    cairo_text_extents_t ext = paint::text_extents(text, font_size, cfg->font);
 
     // size the badge to the text plus padding
     int w = (int) ext.width + h;
@@ -1175,12 +1189,12 @@ void taskbar::render_layout_indicator() {
     }
     cairo_t* cr = canvas.cr();
 
-    float* bg = cfg->color_task_normal;
-    cairo_set_source_rgba(cr, bg[0], bg[1], bg[2], bg[3]);
+    cairo_set_source_rgba(cr, cfg->color_task_normal[0], cfg->color_task_normal[1],
+                          cfg->color_task_normal[2], cfg->color_task_normal[3]);
     cairo_paint(cr);
 
     float* fg = cfg->color_task_text;
-    cairo_select_font_face(cr, "sans-serif", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
+    cairo_select_font_face(cr, cfg->font, CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
     cairo_set_font_size(cr, font_size);
     cairo_set_source_rgba(cr, fg[0], fg[1], fg[2], fg[3]);
     double tx = (w - ext.width) / 2.0 - ext.x_bearing;
@@ -1237,9 +1251,18 @@ void taskbar::layout() {
         return;
     }
 
-    // set sizes and background color
-    wlr_scene_rect_set_size(background_, width_, height_);
-    wlr_scene_rect_set_color(background_, srv_->cfg.color_taskbar_bg);
+    // render background
+    if (bg_rendered_w_ != width_ || bg_rendered_h_ != height_) {
+        paint::Canvas canvas(width_, height_);
+        if (canvas.valid()) {
+            srv_->wm_theme.paint_taskbar_bg(canvas.cr(), width_, height_,
+                                            srv_->cfg.color_taskbar_bg,
+                                            srv_->cfg.color_taskbar_accent);
+            canvas.commit(background_);
+        }
+        bg_rendered_w_ = width_;
+        bg_rendered_h_ = height_;
+    }
 
     render_clock();
     render_layout_indicator();
@@ -1275,15 +1298,33 @@ void taskbar::layout() {
         wlr_scene_node_set_position(&ws_labels_[i]->node, cursor_x, pad);
         char num[4];
         snprintf(num, sizeof(num), "%d", i + 1);
-        float* base_bg = (i == current) ? cfg->color_task_active : cfg->color_task_normal;
+        const bool ws_active = (i == current);
+        float *base_bg = ws_active ? cfg->color_task_active : cfg->color_task_normal;
         float hover_bg[4];
         float* bg = base_bg;
         if (i == hovered_ws_idx_) {
             lighten_color(base_bg, hover_bg);
             bg = hover_bg;
         }
-        render_button(ws_labels_[i], num, nullptr, nullptr, false, ws_button_w, button_h, bg,
-                      cfg->color_task_text);
+        {
+            paint::Canvas canvas(ws_button_w, button_h);
+            if (canvas.valid()) {
+                cairo_t *cr = canvas.cr();
+                srv_->wm_theme.paint_workspace_button(cr, ws_button_w, button_h, ws_active, bg);
+                float *fg = cfg->color_task_text;
+                cairo_select_font_face(cr, cfg->font, CAIRO_FONT_SLANT_NORMAL,
+                                       CAIRO_FONT_WEIGHT_NORMAL);
+                cairo_set_font_size(cr, button_h * 0.6);
+                cairo_set_source_rgba(cr, fg[0], fg[1], fg[2], fg[3]);
+                cairo_text_extents_t ext;
+                cairo_text_extents(cr, num, &ext);
+                double tx = (ws_button_w - ext.width) / 2.0 - ext.x_bearing;
+                double ty = button_h / 2.0 - ext.y_bearing - ext.height / 2.0;
+                cairo_move_to(cr, tx, ty);
+                cairo_show_text(cr, num);
+                canvas.commit(ws_labels_[i]);
+            }
+        }
         cursor_x += ws_button_w + pad;
     }
 
@@ -1461,8 +1502,10 @@ void taskbar::layout() {
             }
 
             const char* title = ds.btn->v->toplevel->title ? ds.btn->v->toplevel->title : "";
+            const bool is_active = ds.btn->v == fv;
             render_button(ds.btn->label, title, ds.btn->v->icon, ds.btn->cached_icon,
-                          ds.btn->v->pinned, button_w, button_h, bg, cfg->color_task_text);
+                          ds.btn->v->pinned, button_w, button_h, bg, cfg->color_task_text, true,
+                          is_active, ds.btn->v->minimized);
             cx += button_w + pad;
         } else if (ds.pin_idx >= 0) { // launcher with no running app
             ds.x = cx;
@@ -1482,7 +1525,8 @@ void taskbar::layout() {
                     bg = pin_hover_bg;
                 }
                 cairo_set_source_rgba(cr, bg[0], bg[1], bg[2], bg[3]);
-                cairo_paint(cr);
+                cairo_rectangle(cr, 0, 0, pin_button_w, button_h);
+                cairo_fill(cr);
 
                 cairo_surface_t* icon_surf = ds.pin_idx < static_cast<int>(pin_icons_.size())
                                                  ? pin_icons_[ds.pin_idx]
@@ -1507,7 +1551,7 @@ void taskbar::layout() {
                 } else {
                     // fallback is the first character of the app_id
                     float* fg = cfg->color_task_text;
-                    cairo_select_font_face(cr, "sans-serif", CAIRO_FONT_SLANT_NORMAL,
+                    cairo_select_font_face(cr, cfg->font, CAIRO_FONT_SLANT_NORMAL,
                                            CAIRO_FONT_WEIGHT_NORMAL);
                     cairo_set_font_size(cr, button_h * 0.55);
                     cairo_set_source_rgba(cr, fg[0], fg[1], fg[2], fg[3]);
@@ -1544,7 +1588,7 @@ taskbar::taskbar(server* s, struct wlr_output* wlr_output) {
         tree_destroy_.disconnect();
         tree_ = nullptr;
     });
-    background_ = wlr_scene_rect_create(tree_, 0, height_, s->cfg.color_taskbar_bg);
+    background_ = wlr_scene_buffer_create(tree_, nullptr);
 
     for (auto& ws_label : ws_labels_) {
         ws_label = wlr_scene_buffer_create(tree_, nullptr);
@@ -1621,6 +1665,8 @@ void taskbar::view_removed(view* v) {
 
 // refresh taskbar
 void taskbar::refresh() {
+    bg_rendered_w_ = 0;
+    bg_rendered_h_ = 0;
     layout();
 }
 

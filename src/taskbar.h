@@ -77,10 +77,13 @@ class taskbar {
 
   private:
     void layout();
-    static void render_button(struct wlr_scene_buffer* scene_buf, const char* text,
-                              struct wlr_xdg_toplevel_icon_v1* icon,
-                              struct _cairo_surface* fallback_icon, bool pinned, int w, int h,
-                              float bg[4], float fg[4]);
+
+    void render_button(struct wlr_scene_buffer *scene_buf, const char *text,
+                       struct wlr_xdg_toplevel_icon_v1 *icon,
+                       struct _cairo_surface *fallback_icon, bool pinned, int w, int h,
+                       float bg[4], float fg[4], bool is_task = false, bool is_active = false,
+                       bool is_minimized = false);
+
     void render_clock();
     void render_battery();
     void render_brightness();
@@ -98,7 +101,7 @@ class taskbar {
     struct wlr_output* wlr_output_;
     struct wlr_scene_tree* tree_;
     Listener tree_destroy_;
-    struct wlr_scene_rect* background_;
+    struct wlr_scene_buffer *background_;
     struct wlr_scene_buffer* clock_;
     struct wl_event_source* clock_timer_;
     struct wl_event_source* urgent_timer_;
@@ -143,6 +146,7 @@ class taskbar {
     int clock_w_ = 0;
     int button_w_ = 0;
     int x_ = 0, y_ = 0, width_ = 0, height_ = 0;
+    int bg_rendered_w_ = 0, bg_rendered_h_ = 0;
     bool urgent_flash_on_ = true;
     int hovered_slot_idx_ = -1;
     int hovered_ws_idx_ = -1;

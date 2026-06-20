@@ -400,8 +400,8 @@ int main(int argc, char* argv[]) {
         }
     }
 
-    server svr = {};
-    svr.cfg.set_defaults();
+    server srv = {};
+    srv.cfg.set_defaults();
 
     char config_path[512];
 
@@ -419,15 +419,22 @@ int main(int argc, char* argv[]) {
         }
     }
 
-    snprintf(svr.config_path, sizeof(svr.config_path), "%s", config_path);
-    svr.cfg.load(svr.config_path);
+    snprintf(srv.config_path, sizeof(srv.config_path), "%s", config_path);
+    srv.cfg.load(srv.config_path);
+    srv.wm_theme.load(srv.cfg.theme_path);
 
-    if (!server::init(&svr)) {
+    auto dims = srv.wm_theme.get_dims();
+    if (dims.title_h > 0) srv.cfg.title_h = dims.title_h;
+    if (dims.close_w > 0) srv.cfg.close_button_w = dims.close_w;
+    if (dims.maximize_w > 0) srv.cfg.maximize_button_w = dims.maximize_w;
+    if (dims.minimize_w > 0) srv.cfg.minimize_button_w = dims.minimize_w;
+
+    if (!server::init(&srv)) {
         return EXIT_FAILURE;
     }
 
-    server::run(&svr);
-    server::fini(&svr);
+    server::run(&srv);
+    server::fini(&srv);
 
     return EXIT_SUCCESS;
 }

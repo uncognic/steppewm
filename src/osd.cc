@@ -64,7 +64,8 @@ void osd::show(const char* text) const {
         font_size = 32;
     }
 
-    const cairo_text_extents_t ext = paint::text_extents(text, font_size);
+    const char *font = srv_->cfg.font;
+    const cairo_text_extents_t ext = paint::text_extents(text, font_size, font);
 
     const int pad_x = static_cast<int>(font_size * 1.0);
     const int pad_y = static_cast<int>(font_size * 0.6);
@@ -83,7 +84,7 @@ void osd::show(const char* text) const {
     cairo_set_source_rgba(cr, 0.1, 0.1, 0.1, 0.95);
     cairo_paint(cr);
 
-    cairo_select_font_face(cr, "sans-serif", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
+    cairo_select_font_face(cr, font, CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
     cairo_set_font_size(cr, font_size);
     cairo_set_source_rgba(cr, 1.0, 1.0, 1.0, 1.0);
     const double tx = (w - ext.width) / 2.0 - ext.x_bearing;

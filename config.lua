@@ -86,19 +86,11 @@ end
 -- pointer_accel = 0.0                    -- -1.0 (slow) .. 1.0 (fast)
 -- accel_profile = "flat"                 -- "flat" or "adaptive"
 
--- colors {r, g, b, a}
--- title_active = {0.24, 0.24, 0.24, 1.0}
--- title_inactive = {0.14, 0.14, 0.14, 1.0}
--- border_color = {0.20, 0.20, 0.20, 1.0}
--- close_active = {0.85, 0.08, 0.08, 1.0}
--- close_inactive = {0.45, 0.06, 0.06, 1.0}
--- button_color = {0.38, 0.38, 0.38, 1.0}
--- button_inactive= {0.32, 0.32, 0.32, 1.0}
+-- theme = "icegil-korstro-Large"
 
--- titlebar
+-- font = "sans-serif"
+-- title_font_size = 0                            -- 0 = auto (55% of title height)
 -- title_height = 20
--- title_text = {0.88, 0.88, 0.88, 1.0}
--- show_title_text = true
 -- border_width = 3
 -- corner_size = 8
 -- close_button_width = 40
@@ -121,6 +113,7 @@ end
 -- taskbar_button_pad = 2
 -- taskbar_height = 24
 -- taskbar_bg = {0.08, 0.08, 0.08, 1.0}
+-- taskbar_accent = {0.3, 0.5, 0.9, 1.0}         -- 1px accent line at top (alpha=0 = none)
 -- task_normal = {0.18, 0.18, 0.18, 1.0}
 -- task_active = {0.30, 0.30, 0.30, 1.0}
 -- task_minimized = {0.12, 0.12, 0.12, 1.0}

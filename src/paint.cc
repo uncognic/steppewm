@@ -115,10 +115,10 @@ void Canvas::commit(struct wlr_scene_buffer *scene_buf) {
     buf_ = nullptr;
 }
 
-cairo_text_extents_t text_extents(const char *text, double font_size) {
+cairo_text_extents_t text_extents(const char *text, double font_size, const char *font) {
     cairo_surface_t *measure = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, 1, 1);
     cairo_t *cr = cairo_create(measure);
-    cairo_select_font_face(cr, "sans-serif", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
+    cairo_select_font_face(cr, font, CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
     cairo_set_font_size(cr, font_size);
 
     cairo_text_extents_t ext;

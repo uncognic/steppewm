@@ -113,10 +113,16 @@ class config {
     float color_close_inactive[4];
     float color_button[4];
     float color_button_inactive[4];
-    float color_invisible[4];
 
     float color_title_text[4];
-    bool show_title_text;
+
+    float color_maximize_active[4];
+    float color_maximize_inactive[4];
+    float color_minimize_active[4];
+    float color_minimize_inactive[4];
+    float color_close_hover[4];
+    float color_maximize_hover[4];
+    float color_minimize_hover[4];
 
     int title_h;
     int border_w;
@@ -125,9 +131,18 @@ class config {
     int maximize_button_w;
     int minimize_button_w;
 
+    bool title_gradient;
+    char button_style[16];
+    char border_style[16];
+    char font[64];
+    int title_font_size;
+    bool center_title_text;
+    bool buttons_left;
+
     int taskbar_h;
     bool taskbar_all_outputs;
     float color_taskbar_bg[4];
+    float color_taskbar_accent[4];
     float color_task_normal[4];
     float color_task_active[4];
     float color_task_minimized[4];
@@ -143,6 +158,9 @@ class config {
     char volume_scroll_up[CFG_MAX_CMD];
     char volume_scroll_down[CFG_MAX_CMD];
     char volume_middle_button[CFG_MAX_CMD];
+
+    char theme_path[512];
+    char theme_name[128];
 
     pinned_app pins[CFG_MAX_PINS];
     int npins;
@@ -161,6 +179,11 @@ class config {
     static int lua_bindswitch(struct lua_State* L);
     static int lua_output(struct lua_State* L);
     static int lua_pin(struct lua_State* L);
+
+    void read_visual(struct lua_State *L);
+
+    void load_theme_lua();
+
     static void read_color(struct lua_State* L, const char* name, float out[4]);
     static void read_bool(struct lua_State* L, const char* name, bool* out);
     static void read_int(struct lua_State* L, const char* name, int* out);

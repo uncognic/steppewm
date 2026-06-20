@@ -15,7 +15,6 @@
 
 #include "wlr.h"
 
-#include <cairo/cairo.h>
 #include <linux/input-event-codes.h>
 #include <wayland-server-core.h>
 #include <wlr/types/wlr_scene.h>
@@ -26,73 +25,140 @@
 #include "input.h"
 #include "paint.h"
 #include "server.h"
+#include "theme.h"
 #include "view.h"
 
 using namespace steppewm;
 
-// render decoration window title
-void view::deco_render_title(struct wlr_scene_buffer* scene_buf, const char* text, const int w,
-                             const int h, float fg[4]) {
+static constexpr float invisible[] = {0.0f, 0.0f, 0.0f, 0.0f};
+
+void view::deco_render_button(struct wlr_scene_buffer *buf, int type, const bool focused,
+                              const bool hovered) const {
+    const config *cfg = &srv->cfg;
+    int w, h;
+    const float *active;
+    const float *inactive;
+    const float *hover_color;
+
+    if (type == theme::BTN_CLOSE) {
+        w = cfg->close_button_w;
+        active = cfg->color_close_active;
+        inactive = cfg->color_close_inactive;
+        hover_color = cfg->color_close_hover;
+    } else if (type == theme::BTN_MAXIMIZE) {
+        w = cfg->maximize_button_w;
+        active = cfg->color_maximize_active;
+        inactive = cfg->color_maximize_inactive;
+        hover_color = cfg->color_maximize_hover;
+    } else {
+        w = cfg->minimize_button_w;
+        active = cfg->color_minimize_active;
+        inactive = cfg->color_minimize_inactive;
+        hover_color = cfg->color_minimize_hover;
+    }
+    h = cfg->title_h - 4;
+    if (w <= 0 || h <= 0) {
+        return;
+    }
+
     paint::Canvas canvas(w, h);
     if (!canvas.valid()) {
         return;
     }
-    cairo_t* cr = canvas.cr();
+    srv->wm_theme.paint_button(canvas.cr(), w, h, type, focused, hovered, active, inactive,
+                               cfg->color_title_text, cfg->button_style, hover_color);
+    canvas.commit(buf);
+}
 
-    cairo_set_source_rgba(cr, 0, 0, 0, 0);
-    cairo_paint(cr);
-
-    if (text && text[0]) {
-        cairo_select_font_face(cr, "sans-serif", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
-        cairo_set_font_size(cr, h * 0.55);
-        cairo_set_source_rgba(cr, fg[0], fg[1], fg[2], fg[3]);
-
-        cairo_text_extents_t ext;
-        cairo_text_extents(cr, text, &ext);
-        double tx = 8.0 - ext.x_bearing;
-        double ty = h / 2.0 - ext.y_bearing - ext.height / 2.0;
-        cairo_move_to(cr, tx, ty);
-        cairo_show_text(cr, text);
+// render all themed decoration buffers for the current state
+void view::deco_render_all() const {
+    if (decoration_mode != deco_mode::SERVER || !window_decoration.titlebar || fullscreen) {
+        return;
     }
 
-    canvas.commit(scene_buf);
+    const config *cfg = &srv->cfg;
+    const bool focused = srv->seat->keyboard_state.focused_surface == toplevel->base->surface;
+    const int sw = toplevel->base->geometry.width;
+    const int tw = sw + 2 * cfg->border_w;
+    const int sh = toplevel->base->geometry.height;
+
+    // titlebar
+    if (tw > 0 && cfg->title_h > 0) {
+        const int buttons_w = cfg->close_button_w + cfg->maximize_button_w + cfg->minimize_button_w +
+                              12;
+        const char *title = toplevel->title ? toplevel->title : "";
+        paint::Canvas canvas(tw, cfg->title_h);
+        if (canvas.valid()) {
+            srv->wm_theme.paint_titlebar(canvas.cr(), tw, cfg->title_h, focused, title,
+                                         cfg->color_title_active, cfg->color_title_inactive,
+                                         cfg->color_title_text, buttons_w,
+                                         cfg->title_gradient, cfg->font, cfg->title_font_size,
+                                         cfg->center_title_text, cfg->buttons_left);
+            canvas.commit(window_decoration.titlebar);
+        }
+    }
+
+    // buttons
+    deco_render_button(window_decoration.close_button, theme::BTN_CLOSE, focused, false);
+    deco_render_button(window_decoration.maximize, theme::BTN_MAXIMIZE, focused, false);
+    deco_render_button(window_decoration.minimize, theme::BTN_MINIMIZE, focused, false);
+
+    // borders
+    if (cfg->border_w > 0 && sh > 0) {
+        {
+            paint::Canvas canvas(cfg->border_w, sh);
+            if (canvas.valid()) {
+                srv->wm_theme.paint_border(canvas.cr(), cfg->border_w, sh, cfg->color_border,
+                                           theme::EDGE_LEFT, cfg->border_style);
+                canvas.commit(window_decoration.border_left);
+            }
+        }
+        {
+            paint::Canvas canvas(cfg->border_w, sh);
+            if (canvas.valid()) {
+                srv->wm_theme.paint_border(canvas.cr(), cfg->border_w, sh, cfg->color_border,
+                                           theme::EDGE_RIGHT, cfg->border_style);
+                canvas.commit(window_decoration.border_right);
+            }
+        }
+    }
+    if (cfg->border_w > 0 && tw > 0) {
+        paint::Canvas canvas(tw, cfg->border_w);
+        if (canvas.valid()) {
+            srv->wm_theme.paint_border(canvas.cr(), tw, cfg->border_w, cfg->color_border,
+                                       theme::EDGE_BOTTOM, cfg->border_style);
+            canvas.commit(window_decoration.border_bottom);
+        }
+    }
 }
 
 // called when a new view is created
 void view::deco_create() {
     const config* cfg = &srv->cfg;
 
-    window_decoration.titlebar =
-        wlr_scene_rect_create(scene_tree, 0, cfg->title_h, cfg->color_title_inactive);
+    // visual elements (buffers)
+    window_decoration.titlebar = wlr_scene_buffer_create(scene_tree, nullptr);
     wlr_scene_node_set_position(&window_decoration.titlebar->node, 0, 0);
 
-    window_decoration.title_label = wlr_scene_buffer_create(scene_tree, nullptr);
-    wlr_scene_node_set_enabled(&window_decoration.title_label->node, cfg->show_title_text);
+    window_decoration.close_button = wlr_scene_buffer_create(scene_tree, nullptr);
+    window_decoration.maximize = wlr_scene_buffer_create(scene_tree, nullptr);
+    window_decoration.minimize = wlr_scene_buffer_create(scene_tree, nullptr);
 
-    window_decoration.close_button = wlr_scene_rect_create(scene_tree, cfg->close_button_w,
-                                                           cfg->title_h, cfg->color_close_inactive);
-    window_decoration.maximize =
-        wlr_scene_rect_create(scene_tree, cfg->maximize_button_w, cfg->title_h, cfg->color_button);
-    window_decoration.minimize =
-        wlr_scene_rect_create(scene_tree, cfg->minimize_button_w, cfg->title_h, cfg->color_button);
+    window_decoration.border_left = wlr_scene_buffer_create(scene_tree, nullptr);
+    window_decoration.border_right = wlr_scene_buffer_create(scene_tree, nullptr);
+    window_decoration.border_bottom = wlr_scene_buffer_create(scene_tree, nullptr);
 
-    // create objects for corners and edges
+    // invisible hit areas for resize (rects)
     window_decoration.border_top =
-        wlr_scene_rect_create(scene_tree, 0, cfg->border_w, cfg->color_invisible);
-    window_decoration.border_left =
-        wlr_scene_rect_create(scene_tree, cfg->border_w, 0, cfg->color_border);
-    window_decoration.border_right =
-        wlr_scene_rect_create(scene_tree, cfg->border_w, 0, cfg->color_border);
-    window_decoration.border_bottom =
-        wlr_scene_rect_create(scene_tree, 0, cfg->border_w, cfg->color_border);
+            wlr_scene_rect_create(scene_tree, 0, cfg->border_w, invisible);
     window_decoration.corner_tl =
-        wlr_scene_rect_create(scene_tree, cfg->corner_size, cfg->corner_size, cfg->color_invisible);
+            wlr_scene_rect_create(scene_tree, cfg->corner_size, cfg->corner_size, invisible);
     window_decoration.corner_tr =
-        wlr_scene_rect_create(scene_tree, cfg->corner_size, cfg->corner_size, cfg->color_invisible);
+            wlr_scene_rect_create(scene_tree, cfg->corner_size, cfg->corner_size, invisible);
     window_decoration.corner_bl =
-        wlr_scene_rect_create(scene_tree, cfg->corner_size, cfg->corner_size, cfg->color_invisible);
+            wlr_scene_rect_create(scene_tree, cfg->corner_size, cfg->corner_size, invisible);
     window_decoration.corner_br =
-        wlr_scene_rect_create(scene_tree, cfg->corner_size, cfg->corner_size, cfg->color_invisible);
+            wlr_scene_rect_create(scene_tree, cfg->corner_size, cfg->corner_size, invisible);
 
     deco_update();
 }
@@ -108,44 +174,32 @@ void view::deco_update() const {
     const int sh = toplevel->base->geometry.height;
     const int tw = sw + 2 * cfg->border_w;
 
-    wlr_scene_rect_set_size(window_decoration.titlebar, tw, cfg->title_h);
-
-    wlr_scene_rect_set_size(window_decoration.close_button, cfg->close_button_w, cfg->title_h - 4);
-    const int close_x = tw - cfg->close_button_w - 4;
-    wlr_scene_node_set_position(&window_decoration.close_button->node, close_x, 0);
-
-    wlr_scene_rect_set_size(window_decoration.maximize, cfg->maximize_button_w, cfg->title_h - 4);
-    const int maximize_x = close_x - 4 - cfg->maximize_button_w;
-    wlr_scene_node_set_position(&window_decoration.maximize->node, maximize_x, 0);
-
-    wlr_scene_rect_set_size(window_decoration.minimize, cfg->minimize_button_w, cfg->title_h - 4);
-    const int minimize_x = maximize_x - 2 - cfg->minimize_button_w;
-    wlr_scene_node_set_position(&window_decoration.minimize->node, minimize_x, 0);
-
-    if (window_decoration.title_label) {
-        // render the titlebar text
-        wlr_scene_node_set_enabled(&window_decoration.title_label->node, cfg->show_title_text);
-        if (cfg->show_title_text) {
-            const int label_w = minimize_x - 4;
-            const char* title = toplevel->title ? toplevel->title : "";
-            deco_render_title(window_decoration.title_label, title, label_w, cfg->title_h,
-                              cfg->color_title_text);
-            wlr_scene_node_set_position(&window_decoration.title_label->node, 0, 0);
-        }
+    // position buttons within the titlebar (vertically centered)
+    const int btn_h = cfg->title_h - 4;
+    const int btn_y = (cfg->title_h - btn_h) / 2;
+    int close_x, maximize_x, minimize_x;
+    if (cfg->buttons_left) {
+        close_x = 4;
+        maximize_x = close_x + cfg->close_button_w + 4;
+        minimize_x = maximize_x + cfg->maximize_button_w + 2;
+    } else {
+        close_x = tw - cfg->close_button_w - 4;
+        maximize_x = close_x - 4 - cfg->maximize_button_w;
+        minimize_x = maximize_x - 2 - cfg->minimize_button_w;
     }
+    wlr_scene_node_set_position(&window_decoration.close_button->node, close_x, btn_y);
+    wlr_scene_node_set_position(&window_decoration.maximize->node, maximize_x, btn_y);
+    wlr_scene_node_set_position(&window_decoration.minimize->node, minimize_x, btn_y);
 
-    wlr_scene_rect_set_size(window_decoration.border_top, tw, cfg->border_w);
-    wlr_scene_node_set_position(&window_decoration.border_top->node, 0, 0);
-
-    wlr_scene_rect_set_size(window_decoration.border_left, cfg->border_w, sh);
+    // position borders
     wlr_scene_node_set_position(&window_decoration.border_left->node, 0, cfg->title_h);
-
-    wlr_scene_rect_set_size(window_decoration.border_right, cfg->border_w, sh);
     wlr_scene_node_set_position(&window_decoration.border_right->node, tw - cfg->border_w,
                                 cfg->title_h);
-
-    wlr_scene_rect_set_size(window_decoration.border_bottom, tw, cfg->border_w);
     wlr_scene_node_set_position(&window_decoration.border_bottom->node, 0, cfg->title_h + sh);
+
+    // position invisible hit areas
+    wlr_scene_rect_set_size(window_decoration.border_top, tw, cfg->border_w);
+    wlr_scene_node_set_position(&window_decoration.border_top->node, 0, 0);
 
     wlr_scene_node_set_position(&window_decoration.corner_tl->node, 0, 0);
     wlr_scene_node_set_position(&window_decoration.corner_tr->node, tw - cfg->corner_size, 0);
@@ -154,6 +208,9 @@ void view::deco_update() const {
     wlr_scene_node_set_position(&window_decoration.corner_bl->node, 0, corner_y);
     wlr_scene_node_set_position(&window_decoration.corner_br->node, tw - cfg->corner_size,
                                 corner_y);
+
+    // render all visual elements
+    deco_render_all();
 }
 
 void view::deco_set_visible(bool visible) const {
@@ -170,8 +227,6 @@ void view::deco_set_visible(bool visible) const {
     for (wlr_scene_node* n : nodes) {
         wlr_scene_node_set_enabled(n, visible);
     }
-    wlr_scene_node_set_enabled(&window_decoration.title_label->node,
-                               visible && srv->cfg.show_title_text);
 }
 
 // called when a view is destroyed
@@ -181,7 +236,6 @@ void view::deco_destroy() {
     }
     // free stuff
     window_decoration.titlebar = nullptr;
-    window_decoration.title_label = nullptr;
     window_decoration.close_button = nullptr;
     window_decoration.maximize = nullptr;
     window_decoration.minimize = nullptr;
@@ -195,53 +249,49 @@ void view::deco_destroy() {
     window_decoration.corner_br = nullptr;
 }
 
-static void lighten_color(const float in[4], float out[4], float amount = 0.25f) {
-    for (int i = 0; i < 3; i++) {
-        out[i] = in[i] + (1.0f - in[i]) * amount;
-    }
-    out[3] = in[3];
-}
-
 void view::deco_set_focus(const bool focused) const {
     if (decoration_mode != deco_mode::SERVER || !window_decoration.titlebar) {
         return;
     }
+
     const config* cfg = &srv->cfg;
-    wlr_scene_rect_set_color(window_decoration.titlebar,
-                             focused ? cfg->color_title_active : cfg->color_title_inactive);
-    wlr_scene_rect_set_color(window_decoration.close_button,
-                             focused ? cfg->color_close_active : cfg->color_close_inactive);
-    wlr_scene_rect_set_color(window_decoration.maximize,
-                             focused ? cfg->color_button : cfg->color_button_inactive);
-    wlr_scene_rect_set_color(window_decoration.minimize,
-                             focused ? cfg->color_button : cfg->color_button_inactive);
+    const int sw = toplevel->base->geometry.width;
+    const int tw = sw + 2 * cfg->border_w;
+
+    // re-render titlebar with new focus state
+    if (tw > 0 && cfg->title_h > 0) {
+        const int buttons_w = cfg->close_button_w + cfg->maximize_button_w + cfg->minimize_button_w +
+                              12;
+        const char *title = toplevel->title ? toplevel->title : "";
+        paint::Canvas canvas(tw, cfg->title_h);
+        if (canvas.valid()) {
+            srv->wm_theme.paint_titlebar(canvas.cr(), tw, cfg->title_h, focused, title,
+                                         cfg->color_title_active, cfg->color_title_inactive,
+                                         cfg->color_title_text, buttons_w,
+                                         cfg->title_gradient, cfg->font, cfg->title_font_size,
+                                         cfg->center_title_text, cfg->buttons_left);
+            canvas.commit(window_decoration.titlebar);
+        }
+    }
+
+    // re-render buttons
+    deco_render_button(window_decoration.close_button, theme::BTN_CLOSE, focused, false);
+    deco_render_button(window_decoration.maximize, theme::BTN_MAXIMIZE, focused, false);
+    deco_render_button(window_decoration.minimize, theme::BTN_MINIMIZE, focused, false);
 }
 
 void view::deco_set_hover(const struct wlr_scene_node* node, const bool hovered) const {
     if (decoration_mode != deco_mode::SERVER || !window_decoration.titlebar) {
         return;
     }
-    const config* cfg = &srv->cfg;
     const bool focused = srv->seat->keyboard_state.focused_surface == toplevel->base->surface;
 
-    // set the color based on if it's active or not
-    auto apply = [&](wlr_scene_rect* rect, const float* active, const float* inactive) {
-        const float* base = focused ? active : inactive;
-        if (hovered) {
-            float bright[4];
-            lighten_color(base, bright);
-            wlr_scene_rect_set_color(rect, bright);
-        } else {
-            wlr_scene_rect_set_color(rect, base);
-        }
-    };
-
     if (node == &window_decoration.close_button->node) {
-        apply(window_decoration.close_button, cfg->color_close_active, cfg->color_close_inactive);
+        deco_render_button(window_decoration.close_button, theme::BTN_CLOSE, focused, hovered);
     } else if (node == &window_decoration.maximize->node) {
-        apply(window_decoration.maximize, cfg->color_button, cfg->color_button_inactive);
+        deco_render_button(window_decoration.maximize, theme::BTN_MAXIMIZE, focused, hovered);
     } else if (node == &window_decoration.minimize->node) {
-        apply(window_decoration.minimize, cfg->color_button, cfg->color_button_inactive);
+        deco_render_button(window_decoration.minimize, theme::BTN_MINIMIZE, focused, hovered);
     }
 }
 
@@ -304,15 +354,22 @@ view* view::deco_at(const server* s, const double lx, const double ly,
     }
     const auto v = static_cast<view*>(tree->node.data);
 
+    if (v->decoration_mode != deco_mode::SERVER || !v->window_decoration.titlebar) {
+        return nullptr;
+    }
+
+    // invisible resize rects
     if (hit->type == WLR_SCENE_NODE_RECT) {
         *node = hit;
         return v;
     }
 
-    // clicking on the title label should behave like clicking the titlebar
-    if (hit->type == WLR_SCENE_NODE_BUFFER && v->decoration_mode == deco_mode::SERVER &&
-        v->window_decoration.title_label && hit == &v->window_decoration.title_label->node) {
-        *node = &v->window_decoration.titlebar->node;
+    // themed decoration buffers
+    if (hit == &v->window_decoration.titlebar->node ||
+        hit == &v->window_decoration.close_button->node ||
+        hit == &v->window_decoration.maximize->node ||
+        hit == &v->window_decoration.minimize->node) {
+        *node = hit;
         return v;
     }
 

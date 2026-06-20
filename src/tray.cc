@@ -784,7 +784,7 @@ void tray_host::render_menu() {
         if (!e.toggle_type.empty() && e.toggle_state == 1) {
             display = "\xe2\x9c\x93 " + display;
         }
-        auto ext = paint::text_extents(display.c_str(), font_size);
+        const auto ext = paint::text_extents(display.c_str(), font_size, cfg->font);
         int w = static_cast<int>(ext.x_advance + 0.5);
         if (w > max_text_w) {
             max_text_w = w;
@@ -812,7 +812,7 @@ void tray_host::render_menu() {
     cairo_set_source_rgba(cr, bg[0], bg[1], bg[2], 1.0);
     cairo_paint(cr);
 
-    cairo_select_font_face(cr, "sans-serif", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
+    cairo_select_font_face(cr, cfg->font, CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
     cairo_set_font_size(cr, font_size);
 
     int cur_y = 0;

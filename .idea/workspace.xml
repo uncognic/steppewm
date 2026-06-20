@@ -30,7 +30,218 @@
     </configurations>
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="fe9dad27-3720-49d7-9f5f-f6f2962f1612" name="Changes" comment="update workflow" />
+    <list default="true" id="fe9dad27-3720-49d7-9f5f-f6f2962f1612" name="Changes" comment="release 0.1.0">
+      <change afterPath="$PROJECT_DIR$/themes/AntiX-Blue-Large/border_bottom.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/AntiX-Blue-Large/border_left.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/AntiX-Blue-Large/border_right.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/AntiX-Blue-Large/close.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/AntiX-Blue-Large/close_active.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/AntiX-Blue-Large/close_hover.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/AntiX-Blue-Large/maximize.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/AntiX-Blue-Large/maximize_active.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/AntiX-Blue-Large/maximize_hover.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/AntiX-Blue-Large/minimize.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/AntiX-Blue-Large/minimize_active.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/AntiX-Blue-Large/minimize_hover.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/AntiX-Blue-Large/taskbar_bg.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/AntiX-Blue-Large/taskbutton.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/AntiX-Blue-Large/taskbutton_active.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/AntiX-Blue-Large/taskbutton_minimized.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/AntiX-Blue-Large/theme.lua" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/AntiX-Blue-Large/titlebar.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/AntiX-Blue-Large/titlebar_inactive.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/AntiX-Blue-Large/workspace_active.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/AntiX-Blue-Medium/border_bottom.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/AntiX-Blue-Medium/border_left.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/AntiX-Blue-Medium/border_right.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/AntiX-Blue-Medium/close.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/AntiX-Blue-Medium/close_active.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/AntiX-Blue-Medium/close_hover.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/AntiX-Blue-Medium/maximize.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/AntiX-Blue-Medium/maximize_active.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/AntiX-Blue-Medium/maximize_hover.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/AntiX-Blue-Medium/minimize.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/AntiX-Blue-Medium/minimize_active.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/AntiX-Blue-Medium/minimize_hover.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/AntiX-Blue-Medium/taskbar_bg.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/AntiX-Blue-Medium/taskbutton.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/AntiX-Blue-Medium/taskbutton_active.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/AntiX-Blue-Medium/taskbutton_minimized.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/AntiX-Blue-Medium/theme.lua" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/AntiX-Blue-Medium/titlebar.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/AntiX-Blue-Medium/titlebar_inactive.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/AntiX-Blue-Medium/workspace_active.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/AntiX-Blue-Small/border_bottom.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/AntiX-Blue-Small/border_left.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/AntiX-Blue-Small/border_right.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/AntiX-Blue-Small/close.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/AntiX-Blue-Small/close_active.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/AntiX-Blue-Small/close_hover.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/AntiX-Blue-Small/maximize.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/AntiX-Blue-Small/maximize_active.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/AntiX-Blue-Small/maximize_hover.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/AntiX-Blue-Small/minimize.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/AntiX-Blue-Small/minimize_active.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/AntiX-Blue-Small/minimize_hover.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/AntiX-Blue-Small/taskbar_bg.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/AntiX-Blue-Small/taskbutton.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/AntiX-Blue-Small/taskbutton_active.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/AntiX-Blue-Small/taskbutton_minimized.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/AntiX-Blue-Small/theme.lua" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/AntiX-Blue-Small/titlebar.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/AntiX-Blue-Small/titlebar_inactive.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/AntiX-Blue-Small/workspace_active.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/AntiX-Green-Small/close.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/AntiX-Green-Small/close_active.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/AntiX-Green-Small/maximize.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/AntiX-Green-Small/minimize.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/AntiX-Green-Small/taskbar_bg.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/AntiX-Green-Small/taskbutton.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/AntiX-Green-Small/titlebar.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/AntiX-Red-Large/close.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/AntiX-Red-Large/close_active.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/AntiX-Red-Large/maximize.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/AntiX-Red-Large/maximize_active.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/AntiX-Red-Large/minimize.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/AntiX-Red-Large/minimize_active.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/AntiX-Red-Large/taskbar_bg.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/AntiX-Red-Large/taskbutton.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/AntiX-Red-Large/taskbutton_active.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/AntiX-Red-Large/taskbutton_minimized.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/AntiX-Red-Large/titlebar.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/AntiX-Red-Large/titlebar_inactive.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/AntiX-Red-Large/workspace_active.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/AntiX-Red-Medium/close.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/AntiX-Red-Medium/close_active.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/AntiX-Red-Medium/maximize.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/AntiX-Red-Medium/maximize_active.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/AntiX-Red-Medium/minimize.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/AntiX-Red-Medium/minimize_active.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/AntiX-Red-Medium/taskbar_bg.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/AntiX-Red-Medium/taskbutton.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/AntiX-Red-Medium/taskbutton_active.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/AntiX-Red-Medium/taskbutton_minimized.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/AntiX-Red-Medium/titlebar.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/AntiX-Red-Medium/titlebar_inactive.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/AntiX-Red-Medium/workspace_active.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/AntiX-Red-Small/close.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/AntiX-Red-Small/close_active.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/AntiX-Red-Small/maximize.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/AntiX-Red-Small/maximize_active.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/AntiX-Red-Small/minimize.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/AntiX-Red-Small/minimize_active.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/AntiX-Red-Small/taskbar_bg.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/AntiX-Red-Small/taskbutton.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/AntiX-Red-Small/taskbutton_active.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/AntiX-Red-Small/taskbutton_minimized.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/AntiX-Red-Small/titlebar.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/AntiX-Red-Small/titlebar_inactive.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/AntiX-Red-Small/workspace_active.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/CrystalBlue/close.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/CrystalBlue/close_active.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/CrystalBlue/close_hover.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/CrystalBlue/config_snippet.lua" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/CrystalBlue/maximize.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/CrystalBlue/maximize_active.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/CrystalBlue/maximize_hover.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/CrystalBlue/minimize.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/CrystalBlue/minimize_active.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/CrystalBlue/minimize_hover.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/CrystalBlue/taskbar_bg.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/CrystalBlue/taskbutton.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/CrystalBlue/taskbutton_active.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/CrystalBlue/taskbutton_minimized.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/CrystalBlue/titlebar.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/CrystalBlue/titlebar_inactive.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/CrystalBlue/workspace.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/CrystalBlue/workspace_active.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/IceGilDust-Large/close.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/IceGilDust-Large/close_active.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/IceGilDust-Large/close_hover.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/IceGilDust-Large/maximize.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/IceGilDust-Large/maximize_active.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/IceGilDust-Large/minimize.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/IceGilDust-Large/minimize_active.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/IceGilDust-Large/minimize_hover.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/IceGilDust-Large/taskbar_bg.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/IceGilDust-Large/taskbutton.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/IceGilDust-Large/taskbutton_active.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/IceGilDust-Large/taskbutton_minimized.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/IceGilDust-Large/titlebar.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/IceGilDust-Large/titlebar_inactive.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/IceGilDust-Large/workspace.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/IceGilDust-Large/workspace_active.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/IceGilDust-Medium/close.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/IceGilDust-Medium/close_active.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/IceGilDust-Medium/close_hover.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/IceGilDust-Medium/maximize.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/IceGilDust-Medium/maximize_active.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/IceGilDust-Medium/minimize.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/IceGilDust-Medium/minimize_active.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/IceGilDust-Medium/minimize_hover.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/IceGilDust-Medium/taskbar_bg.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/IceGilDust-Medium/taskbutton.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/IceGilDust-Medium/taskbutton_active.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/IceGilDust-Medium/taskbutton_minimized.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/IceGilDust-Medium/titlebar.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/IceGilDust-Medium/titlebar_inactive.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/IceGilDust-Medium/workspace.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/IceGilDust-Medium/workspace_active.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/IceGilDust-Small/close.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/IceGilDust-Small/close_active.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/IceGilDust-Small/close_hover.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/IceGilDust-Small/maximize.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/IceGilDust-Small/maximize_active.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/IceGilDust-Small/minimize.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/IceGilDust-Small/minimize_active.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/IceGilDust-Small/minimize_hover.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/IceGilDust-Small/taskbar_bg.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/IceGilDust-Small/taskbutton.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/IceGilDust-Small/taskbutton_active.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/IceGilDust-Small/taskbutton_minimized.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/IceGilDust-Small/titlebar.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/IceGilDust-Small/titlebar_inactive.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/IceGilDust-Small/workspace.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/IceGilDust-Small/workspace_active.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/Infadel2/close_active.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/Infadel2/close_hover.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/Infadel2/maximize_active.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/Infadel2/maximize_hover.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/Infadel2/minimize_active.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/Infadel2/minimize_hover.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/Infadel2/theme.lua" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/Infadel2/titlebar.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/Infadel2/titlebar_inactive.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/icedesert/close.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/icedesert/close_active.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/icedesert/close_hover.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/icedesert/maximize.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/icedesert/maximize_active.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/icedesert/maximize_hover.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/icedesert/minimize.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/icedesert/minimize_active.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/icedesert/minimize_hover.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/icedesert/theme.lua" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/icedesert/titlebar.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/themes/icedesert/titlebar_inactive.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/CMakeLists.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config.lua" beforeDir="false" afterPath="$PROJECT_DIR$/config.lua" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/config.cc" beforeDir="false" afterPath="$PROJECT_DIR$/src/config.cc" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/config.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/config.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/deco.cc" beforeDir="false" afterPath="$PROJECT_DIR$/src/deco.cc" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/lock.cc" beforeDir="false" afterPath="$PROJECT_DIR$/src/lock.cc" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main.cc" beforeDir="false" afterPath="$PROJECT_DIR$/src/main.cc" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/osd.cc" beforeDir="false" afterPath="$PROJECT_DIR$/src/osd.cc" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/paint.cc" beforeDir="false" afterPath="$PROJECT_DIR$/src/paint.cc" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/paint.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/paint.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/server.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/server.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/switcher.cc" beforeDir="false" afterPath="$PROJECT_DIR$/src/switcher.cc" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/taskbar.cc" beforeDir="false" afterPath="$PROJECT_DIR$/src/taskbar.cc" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/taskbar.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/taskbar.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/tray.cc" beforeDir="false" afterPath="$PROJECT_DIR$/src/tray.cc" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/view.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/view.h" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -105,49 +316,49 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent">{
-  &quot;keyToString&quot;: {
-    &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
-    &quot;Native Application.steppewm.executor&quot;: &quot;Debug&quot;,
-    &quot;RunOnceActivity.RadMigrateCodeStyle&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.cidr.known.project.marker&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.readMode.enableVisualFormatting&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.typescript.service.memoryLimit.init&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.west.config.association.type.startup.service&quot;: &quot;true&quot;,
-    &quot;SHARE_PROJECT_CONFIGURATION_FILES&quot;: &quot;true&quot;,
-    &quot;cf.advertisement.text.overridden&quot;: &quot;true&quot;,
-    &quot;cf.first.check.clang-format&quot;: &quot;false&quot;,
-    &quot;cidr.known.project.marker&quot;: &quot;true&quot;,
-    &quot;codeWithMe.voiceChat.enabledByDefault&quot;: &quot;false&quot;,
-    &quot;com.intellij.codeInspection.ui.actions.InspectionResultsExportActionProvider.location&quot;: &quot;/home/user/git/personal/steppewm&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;main&quot;,
-    &quot;git.auto.fetch.suggestion.counter&quot;: &quot;1&quot;,
-    &quot;last_opened_file_path&quot;: &quot;/home/user/git/personal/steppewm&quot;,
-    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
-    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
-    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
-    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
-    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
-    &quot;org.rust.first.attach.projects&quot;: &quot;true&quot;,
-    &quot;run.code.analysis.last.selected.profile&quot;: &quot;pProject Default&quot;,
-    &quot;settings.editor.selected.configurable&quot;: &quot;CMakeSettings&quot;,
-    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "ModuleVcsDetector.initialDetectionPerformed": "true",
+    "Native Application.steppewm.executor": "Debug",
+    "RunOnceActivity.RadMigrateCodeStyle": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252": "true",
+    "RunOnceActivity.cidr.known.project.marker": "true",
+    "RunOnceActivity.git.unshallow": "true",
+    "RunOnceActivity.readMode.enableVisualFormatting": "true",
+    "RunOnceActivity.typescript.service.memoryLimit.init": "true",
+    "RunOnceActivity.west.config.association.type.startup.service": "true",
+    "SHARE_PROJECT_CONFIGURATION_FILES": "true",
+    "cf.advertisement.text.overridden": "true",
+    "cf.first.check.clang-format": "false",
+    "cidr.known.project.marker": "true",
+    "codeWithMe.voiceChat.enabledByDefault": "false",
+    "com.intellij.codeInspection.ui.actions.InspectionResultsExportActionProvider.location": "/home/user/git/personal/steppewm",
+    "git-widget-placeholder": "main",
+    "git.auto.fetch.suggestion.counter": "1",
+    "last_opened_file_path": "/home/user/git/personal/steppewm/themes",
+    "node.js.detected.package.eslint": "true",
+    "node.js.detected.package.tslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
+    "node.js.selected.package.tslint": "(autodetect)",
+    "nodejs_package_manager_path": "npm",
+    "org.rust.first.attach.projects": "true",
+    "run.code.analysis.last.selected.profile": "pProject Default",
+    "settings.editor.selected.configurable": "CMakeSettings",
+    "vue.rearranger.settings.migration": "true"
   }
-}</component>
+}]]></component>
+  <component name="RecentsManager">
+    <key name="CopyFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/themes" />
+    </key>
+  </component>
   <component name="RunAnythingCache">
     <option name="myCommands">
       <command value="sudo" />
     </option>
   </component>
   <component name="RunManager" selected="Native Application.steppewm">
-    <configuration default="true" type="CLionExternalRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true">
-      <method v="2">
-        <option name="CLION.EXTERNAL.BUILD" enabled="true" />
-      </method>
-    </configuration>
     <configuration name="all" type="CLionNativeAppRunConfigurationType" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="steppewm" TARGET_NAME="all" CONFIG_NAME="Default" version="1">
       <method v="2">
         <option name="CLION.COMPOUND.BUILD" enabled="true" />
@@ -237,15 +448,11 @@
       <workItem from="1781813398117" duration="5000" />
       <workItem from="1781813441486" duration="40000" />
       <workItem from="1781813497173" duration="230000" />
-      <workItem from="1781814334106" duration="2612000" />
-    </task>
-    <task id="LOCAL-00048" summary="ext-session-lock-v1">
-      <option name="closed" value="true" />
-      <created>1780858593447</created>
-      <option name="number" value="00048" />
-      <option name="presentableId" value="LOCAL-00048" />
-      <option name="project" value="LOCAL" />
-      <updated>1780858593447</updated>
+      <workItem from="1781814334106" duration="4040000" />
+      <workItem from="1781837187979" duration="52000" />
+      <workItem from="1781838508141" duration="2866000" />
+      <workItem from="1781887443980" duration="2842000" />
+      <workItem from="1781925043484" duration="6875000" />
     </task>
     <task id="LOCAL-00049" summary="wlr_gamma_control_v1">
       <option name="closed" value="true" />
@@ -631,7 +838,15 @@
       <option name="project" value="LOCAL" />
       <updated>1781823360644</updated>
     </task>
-    <option name="localTasksCounter" value="97" />
+    <task id="LOCAL-00097" summary="update workflow">
+      <option name="closed" value="true" />
+      <created>1781824210084</created>
+      <option name="number" value="00097" />
+      <option name="presentableId" value="LOCAL-00097" />
+      <option name="project" value="LOCAL" />
+      <updated>1781824210084</updated>
+    </task>
+    <option name="localTasksCounter" value="98" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -655,7 +870,6 @@
     </option>
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="add double clicking the titlebar to toggle maximize" />
     <MESSAGE value="add flatpak example pin to config" />
     <MESSAGE value="add info prints in main.cxx" />
     <MESSAGE value="add taskbar indicator scroll actions" />
@@ -679,8 +893,9 @@
     <MESSAGE value="use .cc" />
     <MESSAGE value="CMake" />
     <MESSAGE value="actions" />
-    <MESSAGE value="update workflow" />
-    <option name="LAST_COMMIT_MESSAGE" value="update workflow" />
+    <MESSAGE value="release 0.1.0" />
+    <MESSAGE value="release 0.1.0" />
+    <option name="LAST_COMMIT_MESSAGE" value="release 0.1.0" />
     <option name="REFORMAT_BEFORE_PROJECT_COMMIT" value="true" />
   </component>
 </project>

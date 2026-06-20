@@ -41,15 +41,14 @@ enum class snap_edge {
 
 class deco {
   public:
-    struct wlr_scene_rect *titlebar;
-    struct wlr_scene_buffer *title_label;
-    struct wlr_scene_rect *close_button;
-    struct wlr_scene_rect *maximize;
-    struct wlr_scene_rect *minimize;
+    struct wlr_scene_buffer *titlebar;
+    struct wlr_scene_buffer *close_button;
+    struct wlr_scene_buffer *maximize;
+    struct wlr_scene_buffer *minimize;
+    struct wlr_scene_buffer *border_left;
+    struct wlr_scene_buffer *border_right;
+    struct wlr_scene_buffer *border_bottom;
     struct wlr_scene_rect *border_top;
-    struct wlr_scene_rect *border_left;
-    struct wlr_scene_rect *border_right;
-    struct wlr_scene_rect *border_bottom;
     struct wlr_scene_rect *corner_tl;
     struct wlr_scene_rect *corner_tr;
     struct wlr_scene_rect *corner_bl;
@@ -179,8 +178,12 @@ class view {
     static view* from_surface(struct wlr_surface* surface);
     static bool activation_token_valid(server* s, struct wlr_xdg_activation_token_v1* token);
     static bool surface_is_view_focused(server* s, view* v);
-    static void deco_render_title(struct wlr_scene_buffer* scene_buf, const char* text, int w,
-                                  int h, float fg[4]);
+
+    void deco_render_all() const;
+
+    void deco_render_button(struct wlr_scene_buffer *buf, int type, bool focused,
+                            bool hovered) const;
+
     static void deco_request_mode(view* v, struct wlr_xdg_toplevel_decoration_v1* decoration);
     static void deco_handle_destroy(view* v);
 };

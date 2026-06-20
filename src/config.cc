@@ -33,9 +33,9 @@ extern "C" {
 
 #include "config.h"
 #include "input.h"
+#include "theme.h"
 #include "output.h"
 #include "server.h"
-#include "taskbar.h"
 #include "view.h"
 
 using namespace steppewm;
@@ -399,16 +399,10 @@ void config::set_defaults() {
     color_button_inactive[2] = 0.32f;
     color_button_inactive[3] = 1.0f;
 
-    color_invisible[0] = 0.0f;
-    color_invisible[1] = 0.0f;
-    color_invisible[2] = 0.0f;
-    color_invisible[3] = 0.0f;
-
     color_title_text[0] = 0.88f;
     color_title_text[1] = 0.88f;
     color_title_text[2] = 0.88f;
     color_title_text[3] = 1.0f;
-    show_title_text = true;
 
     title_h = 20;
     border_w = 3;
@@ -416,6 +410,32 @@ void config::set_defaults() {
     close_button_w = 40;
     maximize_button_w = 20;
     minimize_button_w = 20;
+
+    title_gradient = false;
+    strncpy(button_style, "symbol", sizeof(button_style));
+    strncpy(border_style, "flat", sizeof(border_style));
+    strncpy(font, "sans-serif", sizeof(font));
+    title_font_size = 0;
+    center_title_text = false;
+    buttons_left = false;
+
+    memcpy(color_maximize_active, color_button, sizeof(color_maximize_active));
+    memcpy(color_maximize_inactive, color_button_inactive, sizeof(color_maximize_inactive));
+    memcpy(color_minimize_active, color_button, sizeof(color_minimize_active));
+    memcpy(color_minimize_inactive, color_button_inactive, sizeof(color_minimize_inactive));
+
+    color_close_hover[0] = 0.0f;
+    color_close_hover[1] = 0.0f;
+    color_close_hover[2] = 0.0f;
+    color_close_hover[3] = 0.0f;
+    color_maximize_hover[0] = 0.0f;
+    color_maximize_hover[1] = 0.0f;
+    color_maximize_hover[2] = 0.0f;
+    color_maximize_hover[3] = 0.0f;
+    color_minimize_hover[0] = 0.0f;
+    color_minimize_hover[1] = 0.0f;
+    color_minimize_hover[2] = 0.0f;
+    color_minimize_hover[3] = 0.0f;
 
     taskbar_h = 24;
     taskbar_all_outputs = false;
@@ -459,10 +479,18 @@ void config::set_defaults() {
     }
 #endif
 
+    theme_path[0] = '\0';
+    theme_name[0] = '\0';
+
     color_taskbar_bg[0] = 0.08f;
     color_taskbar_bg[1] = 0.08f;
     color_taskbar_bg[2] = 0.08f;
     color_taskbar_bg[3] = 1.0f;
+
+    color_taskbar_accent[0] = 0.0f;
+    color_taskbar_accent[1] = 0.0f;
+    color_taskbar_accent[2] = 0.0f;
+    color_taskbar_accent[3] = 0.0f;
 
     color_task_normal[0] = 0.18f;
     color_task_normal[1] = 0.18f;
@@ -488,6 +516,78 @@ void config::set_defaults() {
     color_task_text[1] = 0.88f;
     color_task_text[2] = 0.88f;
     color_task_text[3] = 1.0f;
+}
+
+void config::read_visual(lua_State *L) {
+    read_color(L, "title_active", color_title_active);
+    read_color(L, "title_inactive", color_title_inactive);
+    read_color(L, "border_color", color_border);
+    read_color(L, "close_active", color_close_active);
+    read_color(L, "close_inactive", color_close_inactive);
+    read_color(L, "button_color", color_button);
+    read_color(L, "button_inactive", color_button_inactive);
+    memcpy(color_maximize_active, color_button, sizeof(color_maximize_active));
+    memcpy(color_maximize_inactive, color_button_inactive, sizeof(color_maximize_inactive));
+    memcpy(color_minimize_active, color_button, sizeof(color_minimize_active));
+    memcpy(color_minimize_inactive, color_button_inactive, sizeof(color_minimize_inactive));
+    read_color(L, "maximize_active", color_maximize_active);
+    read_color(L, "maximize_inactive", color_maximize_inactive);
+    read_color(L, "minimize_active", color_minimize_active);
+    read_color(L, "minimize_inactive", color_minimize_inactive);
+    read_color(L, "close_hover", color_close_hover);
+    read_color(L, "maximize_hover", color_maximize_hover);
+    read_color(L, "minimize_hover", color_minimize_hover);
+    read_color(L, "title_text", color_title_text);
+    read_int(L, "title_height", &title_h);
+    read_int(L, "border_width", &border_w);
+    read_int(L, "corner_size", &corner_size);
+    read_int(L, "close_button_width", &close_button_w);
+    read_int(L, "maximize_button_width", &maximize_button_w);
+    read_int(L, "minimize_button_width", &minimize_button_w);
+    read_bool(L, "title_gradient", &title_gradient);
+    read_string(L, "button_style", button_style, sizeof(button_style));
+    read_string(L, "border_style", border_style, sizeof(border_style));
+    read_string(L, "font", font, sizeof(font));
+    read_int(L, "title_font_size", &title_font_size);
+    read_bool(L, "center_title_text", &center_title_text);
+    read_bool(L, "buttons_left", &buttons_left);
+    read_int(L, "taskbar_height", &taskbar_h);
+    read_int(L, "taskbar_button_width", &taskbar_button_w);
+    read_int(L, "taskbar_button_pad", &taskbar_button_pad);
+    read_color(L, "taskbar_bg", color_taskbar_bg);
+    read_color(L, "taskbar_accent", color_taskbar_accent);
+    read_color(L, "task_normal", color_task_normal);
+    read_color(L, "task_active", color_task_active);
+    read_color(L, "task_minimized", color_task_minimized);
+    read_color(L, "task_urgent", color_task_urgent);
+    read_color(L, "task_text", color_task_text);
+}
+
+void config::load_theme_lua() {
+    if (!theme_path[0]) {
+        return;
+    }
+
+    char path[576];
+    snprintf(path, sizeof(path), "%s/theme.lua", theme_path);
+    if (access(path, R_OK) != 0) {
+        return;
+    }
+
+    lua_State *L = luaL_newstate();
+    if (!L) {
+        return;
+    }
+    luaL_openlibs(L);
+
+    if (luaL_dofile(L, path) != LUA_OK) {
+        fprintf(stderr, "steppewm: theme error: %s\n", lua_tostring(L, -1));
+        lua_close(L);
+        return;
+    }
+
+    read_visual(L);
+    lua_close(L);
 }
 
 bool config::load(const char* path) {
@@ -537,34 +637,17 @@ bool config::load(const char* path) {
 
     read_bool(L, "xwayland", &xwayland);
 
-    read_color(L, "title_active", color_title_active);
-    read_color(L, "title_inactive", color_title_inactive);
-    read_color(L, "border_color", color_border);
-    read_color(L, "close_active", color_close_active);
-    read_color(L, "close_inactive", color_close_inactive);
-    read_color(L, "button_color", color_button);
-    read_color(L, "button_inactive", color_button_inactive);
+    read_string(L, "theme", theme_name, sizeof(theme_name));
 
-    read_color(L, "title_text", color_title_text);
-    read_bool(L, "show_title_text", &show_title_text);
+    if (theme_name[0]) {
+        theme::resolve_name(theme_name, theme_path, sizeof(theme_path));
+    }
 
-    read_int(L, "title_height", &title_h);
-    read_int(L, "border_width", &border_w);
-    read_int(L, "corner_size", &corner_size);
-    read_int(L, "close_button_width", &close_button_w);
-    read_int(L, "maximize_button_width", &maximize_button_w);
-    read_int(L, "minimize_button_width", &minimize_button_w);
+    load_theme_lua();
 
-    read_int(L, "taskbar_height", &taskbar_h);
-    read_int(L, "taskbar_button_width", &taskbar_button_w);
-    read_int(L, "taskbar_button_pad", &taskbar_button_pad);
+    read_visual(L);
+
     read_bool(L, "taskbar_all_outputs", &taskbar_all_outputs);
-    read_color(L, "taskbar_bg", color_taskbar_bg);
-    read_color(L, "task_normal", color_task_normal);
-    read_color(L, "task_active", color_task_active);
-    read_color(L, "task_minimized", color_task_minimized);
-    read_color(L, "task_urgent", color_task_urgent);
-    read_color(L, "task_text", color_task_text);
     read_string(L, "battery_path", battery_path, sizeof(battery_path));
     read_string(L, "backlight_path", backlight_path, sizeof(backlight_path));
     read_string(L, "brightness_scroll_up", brightness_scroll_up, sizeof(brightness_scroll_up));
@@ -622,6 +705,14 @@ void config::reload(server* s) {
     cfg->load(s->config_path);
 
     cfg->run_execs();
+
+    s->wm_theme.load(cfg->theme_path);
+
+    auto dims = s->wm_theme.get_dims();
+    if (dims.title_h > 0) cfg->title_h = dims.title_h;
+    if (dims.close_w > 0) cfg->close_button_w = dims.close_w;
+    if (dims.maximize_w > 0) cfg->maximize_button_w = dims.maximize_w;
+    if (dims.minimize_w > 0) cfg->minimize_button_w = dims.minimize_w;
 
     // re-apply keymap, repeat info, and libinput settings to all input devices
     server::input_reconfigure(s);

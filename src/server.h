@@ -16,6 +16,7 @@
 #pragma once
 
 #include "config.h"
+#include "theme.h"
 
 #include <wayland-server-core.h>
 #include <wlr/backend.h>
@@ -184,6 +185,7 @@ class server {
     wl_event_source* indicator_timer;
 
     config cfg;
+    theme wm_theme;
     char config_path[512];
 
     static bool init(server* s);

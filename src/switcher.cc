@@ -15,6 +15,7 @@
 
 #include "wlr.h"
 
+#include <cstring>
 #include <vector>
 
 #include <cairo/cairo.h>
@@ -23,6 +24,7 @@
 #include "paint.h"
 #include "server.h"
 #include "switcher.h"
+#include "theme.h"
 #include "view.h"
 
 using namespace steppewm;
@@ -100,8 +102,12 @@ void switcher::render() const {
         // row y height
         int row_y = SWITCHER_PAD + i * (SWITCHER_ROW_H + SWITCHER_PAD);
 
-        // highlight the selected row like an active taskbar button
-        float* row_bg = (size_t) i == selected_ ? cfg->color_task_active : cfg->color_task_normal;
+        float row_bg[4];
+        if ((size_t) i == selected_) {
+            theme::lighten(bg, row_bg, 0.25f);
+        } else {
+            memcpy(row_bg, cfg->color_task_normal, sizeof(row_bg));
+        }
         cairo_set_source_rgba(cr, row_bg[0], row_bg[1], row_bg[2], row_bg[3]);
         cairo_rectangle(cr, SWITCHER_PAD, row_y, w - 2 * SWITCHER_PAD, SWITCHER_ROW_H);
         cairo_fill(cr);
@@ -116,7 +122,7 @@ void switcher::render() const {
         cairo_rectangle(cr, SWITCHER_PAD, row_y, w - 2 * SWITCHER_PAD, SWITCHER_ROW_H);
         cairo_clip(cr);
 
-        cairo_select_font_face(cr, "sans-serif", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
+        cairo_select_font_face(cr, cfg->font, CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
         cairo_set_font_size(cr, font_size);
         float* fg = cfg->color_task_text;
         cairo_set_source_rgba(cr, fg[0], fg[1], fg[2], fg[3]);
