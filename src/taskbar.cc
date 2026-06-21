@@ -334,7 +334,7 @@ wlr_xdg_toplevel_icon_v1_buffer* taskbar::pick_icon_buffer(wlr_xdg_toplevel_icon
 void taskbar::render_button(struct wlr_scene_buffer* scene_buf, const char* text,
                             struct wlr_xdg_toplevel_icon_v1* icon, cairo_surface_t* fallback_icon,
                             bool pinned, int w, int h, float bg[4], float fg[4], bool is_task,
-                            bool is_active, bool is_minimized) {
+                            bool is_active, bool is_minimized, bool hovered) {
     paint::Canvas canvas(w, h);
     if (!canvas.valid()) {
         return;
@@ -342,7 +342,7 @@ void taskbar::render_button(struct wlr_scene_buffer* scene_buf, const char* text
     cairo_t* cr = canvas.cr();
 
     if (is_task) {
-        srv_->wm_theme.paint_task_button(cr, w, h, is_active, is_minimized, bg);
+        srv_->wm_theme.paint_task_button(cr, w, h, is_active, is_minimized, bg, hovered);
     } else {
         cairo_set_source_rgba(cr, bg[0], bg[1], bg[2], bg[3]);
         cairo_paint(cr);
@@ -1288,7 +1288,8 @@ void taskbar::layout() {
             paint::Canvas canvas(ws_button_w, button_h);
             if (canvas.valid()) {
                 cairo_t *cr = canvas.cr();
-                srv_->wm_theme.paint_workspace_button(cr, ws_button_w, button_h, ws_active, bg);
+                srv_->wm_theme.paint_workspace_button(cr, ws_button_w, button_h, ws_active, bg,
+                                                      i == hovered_ws_idx_);
                 float *fg = cfg->color_task_text;
                 cairo_select_font_face(cr, cfg->font, CAIRO_FONT_SLANT_NORMAL,
                                        CAIRO_FONT_WEIGHT_NORMAL);
@@ -1483,7 +1484,7 @@ void taskbar::layout() {
             const bool is_active = ds.btn->v == fv;
             render_button(ds.btn->label, title, ds.btn->v->icon, ds.btn->cached_icon,
                           ds.btn->v->pinned, button_w, button_h, bg, cfg->color_task_text, true,
-                          is_active, ds.btn->v->minimized);
+                          is_active, ds.btn->v->minimized, slot_hovered);
             cx += button_w + pad;
         } else if (ds.pin_idx >= 0) { // launcher with no running app
             ds.x = cx;
@@ -1502,7 +1503,8 @@ void taskbar::layout() {
                     lighten_color(base_bg, pin_hover_bg);
                     bg = pin_hover_bg;
                 }
-                srv_->wm_theme.paint_task_button(cr, pin_button_w, button_h, false, false, bg);
+                srv_->wm_theme.paint_task_button(cr, pin_button_w, button_h, false, false, bg,
+                                                 slot_hovered);
 
                 cairo_surface_t* icon_surf = ds.pin_idx < static_cast<int>(pin_icons_.size())
                                                  ? pin_icons_[ds.pin_idx]

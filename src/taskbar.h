@@ -82,7 +82,7 @@ class taskbar {
                        struct wlr_xdg_toplevel_icon_v1 *icon,
                        struct _cairo_surface *fallback_icon, bool pinned, int w, int h,
                        float bg[4], float fg[4], bool is_task = false, bool is_active = false,
-                       bool is_minimized = false);
+                       bool is_minimized = false, bool hovered = false);
 
     void render_clock();
     void render_battery();

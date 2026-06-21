@@ -33,6 +33,10 @@
   <component name="ChangeListManager">
     <list default="true" id="fe9dad27-3720-49d7-9f5f-f6f2962f1612" name="Changes" comment="move LICENSE to COPYING">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/taskbar.cc" beforeDir="false" afterPath="$PROJECT_DIR$/src/taskbar.cc" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/taskbar.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/taskbar.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/theme.cc" beforeDir="false" afterPath="$PROJECT_DIR$/src/theme.cc" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/theme.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/theme.h" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -246,6 +250,7 @@
       <workItem from="1781887443980" duration="2842000" />
       <workItem from="1781925043484" duration="7790000" />
       <workItem from="1781934888235" duration="1634000" />
+      <workItem from="1781999378718" duration="1165000" />
     </task>
     <task id="LOCAL-00053" summary="move methods to classes">
       <option name="closed" value="true" />

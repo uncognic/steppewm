@@ -183,7 +183,8 @@ static void stretch_surface(cairo_t *cr, cairo_surface_t *surf, const int w, con
 }
 
 void theme::paint_task_button(cairo_t *cr, const int w, const int h, const bool active,
-                              const bool minimized, const float *fallback) const {
+                              const bool minimized, const float *fallback,
+                              const bool hovered) const {
     cairo_surface_t *pixmap = nullptr;
     if (active && taskbutton_active_) {
         pixmap = taskbutton_active_;
@@ -195,6 +196,10 @@ void theme::paint_task_button(cairo_t *cr, const int w, const int h, const bool 
 
     if (pixmap) {
         stretch_surface(cr, pixmap, w, h);
+        if (hovered) {
+            cairo_set_source_rgba(cr, 1.0, 1.0, 1.0, 0.15);
+            cairo_paint(cr);
+        }
     } else {
         cairo_set_source_rgba(cr, fallback[0], fallback[1], fallback[2], fallback[3]);
         cairo_paint(cr);
@@ -202,10 +207,14 @@ void theme::paint_task_button(cairo_t *cr, const int w, const int h, const bool 
 }
 
 void theme::paint_workspace_button(cairo_t *cr, const int w, const int h, const bool active,
-                                   const float *fallback) const {
+                                   const float *fallback, const bool hovered) const {
     cairo_surface_t *pixmap = active ? workspace_button_active_ : workspace_button_;
     if (pixmap) {
         stretch_surface(cr, pixmap, w, h);
+        if (hovered) {
+            cairo_set_source_rgba(cr, 1.0, 1.0, 1.0, 0.15);
+            cairo_paint(cr);
+        }
     } else {
         cairo_set_source_rgba(cr, fallback[0], fallback[1], fallback[2], fallback[3]);
         cairo_paint(cr);
@@ -451,6 +460,11 @@ void theme::paint_button(cairo_t *cr, const int w, const int h, const int type,
         cairo_set_source_surface(cr, pixmap, 0, 0);
         cairo_paint(cr);
         cairo_restore(cr);
+        if (hovered && !ps.hover) {
+            cairo_set_source_rgba(cr, 1.0, 1.0, 1.0, 0.15);
+            cairo_rectangle(cr, dx, dy, pw * scale, ph * scale);
+            cairo_fill(cr);
+        }
         return;
     }
 

@@ -70,10 +70,10 @@ namespace steppewm {
                               const float *accent) const;
 
         void paint_task_button(cairo_t *cr, int w, int h, bool active, bool minimized,
-                               const float *fallback) const;
+                               const float *fallback, bool hovered = false) const;
 
         void paint_workspace_button(cairo_t *cr, int w, int h, bool active,
-                                    const float *fallback) const;
+                                    const float *fallback, bool hovered = false) const;
 
         void paint_tray_bg(cairo_t *cr, int w, int h, const float *fallback) const;
 
