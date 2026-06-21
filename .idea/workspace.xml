@@ -31,12 +31,8 @@
     </configurations>
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="fe9dad27-3720-49d7-9f5f-f6f2962f1612" name="Changes" comment="move LICENSE to COPYING">
+    <list default="true" id="fe9dad27-3720-49d7-9f5f-f6f2962f1612" name="Changes" comment="hover pixmaps">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/taskbar.cc" beforeDir="false" afterPath="$PROJECT_DIR$/src/taskbar.cc" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/taskbar.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/taskbar.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/theme.cc" beforeDir="false" afterPath="$PROJECT_DIR$/src/theme.cc" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/theme.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/theme.h" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -250,15 +246,7 @@
       <workItem from="1781887443980" duration="2842000" />
       <workItem from="1781925043484" duration="7790000" />
       <workItem from="1781934888235" duration="1634000" />
-      <workItem from="1781999378718" duration="1165000" />
-    </task>
-    <task id="LOCAL-00053" summary="move methods to classes">
-      <option name="closed" value="true" />
-      <created>1781052834060</created>
-      <option name="number" value="00053" />
-      <option name="presentableId" value="LOCAL-00053" />
-      <option name="project" value="LOCAL" />
-      <updated>1781052834061</updated>
+      <workItem from="1781999378718" duration="1509000" />
     </task>
     <task id="LOCAL-00054" summary="wlr-data-control">
       <option name="closed" value="true" />
@@ -644,7 +632,15 @@
       <option name="project" value="LOCAL" />
       <updated>1781937528429</updated>
     </task>
-    <option name="localTasksCounter" value="102" />
+    <task id="LOCAL-00102" summary="hover pixmaps">
+      <option name="closed" value="true" />
+      <created>1782009767287</created>
+      <option name="number" value="00102" />
+      <option name="presentableId" value="LOCAL-00102" />
+      <option name="project" value="LOCAL" />
+      <updated>1782009767287</updated>
+    </task>
+    <option name="localTasksCounter" value="103" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -668,7 +664,6 @@
     </option>
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="add volume_middle_button action" />
     <MESSAGE value="add hover button effects" />
     <MESSAGE value="fix flatpak app icon lookup" />
     <MESSAGE value="show OSD when layout changed" />
@@ -693,7 +688,8 @@
     <MESSAGE value="&quot;Theming&quot;" />
     <MESSAGE value="make taskbar indicators use task button pixmaps when available" />
     <MESSAGE value="move LICENSE to COPYING" />
-    <option name="LAST_COMMIT_MESSAGE" value="move LICENSE to COPYING" />
+    <MESSAGE value="hover pixmaps" />
+    <option name="LAST_COMMIT_MESSAGE" value="hover pixmaps" />
     <option name="REFORMAT_BEFORE_PROJECT_COMMIT" value="true" />
   </component>
 </project>
