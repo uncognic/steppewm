@@ -21,6 +21,7 @@
 #include <wayland-server-core.h>
 #include <wlr/backend.h>
 #include <wlr/backend/session.h>
+struct wlr_tablet_manager_v2;
 #include <wlr/render/allocator.h>
 #include <wlr/render/wlr_renderer.h>
 #include <wlr/types/wlr_compositor.h>
@@ -144,6 +145,11 @@ class server {
     struct wlr_pointer_constraint_v1* active_constraint;
     struct wl_listener new_constraint;
 
+    // tablet support
+    struct wlr_tablet_manager_v2 *tablet_mgr;
+    struct wl_list tablet_tools;
+    struct wl_list tablet_pads;
+
     // idle
     struct wlr_idle_notifier_v1* idle_notifier;
     struct wlr_idle_inhibit_manager_v1* idle_inhibit_mgr;
@@ -199,7 +205,9 @@ class server {
     static void spawn(const char* cmd);
     static void dispatch_action(server* s, const char* action, const char* arg, uint32_t mods);
 
-  private:
+    static void process_cursor_motion(server *s, uint32_t time_msec);
+
+private:
     static void start_xwayland();
     static int find_free_x_display();
     static view* focused_view(server* s);
@@ -211,7 +219,6 @@ class server {
     static void on_cursor_frame(struct wl_listener* listener, void* data);
     static void process_cursor_move(server* s);
     static void process_cursor_resize(server* s);
-    static void process_cursor_motion(server* s, uint32_t time_msec);
     static void cursor_move_relative(server* s, struct wlr_input_device* device, double dx,
                                      double dy, double unaccel_dx, double unaccel_dy,
                                      uint32_t time_msec);

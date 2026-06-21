@@ -69,6 +69,7 @@ set(PROTOCOLS
         ${CMAKE_SOURCE_DIR}/protocol/wlr-layer-shell-unstable-v1.xml
         ${CMAKE_SOURCE_DIR}/protocol/wlr-output-power-management-unstable-v1.xml
         ${WL_PROTOCOL_DIR}/staging/tearing-control/tearing-control-v1.xml
+        ${WL_PROTOCOL_DIR}/stable/tablet/tablet-v2.xml
 )
 
 set(PROTOCOL_HEADERS)
@@ -104,6 +105,7 @@ add_executable(steppewm
         src/osd.cc
         src/volume.cc
         src/tray.cc
+        src/tablet.cc
 )
 
 add_dependencies(steppewm protocols)

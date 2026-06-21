@@ -31,6 +31,7 @@
 #include "output.h"
 #include "server.h"
 #include "switcher.h"
+#include "tablet.h"
 #include "taskbar.h"
 #include "tray.h"
 #include "view.h"
@@ -461,6 +462,12 @@ void server::on_new_input(struct wl_listener* listener, void* data) {
             break;
         case WLR_INPUT_DEVICE_SWITCH:
             switch_device::create(s, device);
+            break;
+        case WLR_INPUT_DEVICE_TABLET:
+            tablet_tool::create(s, device);
+            break;
+        case WLR_INPUT_DEVICE_TABLET_PAD:
+            tablet_pad::create(s, device);
             break;
         default:
             break;

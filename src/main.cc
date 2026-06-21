@@ -29,6 +29,7 @@
 #include "osd.h"
 #include "output.h"
 #include "server.h"
+#include "tablet.h"
 #include "taskbar.h"
 #include "tray.h"
 #include "view.h"
@@ -169,6 +170,10 @@ bool server::init(server* s) {
     pointer_constraint::init(s);
     idle_inhibitor::init(s);
     session_lock::init(s);
+
+    s->tablet_mgr = wlr_tablet_v2_create(s->display);
+    wl_list_init(&s->tablet_tools);
+    wl_list_init(&s->tablet_pads);
 
     return true;
 }
