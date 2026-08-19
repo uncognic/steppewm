@@ -16,7 +16,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
-            cmake ninja-build pkg-config \
+            meson ninja-build pkg-config \
             libwlroots-0.19-dev \
             wayland-protocols \
             libwayland-dev \
@@ -27,7 +27,18 @@ jobs:
             liblua5.4-dev \
             libpulse-dev \
             libsdbus-c++-dev \
-            librsvg2-dev
+            librsvg2-dev \
+            dbus
 
       - name: Build
         run: make configure build
+
+      - name: Smoke test (headless)
+        run: |
+          export XDG_RUNTIME_DIR="$(mktemp -d)"
+          export WLR_BACKENDS=headless
+          export WLR_RENDERER=pixman
+          export WLR_LIBINPUT_NO_DEVICES=1
+          dbus-run-session -- timeout 15 ./build/steppewm > smoke.log 2>&1 || true
+          cat smoke.log
+          grep -q 'running on wayland' smoke.log

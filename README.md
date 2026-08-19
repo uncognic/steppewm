@@ -24,9 +24,10 @@ A minimal stacking Wayland compositor using wlroots
 
 Required:
 
-- CMake
+- Meson
+- Ninja
 - Make
-- wlroots 0.19
+- wlroots 0.20, 0.19 or 0.18
 - wayland
 - xkbcommon
 - libinput

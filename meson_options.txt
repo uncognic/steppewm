@@ -1,0 +1,6 @@
+option('pulse', type: 'feature', value: 'auto',
+	description: 'Volume control and volume OSD via libpulse')
+option('sdbus', type: 'feature', value: 'auto',
+	description: 'System tray (StatusNotifierItem) via sdbus-c++')
+option('rsvg', type: 'feature', value: 'auto',
+	description: 'SVG icon rendering via librsvg')
