@@ -16,6 +16,7 @@
 #include "wlr.h" // must be first
 
 #include "input.h"
+#include "osd.h"
 #include "output.h"
 #include "server.h"
 #include "switcher.h"
@@ -115,6 +116,12 @@ void view::workspace_switch(server* s, int workspace) {
 
     // redraw taskbars so the active workspace and window list update
     taskbar::refresh_taskbars(s);
+
+    if (s->osd_overlay) {
+        char text[32];
+        snprintf(text, sizeof(text), "Workspace %d", workspace + 1);
+        s->osd_overlay->show(text);
+    }
 }
 
 // move a window to another workspace
