@@ -9,7 +9,7 @@ A minimal stacking Wayland compositor, using wlroots.
 If you want windows that float and overlap, with titlebars you can drag and a
 taskbar along the bottom, like IceWM, there is not much to pick from.
 
-steppewm. Stacking, small and themeable
+That's steppewm. Stacking, small and themeable
 
 ## Features
 
