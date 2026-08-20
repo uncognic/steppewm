@@ -4,13 +4,12 @@
 
 # steppewm
 
-A minimal stacking Wayland compositor using wlroots.
+A minimal stacking Wayland compositor, using wlroots.
 
-Nearly every Wayland compositor is a tiling one: sway, river, Hyprland, dwl,
-niri. If you want windows that float and overlap, with titlebars you can drag
-and a taskbar along the bottom, like IceWM, there is not much to pick from.
+If you want windows that float and overlap, with titlebars you can drag and a
+taskbar along the bottom, like IceWM, there is not much to pick from.
 
-steppewm is that. Stacking, small, themeable, configured in one Lua file.
+steppewm. Stacking, small and themeable
 
 ## Features
 
