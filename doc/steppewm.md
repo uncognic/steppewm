@@ -266,6 +266,28 @@ rendered decorations. Supported filenames:
   `taskbutton_minimized.png`, `workspace.png`, `workspace_active.png`,
   `tray_bg.png`, `indicator_bg.png`
 
+### Converting IceWM themes
+
+The bundled themes were converted from IceWM. `tools/icewm2steppewm.py` does
+the conversion. It needs Pillow.
+
+To convert every IceWM theme installed on the system:
+
+```
+tools/icewm2steppewm.py --all
+```
+
+This reads `/usr/share/icewm/themes/` and writes each one to
+`~/.config/steppewm/themes/<name>/`. A single theme, optionally to a specific
+output directory:
+
+```
+tools/icewm2steppewm.py ~/.icewm/themes/YourTheme [output-dir]
+```
+
+It parses `default.theme` for the colors, copies the pixmaps across, and
+writes a `theme.lua` alongside them.
+
 ## Limits
 
 There are some hardcoded limits: 128 key bindings, 16 switch bindings,
