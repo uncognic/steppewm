@@ -109,6 +109,7 @@ end
 
 -- taskbar
 -- taskbar_all_outputs = true
+-- taskbar_position = "top"   -- "bottom" (default) or "top"
 -- taskbar_all_workspaces = true
 -- taskbar_button_width = 200
 -- taskbar_button_pad = 2

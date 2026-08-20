@@ -158,7 +158,7 @@ void theme::tile_surface(cairo_t *cr, cairo_surface_t *surf, const int w, const 
 }
 
 void theme::paint_taskbar_bg(cairo_t *cr, const int w, const int h, const float *fallback,
-                             const float *accent) const {
+                             const float *accent, const bool accent_bottom) const {
     if (taskbar_bg_) {
         tile_surface(cr, taskbar_bg_, w, h);
     } else {
@@ -167,7 +167,7 @@ void theme::paint_taskbar_bg(cairo_t *cr, const int w, const int h, const float 
     }
     if (accent && accent[3] > 0.0f) {
         cairo_set_source_rgba(cr, accent[0], accent[1], accent[2], accent[3]);
-        cairo_rectangle(cr, 0, 0, w, 1);
+        cairo_rectangle(cr, 0, accent_bottom ? h - 1 : 0, w, 1);
         cairo_fill(cr);
     }
 }

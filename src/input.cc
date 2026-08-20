@@ -678,31 +678,32 @@ static snap_detect detect_snap(server* s) {
         return r;
     }
 
-    const int usable_h = ob.height - output::taskbar_height(s, wlr_out);
-    const int half_w = ob.width / 2;
+    const wlr_box ua = output::usable_area(s, wlr_out);
+    const int usable_h = ua.height;
+    const int half_w = ua.width / 2;
     const int half_h = usable_h / 2;
 
     if (at_left && at_top) {
         r.edge = snap_edge::TOP_LEFT;
-        r.zone = {ob.x, ob.y, half_w, half_h};
+        r.zone = {ua.x, ua.y, half_w, half_h};
     } else if (at_right && at_top) {
         r.edge = snap_edge::TOP_RIGHT;
-        r.zone = {ob.x + half_w, ob.y, ob.width - half_w, half_h};
+        r.zone = {ua.x + half_w, ua.y, ua.width - half_w, half_h};
     } else if (at_left && at_bottom) {
         r.edge = snap_edge::BOTTOM_LEFT;
-        r.zone = {ob.x, ob.y + half_h, half_w, usable_h - half_h};
+        r.zone = {ua.x, ua.y + half_h, half_w, usable_h - half_h};
     } else if (at_right && at_bottom) {
         r.edge = snap_edge::BOTTOM_RIGHT;
-        r.zone = {ob.x + half_w, ob.y + half_h, ob.width - half_w, usable_h - half_h};
+        r.zone = {ua.x + half_w, ua.y + half_h, ua.width - half_w, usable_h - half_h};
     } else if (at_left) {
         r.edge = snap_edge::LEFT;
-        r.zone = {ob.x, ob.y, half_w, usable_h};
+        r.zone = {ua.x, ua.y, half_w, usable_h};
     } else if (at_right) {
         r.edge = snap_edge::RIGHT;
-        r.zone = {ob.x + half_w, ob.y, ob.width - half_w, usable_h};
+        r.zone = {ua.x + half_w, ua.y, ua.width - half_w, usable_h};
     } else if (at_top) {
         r.maximize = true;
-        r.zone = {ob.x, ob.y, ob.width, usable_h};
+        r.zone = {ua.x, ua.y, ua.width, usable_h};
     }
     return r;
 }

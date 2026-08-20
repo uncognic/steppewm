@@ -58,6 +58,7 @@ class output {
     static void reconfigure_all(server* s);
     static void broadcast_output_config(server* s);
     static int taskbar_height(server* s, const struct wlr_output* wlr_out);
+    static struct wlr_box usable_area(server* s, struct wlr_output* wlr_out);
 
   private:
     static struct wlr_output_mode* pick_mode(struct wlr_output* wlr_output,

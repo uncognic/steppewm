@@ -441,6 +441,7 @@ void config::set_defaults() {
     color_minimize_hover[3] = 0.0f;
 
     taskbar_h = 24;
+    taskbar_position = taskbar_pos::bottom;
     taskbar_all_outputs = false;
     taskbar_all_workspaces = false;
     taskbar_button_w = 150;
@@ -563,6 +564,13 @@ void config::read_visual(lua_State *L) {
     read_bool(L, "center_title_text", &center_title_text);
     read_bool(L, "buttons_left", &buttons_left);
     read_int(L, "taskbar_height", &taskbar_h);
+    char bar_pos[16] = "";
+    read_string(L, "taskbar_position", bar_pos, sizeof(bar_pos));
+    if (strcmp(bar_pos, "top") == 0) {
+        taskbar_position = taskbar_pos::top;
+    } else if (strcmp(bar_pos, "bottom") == 0) {
+        taskbar_position = taskbar_pos::bottom;
+    }
     read_int(L, "taskbar_button_width", &taskbar_button_w);
     read_int(L, "taskbar_button_pad", &taskbar_button_pad);
     read_color(L, "taskbar_bg", color_taskbar_bg);

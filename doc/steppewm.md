@@ -198,6 +198,7 @@ the active color on hover.
 ## Taskbar
 
 ```lua
+taskbar_position = "bottom"  -- or top
 taskbar_height = 24          -- px
 taskbar_button_width = 150   -- max button width, px
 taskbar_button_pad = 2       -- padding between buttons, px

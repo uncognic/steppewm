@@ -67,7 +67,7 @@ namespace steppewm {
                           const char *style) const;
 
         void paint_taskbar_bg(cairo_t *cr, int w, int h, const float *fallback,
-                              const float *accent) const;
+                              const float *accent, bool accent_bottom) const;
 
         void paint_task_button(cairo_t *cr, int w, int h, bool active, bool minimized,
                                const float *fallback, bool hovered = false) const;

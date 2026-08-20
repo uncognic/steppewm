@@ -211,12 +211,11 @@ void view::snap_to(const snap_edge edge) {
         return;
     }
 
-    wlr_box out;
-    wlr_output_layout_get_box(s->output_layout, wlr_out, &out);
+    const wlr_box out = output::usable_area(s, wlr_out);
 
     const auto ox = decoration_mode == deco_mode::SERVER ? s->cfg.border_w : 0;
     const auto oy = decoration_mode == deco_mode::SERVER ? s->cfg.title_h : 0;
-    const auto usable_h = out.height - output::taskbar_height(s, wlr_out);
+    const auto usable_h = out.height;
     const auto half_w = out.width / 2;
     const auto half_h = usable_h / 2;
 
@@ -344,10 +343,8 @@ void view::place(view* v) {
         return;
     }
 
-    // usable area is output box minus the taskbar at the bottom
-    struct wlr_box area;
-    wlr_output_layout_get_box(s->output_layout, wlr_out, &area);
-    area.height -= output::taskbar_height(s, wlr_out);
+    // output box minus the taskbar, wherever the taskbar is
+    struct wlr_box area = output::usable_area(s, wlr_out);
     if (area.height < 0) {
         area.height = 0;
     }
@@ -648,21 +645,21 @@ void view::apply_state(view* v, bool maximized, bool fullscreen) {
             // find output under cursor otherwise use the current output of the window
             wlr_out = wlr_output_layout_output_at(s->output_layout, node->x, node->y);
         }
-        struct wlr_box out_box;
-
-        wlr_output_layout_get_box(s->output_layout, wlr_out, &out_box);
-        wlr_scene_node_set_position(node, out_box.x, out_box.y);
-
         if (fullscreen) {
+            // fullscreen covers the taskbar, so it gets the whole output
+            struct wlr_box out_box;
+            wlr_output_layout_get_box(s->output_layout, wlr_out, &out_box);
+            wlr_scene_node_set_position(node, out_box.x, out_box.y);
             wlr_scene_node_set_position(&v->xdg_tree->node, 0, 0);
             wlr_xdg_toplevel_set_size(v->toplevel, out_box.width, out_box.height);
         } else {
+            // maximized stops at the taskbar, and starts below it if the bar is at the top
+            const wlr_box work = output::usable_area(s, wlr_out);
             int ox = v->decoration_mode == deco_mode::SERVER ? s->cfg.border_w : 0;
             int oy = v->decoration_mode == deco_mode::SERVER ? s->cfg.title_h : 0;
+            wlr_scene_node_set_position(node, work.x, work.y);
             wlr_scene_node_set_position(&v->xdg_tree->node, ox, oy);
-            wlr_xdg_toplevel_set_size(v->toplevel, out_box.width - 2 * ox,
-                                      out_box.height - oy - ox -
-                                          output::taskbar_height(s, wlr_out));
+            wlr_xdg_toplevel_set_size(v->toplevel, work.width - 2 * ox, work.height - oy - ox);
         }
 
         // restore state if we are exiting

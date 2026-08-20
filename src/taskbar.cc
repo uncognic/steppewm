@@ -1233,9 +1233,12 @@ void taskbar::layout() {
     if (bg_rendered_w_ != width_ || bg_rendered_h_ != height_) {
         paint::Canvas canvas(width_, height_);
         if (canvas.valid()) {
+            // the accent line marks the edge facing the windows, so it moves
+            // to the bottom when the bar is at the top
             srv_->wm_theme.paint_taskbar_bg(canvas.cr(), width_, height_,
                                             srv_->cfg.color_taskbar_bg,
-                                            srv_->cfg.color_taskbar_accent);
+                                            srv_->cfg.color_taskbar_accent,
+                                            srv_->cfg.taskbar_position == taskbar_pos::top);
             canvas.commit(background_);
         }
         bg_rendered_w_ = width_;
@@ -1660,7 +1663,7 @@ void taskbar::update_geometry() {
     x_ = box.x;
     width_ = box.width;
     height_ = srv_->cfg.taskbar_h;
-    y_ = box.y + box.height - height_;
+    y_ = srv_->cfg.taskbar_position == taskbar_pos::top ? box.y : box.y + box.height - height_;
 
     wlr_scene_node_set_position(&tree_->node, x_, y_);
     layout();

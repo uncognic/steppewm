@@ -446,6 +446,19 @@ int output::taskbar_height(server* s, const struct wlr_output* wlr_out) {
     return 0;
 }
 
+// the part of an output a normal window may occupy: the output box minus thetaskbar
+struct wlr_box output::usable_area(server* s, struct wlr_output* wlr_out) {
+    struct wlr_box box;
+    wlr_output_layout_get_box(s->output_layout, wlr_out, &box);
+
+    const int bar = taskbar_height(s, wlr_out);
+    box.height -= bar;
+    if (s->cfg.taskbar_position == taskbar_pos::top) {
+        box.y += bar;
+    }
+    return box;
+}
+
 void output::broadcast_output_config(server* s) {
     wlr_output_configuration_v1* config = wlr_output_configuration_v1_create();
 

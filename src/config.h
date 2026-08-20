@@ -43,6 +43,7 @@ class keybind {
     char arg[CFG_MAX_ARG];
 };
 
+enum class taskbar_pos : uint8_t { bottom, top };
 enum class switch_type : uint8_t { lid, tablet_mode };
 enum class switch_state : uint8_t { on, off };
 
@@ -142,6 +143,7 @@ class config {
     bool buttons_left;
 
     int taskbar_h;
+    taskbar_pos taskbar_position;
     bool taskbar_all_outputs;
     bool taskbar_all_workspaces;
     float color_taskbar_bg[4];
