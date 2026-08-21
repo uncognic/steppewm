@@ -18,6 +18,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <getopt.h>
 #include <sys/stat.h>
 #include <unistd.h>
 
@@ -364,8 +365,68 @@ void server::fini(server* s) {
     wl_display_destroy(s->display);
 }
 
+static void print_usage(const char* argv0, FILE* out) {
+    fprintf(out,
+            "Usage: %s [options]\n"
+            "\n"
+            "  -c, --config PATH  read config from PATH instead of the default\n"
+            "  -v, --version      print version information and exit\n"
+            "  -h, --help         print this message and exit\n",
+            argv0);
+}
+
+
+static void print_version() {
+    printf("steppewm %s\n", STEPPEWM_VERSION);
+    printf("wlroots %s\n", WLR_VERSION_STR);
+    printf("features:"
+#ifdef HAVE_LIBPULSE
+           " +libpulse"
+#else
+           " -libpulse"
+#endif
+#ifdef HAVE_SDBUS
+           " +sdbus"
+#else
+           " -sdbus"
+#endif
+#ifdef HAVE_LIBRSVG
+           " +librsvg"
+#else
+           " -librsvg"
+#endif
+           "\n");
+}
+
 // entry
 int main(int argc, char* argv[]) {
+    const char* cli_config_path = nullptr;
+
+    static const struct option long_opts[] = {
+        {"config", required_argument, nullptr, 'c'},
+        {"version", no_argument, nullptr, 'v'},
+        {"help", no_argument, nullptr, 'h'},
+        {nullptr, 0, nullptr, 0},
+    };
+
+    int opt;
+    while ((opt = getopt_long(argc, argv, "c:vh", long_opts, nullptr)) != -1) {
+        switch (opt) {
+            case 'c':
+                cli_config_path = optarg;
+                break;
+            case 'v':
+                print_version();
+                return EXIT_SUCCESS;
+            case 'h':
+                print_usage(argv[0], stdout);
+                return EXIT_SUCCESS;
+            default:
+                print_usage(argv[0], stderr);
+                return EXIT_FAILURE;
+        }
+    }
+
     wlr_log_init(WLR_DEBUG, nullptr);
 
 #ifdef HAVE_LIBPULSE
@@ -391,20 +452,6 @@ int main(int argc, char* argv[]) {
 #if defined(__FreeBSD__) || defined(__DragonFly__)
     wlr_log(WLR_INFO, "steppewm on FreeBSD/DragonFlyBSD");
 #endif
-    const char* cli_config_path = nullptr;
-
-    int opt;
-    while ((opt = getopt(argc, argv, "c:")) != -1) {
-        switch (opt) {
-            case 'c':
-                cli_config_path = optarg;
-                break;
-            default:
-                fprintf(stderr, "Usage: %s [-c config_path]\n", argv[0]);
-                return EXIT_FAILURE;
-        }
-    }
-
     server srv = {};
     srv.cfg.set_defaults();
 

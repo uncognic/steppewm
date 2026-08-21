@@ -1,7 +1,7 @@
 project(
 	'steppewm',
 	'cpp',
-	version: '0.3.0',
+	version: '0.3.2',
 	license: 'GPL-3.0-or-later',
 	meson_version: '>= 1.0.0',
 	default_options: [
@@ -15,6 +15,7 @@ add_project_arguments(
 	[
 		'-DWLR_USE_UNSTABLE',
 		'-D_POSIX_C_SOURCE=200809L',
+		'-DSTEPPEWM_VERSION="@0@"'.format(meson.project_version()),
 	],
 	language: 'cpp',
 )

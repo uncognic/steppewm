@@ -24,6 +24,7 @@ extern "C" {
 #include <pixman.h>
 #include <wayland-server-core.h>
 #include <wlr/render/wlr_renderer.h>
+#include <wlr/version.h>
 #include <wlr/types/wlr_damage_ring.h>
 #include <wlr/types/wlr_linux_dmabuf_v1.h>
 #include <wlr/util/addon.h>
