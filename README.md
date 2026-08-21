@@ -1,6 +1,4 @@
-![steppewm running the icegil-korstro theme](img.png)
-
-*steppewm running the icegil-korstro theme*
+https://github.com/user-attachments/assets/b725f8ec-2785-4c7b-aae8-f222e49de065
 
 # steppewm
 
