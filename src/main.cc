@@ -212,7 +212,7 @@ void server::start_xwayland() {
 
 static void setup_portals() {
     const char* config_home = getenv("XDG_CONFIG_HOME");
-    char dir[512], path[512];
+    char dir[512], path[576];
     if (config_home) {
         snprintf(dir, sizeof(dir), "%s/xdg-desktop-portal", config_home);
     } else {

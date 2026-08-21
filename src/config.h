@@ -158,8 +158,8 @@ class config {
     int taskbar_button_w;
     int taskbar_button_pad;
 
-    char battery_path[128];
-    char backlight_path[128];
+    char battery_path[320];
+    char backlight_path[320];
     char brightness_scroll_up[CFG_MAX_CMD];
     char brightness_scroll_down[CFG_MAX_CMD];
     char volume_scroll_up[CFG_MAX_CMD];

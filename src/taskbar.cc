@@ -208,7 +208,7 @@ static cairo_surface_t* load_app_icon(const char* app_id, int target_size) {
     }
 
     ensure_data_dirs();
-    char path[512];
+    char path[1024];
 
     for (int di = 0; di < g_data_dirs.count; di++) {
         snprintf(path, sizeof(path), "%s/applications/%s.desktop", g_data_dirs.dirs[di], app_id);
@@ -503,7 +503,7 @@ bool bat_info::read_battery(const char* battery_path) {
         return false;
     }
 
-    char cap_path[256], status_path[256];
+    char cap_path[384], status_path[384];
     snprintf(cap_path, sizeof(cap_path), "%s/capacity", path);
     snprintf(status_path, sizeof(status_path), "%s/status", path);
 
@@ -693,7 +693,7 @@ static int read_brightness(const char* backlight_path) {
         return -1;
     }
 
-    char path[256];
+    char path[384];
     int cur = 0, max = 0;
 
     snprintf(path, sizeof(path), "%s/brightness", backlight_path);
@@ -1897,7 +1897,7 @@ void taskbar::init_monitors(server* s) {
         int ifd = inotify_init1(IN_CLOEXEC | IN_NONBLOCK);
 
         if (ifd >= 0) {
-            char path[256];
+            char path[384]; // backlight_path plus '/brightness'
             // watch this path for modifications
             snprintf(path, sizeof(path), "%s/brightness", s->cfg.backlight_path);
 
