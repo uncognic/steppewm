@@ -1,14 +1,11 @@
 https://github.com/user-attachments/assets/b725f8ec-2785-4c7b-aae8-f222e49de065
 
 # steppewm
+Stacking small wlroots window manager
 
-A minimal stacking Wayland compositor, using wlroots.
-
-If you want windows that float and overlap, with titlebars you can drag and a
-taskbar along the bottom, like IceWM, there is not much to pick from.
+If you want windows that float and overlap, with titlebars and a taskbar along like IceWM, there is not much to pick from.
 
 That's steppewm. Stacking, small and themeable
-
 ## Features
 
 - Stacking window management, snapping, workspaces
