@@ -31,6 +31,6 @@ pkgbase = steppewm
 	optdepends = wlopm: output power management
 	optdepends = wlrctl: window and input control from the shell
 	source = steppewm-0.3.3.tar.gz::https://github.com/uncognic/steppewm/archive/refs/tags/v0.3.3.tar.gz
-	b2sums = SKIP
+	b2sums = 162692a235ac41128043995a9bb3d6cb44a9a679c6c8000083eca473e1e8b9d951cd379c59a5374267481df3d517ec7e9cfa2abe491ca6d819403f2bb9d2c7db
 
 pkgname = steppewm
